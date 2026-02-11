@@ -53,7 +53,7 @@ potential_type = st.sidebar.selectbox(
 
 if st.sidebar.button("Initialize System"):
     # Create Potential
-    x = solver.engine.x.cpu().numpy().flatten()
+    x = solver.engine.x.detach().cpu().numpy().flatten()
     grid_size = len(x)
     V_np = np.zeros_like(x)
     
@@ -139,14 +139,14 @@ if st.session_state.V_x is not None:
     # Visualization
     if st.session_state.psi is not None:
         psi_np = st.session_state.psi[0].detach().cpu().numpy() # [L, 2]
-        x_np = solver.engine.x.cpu().numpy().flatten()
+        x_np = solver.engine.x.detach().cpu().numpy().flatten()
         
         # Density
         density = psi_np[:, 0]**2 + psi_np[:, 1]**2
         density = density / (np.sum(density) * solver.engine.dx.item()) # Normalize for plot
         
         # Potential (Scaled to fit plot)
-        pot_np = V_x[0].cpu().numpy().flatten()
+        pot_np = V_x[0].detach().cpu().numpy().flatten()
         
         # Phase (Angle)
         phase = np.arctan2(psi_np[:, 1], psi_np[:, 0])

@@ -51,29 +51,7 @@ class SchrodingerSolver:
         x_grid = self.engine.x.view(1, -1, 1).repeat(V_x.shape[0], 1, 1).to(self.device)
         psi = self.generator(x_grid)
         
-        # 2. Physics Loss (Hamiltonian Expectation)
-        energy_loss = self.engine.variational_energy_loss(lambda x: psi, self.engine.x, V_x) # simplified call
-        # Note: variational_energy_loss usually takes a function, but we can adapt it or pass tensor.
-        # Let's adapt the engine's method to accept tensor if possible, or computing it here:
-        
-        # Manual computation using engine helpers for tensor
-        k_psi = self.engine.kinetic_energy(lambda x: psi, self.engine.x) # This might need adaptation if autograd graph is complex
-        # Ideally we pass the generator as the "func" to allow autograd through the network weights
-        # But `kinetic_energy` uses `autograd.grad` which needs `x` leaf. 
-        # Our generator takes `x_grid`.
-        # To make `kinetic_energy` work on generator output, we need double-backprop.
-        # Since generator output is `psi`, we need d(psi)/dx.
-        
-        # FAST APPROXIMATION for Awake (Finite Difference) or Autograd if built correctly. 
-        # For simplicity in this solver script, let's assume we use finite difference for Laplacian 
-        # implementation inside `variational_energy_loss` OR use the engine's exact calculation.
-        
-        # Let's assume `engine.variational_energy_loss` computes gradient correctly on `psi` tensor w.r.t `x`? 
-        # No, `x` is fixed grid. We need gradients w.r.t `x`.
-        
-        # RE-IMPLEMENTING Physics Loss here for clarity using simple finite diff (High precision O(N))
-        # This is more stable for training than double-autograd on neural nets sometimes.
-        # T = -0.5 * d^2/dx^2
+        # 2. Physics Loss (Manual Finite Difference for stability)
         dx = self.engine.dx
         psi_real, psi_imag = psi[0, :, 0], psi[0, :, 1]
         

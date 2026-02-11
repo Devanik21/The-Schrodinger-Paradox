@@ -21,9 +21,9 @@ class QuantumPhysicsEngine(nn.Module):
         self.hbar = hbar
         self.mass = mass
         
-        # Create spatial grid
-        self.x = torch.linspace(self.x_min, self.x_max, self.grid_size, requires_grad=True).view(-1, 1)
-        self.dx = (self.x_max - self.x_min) / (self.grid_size - 1)
+        # Create spatial grid as a buffer to handle device placement
+        self.register_buffer('x', torch.linspace(self.x_min, self.x_max, self.grid_size).view(-1, 1))
+        self.register_buffer('dx', torch.tensor((self.x_max - self.x_min) / (self.grid_size - 1)))
         
     def kinetic_energy(self, psi_func, x):
         """
@@ -60,6 +60,10 @@ class QuantumPhysicsEngine(nn.Module):
         
         # To strictly use autograd for the Laplacian of a vector-valued function (psi_real, psi_imag):
         
+        # Ensure x requires grad for Laplacian calculation
+        if not x.requires_grad:
+            x = x.detach().requires_grad_(True)
+            
         psi = psi_func(x)
         # psi shape: [N, 2]
         
