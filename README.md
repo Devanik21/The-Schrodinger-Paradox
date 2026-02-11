@@ -1,1 +1,1 @@
-# The-Schrodinger-Paradox
+# The Schrödinger Dream 
