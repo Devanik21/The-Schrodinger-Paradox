@@ -35,7 +35,8 @@ st.markdown("""
 
 # --- Singleton State ---
 if 'solver' not in st.session_state:
-    st.session_state.solver = SchrodingerSolver(grid_size=256)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    st.session_state.solver = SchrodingerSolver(grid_size=256, device=device)
     st.session_state.V_x = None
     st.session_state.psi = None
     st.session_state.energy_history = []

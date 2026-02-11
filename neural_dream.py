@@ -141,7 +141,7 @@ class SymplecticSSMGenerator(nn.Module):
         
     def fourier_features(self, x):
         # x: [B, L, 1]
-        freqs = torch.pow(2.0, torch.arange(0, 8, device=x.device)) # 1, 2, 4... 128
+        freqs = torch.pow(2.0, torch.arange(0, 8, dtype=torch.float32, device=x.device)) # 1, 2, 4... 128
         args = x * freqs.view(1, 1, -1) * torch.pi
         return torch.cat([torch.sin(args), torch.cos(args)], dim=-1) # [B, L, 16]
 

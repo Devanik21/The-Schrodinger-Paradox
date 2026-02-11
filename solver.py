@@ -146,7 +146,7 @@ class SchrodingerSolver:
             
             # Euler Integration of Flow
             for t_scalar in np.arange(0, 1.0, dt):
-                t = torch.tensor([[t_scalar]], device=self.device).repeat(B, 1)
+                t = torch.tensor([[t_scalar]], dtype=torch.float32, device=self.device).repeat(B, 1)
                 vel = self.dreamer(t, psi, V_x)
                 psi = psi + vel * dt
                 

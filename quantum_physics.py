@@ -23,7 +23,7 @@ class QuantumPhysicsEngine(nn.Module):
         
         # Create spatial grid as a buffer to handle device placement
         self.register_buffer('x', torch.linspace(self.x_min, self.x_max, self.grid_size).view(-1, 1))
-        self.register_buffer('dx', torch.tensor((self.x_max - self.x_min) / (self.grid_size - 1)))
+        self.register_buffer('dx', torch.tensor((self.x_max - self.x_min) / (self.grid_size - 1), dtype=torch.float32))
         
     def kinetic_energy(self, psi_func, x):
         """
@@ -165,36 +165,29 @@ class QuantumPhysicsEngine(nn.Module):
             position: The collapsed measurement position x
         """
         # 1. Calculate Probability Density P(x) = |\psi(x)|^2
+        psi = psi.to(self.x.device)
         prob_density = psi[:, 0]**2 + psi[:, 1]**2
         prob_density = prob_density / (torch.sum(prob_density) * self.dx + 1e-8)
         
         # 2. Score Function S(x) = \nabla_x log P(x)
-        # Since we have discrete grid, we approximate gradient
         log_prob = torch.log(prob_density + 1e-10)
-        # Finite difference gradient for the score on the grid
         score = torch.zeros_like(log_prob)
-        score[1:-1] = (log_prob[2:] - log_prob[:-2]) / (2 * self.dx)
+        dx_val = self.dx.item()
+        score[1:-1] = (log_prob[2:] - log_prob[:-2]) / (2 * dx_val)
         
         # 3. Langevin Dynamics / Hamiltonian Monte Carlo simplification
-        # We start a 'particle' at a random spot weighted by P(x) roughly, 
-        # or just random uniform and let it flow to high prob regions
-        
-        # Simple Langevin: x_{t+1} = x_t + dt * Score(x_t) + sqrt(2*dt)*noise
-        # This samples exactly from P(x) as t -> infinity
-        
-        # Select random starting index
-        current_idx = torch.randint(0, self.grid_size, (1,)).item()
+        current_idx = torch.randint(0, self.grid_size, (1,), device=self.x.device).item()
         c_idx = current_idx
         
         for _ in range(steps):
-            s = score[c_idx]
+            s = score[c_idx].item()
             # Drift
             drift = s * dt
             # Diffusion
-            diffusion = torch.randn(1).item() * np.sqrt(2 * dt)
+            diffusion = np.random.normal() * np.sqrt(2 * dt)
             
             # Update index (continuous to discrete mapping)
-            shift = int((drift + diffusion) / self.dx)
+            shift = int((drift + diffusion) / dx_val)
             
             c_idx = max(0, min(self.grid_size - 1, c_idx + shift))
             
