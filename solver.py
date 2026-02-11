@@ -75,12 +75,18 @@ class SchrodingerSolver:
         
         loss = total_energy / (norm + 1e-8)
         
+        # Stability: Sanitize loss/grads
+        if torch.isnan(loss) or torch.isinf(loss):
+            self.opt_gen.zero_grad()
+            return 1e6 # Return high penalty
+            
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.generator.parameters(), 1.0)
         self.opt_gen.step()
         
         # Store in memory if converged (low variance proxy or just periodically)
         # For demo, store randomly with prob
-        if random.random() < 0.1:
+        if random.random() < 0.1 and not np.isnan(loss.item()):
             self.memory.append((V_x.detach().cpu(), psi.detach().cpu(), loss.item()))
             
         return loss.item()
@@ -127,7 +133,12 @@ class SchrodingerSolver:
         # 3. Loss (MSE - Fisher Divergence)
         loss = torch.mean((predicted_velocity - target_velocity)**2)
         
+        if torch.isnan(loss) or torch.isinf(loss):
+            self.opt_dream.zero_grad()
+            return 0.0
+            
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(self.dreamer.parameters(), 1.0)
         self.opt_dream.step()
         return loss.item()
 

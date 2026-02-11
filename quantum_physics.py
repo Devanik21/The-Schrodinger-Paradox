@@ -165,15 +165,17 @@ class QuantumPhysicsEngine(nn.Module):
             position: The collapsed measurement position x
         """
         # 1. Calculate Probability Density P(x) = |\psi(x)|^2
-        psi = psi.to(self.x.device)
+        psi = torch.nan_to_num(psi.to(self.x.device), nan=0.0, posinf=1.0, neginf=-1.0)
         prob_density = psi[:, 0]**2 + psi[:, 1]**2
         prob_density = prob_density / (torch.sum(prob_density) * self.dx + 1e-8)
+        prob_density = torch.clamp(prob_density, min=1e-12) # Prevent log(0)
         
         # 2. Score Function S(x) = \nabla_x log P(x)
-        log_prob = torch.log(prob_density + 1e-10)
+        log_prob = torch.log(prob_density)
         score = torch.zeros_like(log_prob)
         dx_val = self.dx.item()
         score[1:-1] = (log_prob[2:] - log_prob[:-2]) / (2 * dx_val)
+        score = torch.nan_to_num(score)
         
         # 3. Langevin Dynamics / Hamiltonian Monte Carlo simplification
         current_idx = torch.randint(0, self.grid_size, (1,), device=self.x.device).item()
@@ -187,8 +189,12 @@ class QuantumPhysicsEngine(nn.Module):
             diffusion = np.random.normal() * np.sqrt(2 * dt)
             
             # Update index (continuous to discrete mapping)
-            shift = int((drift + diffusion) / dx_val)
-            
+            # Safeguard NaN/Inf from s or noisy gradients
+            move = drift + diffusion
+            if not np.isfinite(move):
+                move = 0.0
+                
+            shift = int(move / dx_val)
             c_idx = max(0, min(self.grid_size - 1, c_idx + shift))
             
         return self.x[c_idx]

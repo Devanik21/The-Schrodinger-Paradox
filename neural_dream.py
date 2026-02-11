@@ -171,7 +171,7 @@ class SymplecticSSMGenerator(nn.Module):
         # Symplectic/Unitary Normalization
         psi = self.symplectic_norm(psi, dx=(x_grid[0,1,0]-x_grid[0,0,0]))
         
-        return psi
+        return torch.nan_to_num(psi)
 
 # ============================================================
 # 💤 DREAM ENGINE: HAMILTONIAN GENERATIVE FLOW (HGF)
