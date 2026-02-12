@@ -248,7 +248,7 @@ def plot_stigmergy_map(seed=None):
     grid = np.random.rand(size, size, 3) * 0.01
     
     # 2. High-Density Seeding (250+ points for that 'packed' look)
-    num_seeds = 200
+    num_seeds = 400
     for _ in range(num_seeds):
         ry, rx = np.random.randint(0, size, 2)
         # Random vibrant color with maxed saturation
