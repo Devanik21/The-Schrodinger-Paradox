@@ -295,7 +295,7 @@ class MetropolisSampler:
             self.step_size *= 1.05
         elif self.acceptance_rate < self.target_acceptance - 0.05:
             self.step_size *= 0.95
-        self.step_size = max(0.01, min(self.step_size, 5.0))  # Clamp
+        self.step_size = max(0.001, min(self.step_size, 0.1))  # Clamp: 2.0 is safer than 5.0
 
         return self.walkers, self.acceptance_rate
 

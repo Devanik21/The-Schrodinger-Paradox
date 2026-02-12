@@ -55,14 +55,16 @@ class StochasticReconfiguration:
     Tikhonov damping: S → S + λI with exponentially decaying λ.
     """
     def __init__(self, wavefunction, lr: float = 0.01,
-                 damping: float = 1e-3, damping_decay: float = 0.999,
-                 max_sr_params: int = 5000, use_kfac: bool = True):
+                 damping: float = 0.05, damping_decay: float = 0.95,  # Increased damping for stability
+                 max_sr_params: int = 5000, use_kfac: bool = True,
+                 max_norm: float = 0.5):  # Trust region: limit max parameter change
         self.wavefunction = wavefunction
         self.lr = lr
         self.damping = damping
         self.damping_decay = damping_decay
         self.max_sr_params = max_sr_params
         self.use_kfac = use_kfac
+        self.max_norm = max_norm
         self.step_count = 0
         
         self.n_params = sum(p.numel() for p in wavefunction.parameters() if p.requires_grad)
@@ -121,15 +123,21 @@ class StochasticReconfiguration:
         
         try:
             # Stability Surgery: Add jitter to S before solving
-            eps = 1e-5
-            S = S + eps * torch.eye(S.shape[0], device=self.device)
+            eps = 1e-4
+            S = S + eps * torch.eye(S.shape[0], device=S.device)
             delta_theta = torch.linalg.solve(S, f)
         except (torch.linalg.LinAlgError, RuntimeError):
             # Fallback to Tikhonov-regularized Pseudo-Inverse
-            eps_fallback = 1e-4
-            S_reg = S + eps_fallback * torch.eye(S.shape[0], device=self.device)
+            eps_fallback = 1e-3
+            S_reg = S + eps_fallback * torch.eye(S.shape[0], device=S.device)
             delta_theta = torch.matmul(torch.linalg.pinv(S_reg), f)
         
+        # Level 20: Trust Region Clipping
+        # Prevents "parameter explosions" that cause energy dive to -infinity
+        curr_norm = delta_theta.norm()
+        if curr_norm > self.max_norm:
+            delta_theta = delta_theta * (self.max_norm / (curr_norm + 1e-8))
+
         idx = 0
         with torch.no_grad():
             for p in params:
@@ -153,19 +161,33 @@ class StochasticReconfiguration:
                 continue
             
             grad_w = module.weight.grad.data.clone()
-            fisher_diag = grad_w ** 2 + damping
-            update = grad_w / fisher_diag
-            module.weight.data -= self.lr * update
-            grad_norm_total += update.norm().item() ** 2
+            fisher_diag_w = grad_w ** 2 + damping
+            update_w = grad_w / fisher_diag_w
+            grad_norm_total += update_w.norm().item() ** 2
             
+            update_b = None
             if module.bias is not None and module.bias.grad is not None:
                 grad_b = module.bias.grad.data.clone()
-                fisher_b = grad_b ** 2 + damping
-                update_b = grad_b / fisher_b
-                module.bias.data -= self.lr * update_b
+                fisher_diag_b = grad_b ** 2 + damping
+                update_b = grad_b / fisher_diag_b
                 grad_norm_total += update_b.norm().item() ** 2
+            
+            updates.append({'module': module, 'update_w': update_w, 'update_b': update_b})
         
-        return grad_norm_total ** 0.5
+        # KFAC Trust Region
+        phi = grad_norm_total ** 0.5
+        scale = 1.0
+        if phi > self.max_norm:
+            scale = self.max_norm / (phi + 1e-8)
+        
+        with torch.no_grad():
+            for item in updates:
+                module = item['module']
+                module.weight.data -= self.lr * scale * item['update_w']
+                if item['update_b'] is not None:
+                    module.bias.data -= self.lr * scale * item['update_b']
+
+        return phi
     
     def _diagonal_sr_update(self, log_psi, E_L, damping):
         E_centered = (E_L - E_L.mean()).detach()
@@ -572,12 +594,16 @@ class VMCSolver:
         # Let's re-run log_psi on the full set if memory allows, 
         # or use the optimizer's version of grad calculation.
         
-        # Stability Surgery: Protection
-        E_L = torch.nan_to_num(E_L, nan=0.0, posinf=100.0, neginf=-100.0)
-        E_mean = E_L.mean()
-        E_std = E_L.std() + 1e-8
-        clip_mask = (E_L - E_mean).abs() < 5 * E_std
-        E_L_clipped = torch.where(clip_mask, E_L, E_mean)
+        # Stability Surgery: Protection (Refined for Phase 4)
+        # We use median-based clipping to survive extreme outliers (e.g. 10^8 Energy)
+        E_L = torch.nan_to_num(E_L, nan=0.0, posinf=1e5, neginf=-1e5)
+        E_median = torch.median(E_L)
+        E_diff = (E_L - E_median).abs()
+        median_abs_deviation = torch.median(E_diff)
+        
+        # Robust clipping: median ± 5 * MAD
+        clip_width = 5.0 * median_abs_deviation + 1e-4
+        E_L_clipped = torch.clamp(E_L, min=E_median - clip_width, max=E_median + clip_width)
         
         # For the loss gradient below, we need log_psi with grad enabled on parameters
         # but NOT on walkers r. 
