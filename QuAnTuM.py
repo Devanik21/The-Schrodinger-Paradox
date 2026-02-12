@@ -377,7 +377,7 @@ page = st.selectbox(
      "⏰ TD-VMC (Level 15)",
      "🔷 Periodic Systems (Level 16)", "⚡ Spin-Orbit (Level 17)",
      "🔗 Entanglement (Level 18)", "🔬 Conservation Discovery (Level 19)",
-     "🎨 Latent Dream Memory 🖌️"],
+     "🎨 Latent Dream Memory 🖼️"],
     label_visibility="collapsed"
 )
 
@@ -1735,8 +1735,8 @@ elif page == "🔬 Conservation Discovery (Level 19)":
 # ============================================================
 # 🧠 COLLECTIVE MEMORY PAGE (Level 20)
 # ============================================================
-elif page == "🎨 Latent Dream Memory 🖌️":
-    st.title("🎨 Latent Dream Memory 🖌️")
+elif page == "🎨 Latent Dream Memory 🖼️":
+    st.title("🎨 Latent Dream Memory 🖼️")
     st.markdown("""
     **Stigmergy & Agent-Based Memory Convergence:**  
     These grids represent the 'Collective Memory' of agent clusters. 
@@ -1795,6 +1795,7 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
+
 
 
 
