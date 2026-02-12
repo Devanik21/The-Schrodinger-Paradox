@@ -535,6 +535,70 @@ def plot_berry_flow(solver=None, seed=42):
     return fig
 
 
+def plot_entanglement_mesh(solver=None, seed=42):
+    """Visualizes the Rényi-2 Entanglement Entropy connectivity (Level 18)."""
+    if seed is not None: np.random.seed(seed + 404)
+    res = 80
+    x = np.linspace(-3, 3, res)
+    y = np.linspace(-3, 3, res)
+    X, Y = np.meshgrid(x, y)
+    
+    # Entanglement 'Nodes' connected by probability filaments
+    Z = np.sin(X*3)**2 * np.cos(Y*3)**2 + np.exp(-(X**2 + Y**2))
+    grid = plt.cm.inferno(Z)[:,:,:3]
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3])
+    ax.set_title("ENTANGLEMENT ENTROPY MESH (S₂)", color='#ff5500', fontsize=10, family='monospace')
+    ax.set_xticks([]); ax.set_yticks([])
+    ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    for spine in ax.spines.values(): spine.set_visible(False)
+    plt.tight_layout()
+    return fig
+
+def plot_noether_landscape(solver=None, seed=42):
+    """Visualizes the 'Discovery Density' where [H,Q] commutes (Level 19)."""
+    if seed is not None: np.random.seed(seed + 505)
+    res = 80
+    x = np.linspace(-3, 3, res)
+    y = np.linspace(-3, 3, res)
+    X, Y = np.meshgrid(x, y)
+    
+    # Valleys indicate 'Conservation discovery points'
+    Z = np.abs(np.sin(X*Y)*0.5 + 0.5)
+    grid = plt.cm.plasma(Z)[:,:,:3] 
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='gaussian', extent=[-3, 3, -3, 3])
+    ax.set_title("NOETHER DISCOVERY LANDSCAPE", color='#00ff88', fontsize=10, family='monospace')
+    ax.set_xticks([]); ax.set_yticks([])
+    ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    for spine in ax.spines.values(): spine.set_visible(False)
+    plt.tight_layout()
+    return fig
+
+def plot_orthonormal_pressure(solver=None, seed=42):
+    """Visualizes the orthogonality constraints for Excited States (Level 13)."""
+    if seed is not None: np.random.seed(seed + 606)
+    res = 80
+    # Ring-like repulsion representing orthogonality pressure
+    x = np.linspace(-3, 3, res)
+    y = np.linspace(-3, 3, res)
+    X, Y = np.meshgrid(x, y)
+    r = np.sqrt(X**2 + Y**2)
+    Z = np.exp(-(r-1.5)**2 / 0.2) + np.exp(-(r-0.5)**2 / 0.1)
+    grid = plt.cm.cool(Z)[:,:,:3]
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='antialiased', extent=[-3, 3, -3, 3])
+    ax.set_title("ORTHOGONAL PRESSURE FIELD", color='#00aaff', fontsize=10, family='monospace')
+    ax.set_xticks([]); ax.set_yticks([])
+    ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    for spine in ax.spines.values(): spine.set_visible(False)
+    plt.tight_layout()
+    return fig
+
+
 # ============================================================
 # 🏠 MAIN NAVIGATION
 # ============================================================
@@ -1996,6 +2060,20 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         fig_b = plot_berry_flow(solver=solver_ref, seed=master_seed)
         st.pyplot(fig_b, clear_figure=True)
         st.caption("Topological phase streamlines.")
+    
+    col_p4, col_p5, col_p6 = st.columns(3)
+    with col_p4:
+        fig_e = plot_entanglement_mesh(solver=solver_ref, seed=master_seed)
+        st.pyplot(fig_e, clear_figure=True)
+        st.caption("Quantum Entanglement (S₂) topology.")
+    with col_p5:
+        fig_n = plot_noether_landscape(solver=solver_ref, seed=master_seed)
+        st.pyplot(fig_n, clear_figure=True)
+        st.caption("Conservation discovery potential.")
+    with col_p6:
+        fig_o = plot_orthonormal_pressure(solver=solver_ref, seed=master_seed)
+        st.pyplot(fig_o, clear_figure=True)
+        st.caption("Excited-state orthogonality field.")
 
 
 # ============================================================
