@@ -240,13 +240,14 @@ if st.session_state.show_plots:
 # ============================================================
 # 🧠 COLLECTIVE MEMORY HELPER (Meme Grids)
 # ============================================================
-def plot_stigmergy_map(seed=None):
+def plot_stigmergy_map(solver=None, seed=None):
     """
-    Level 20: The Final Meme Grid — Crunchy, dense, and multi-chromatic.
-    Final refinement: matching the pointillist 'Archive' look.
+    Level 20: The Final Meme Grid — Evolving with training steps.
     """
     if seed is not None:
-        np.random.seed(seed)
+        # Mix master seed with step count for 'slow evolution'
+        step = solver.step_count if solver else 0
+        np.random.seed(seed + (step // 5)) 
     
     size = 40
     # 1. Base 'Latent Dust' (Very faint multi-colored noise)
@@ -304,13 +305,14 @@ def plot_stigmergy_map(seed=None):
     return fig
 
 
-def plot_latent_bloom(seed=None):
+def plot_latent_bloom(solver=None, seed=None):
     """
     Level 20: 'The Stigmergy Painting' — Hazy, colorful, organic latent field.
-    Gaussian blooms and high-iteration diffusion for a dreamy look.
+    Evolves with training entropy.
     """
     if seed is not None:
-        np.random.seed(seed)
+        step = solver.step_count if solver else 0
+        np.random.seed(seed + (step // 10))
     
     res = 60
     grid = np.zeros((res, res, 3))
@@ -473,14 +475,16 @@ def plot_master_bloom(solver=None, seed=42):
 
 def plot_fisher_manifold(solver=None, seed=42):
     """Visualizes the curvature (Fisher Information) of the Hilbert space."""
-    if seed is not None: np.random.seed(seed + 101)
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 101 + (step // 5))
     res = 80
     x = np.linspace(-3, 3, res)
     y = np.linspace(-3, 3, res)
     X, Y = np.meshgrid(x, y)
     
-    # Interference of 4 waves representing 'Parameter Sensitivities'
-    Z = np.sin(X*2) * np.sin(Y*2) + np.cos((X+Y)*1.5)
+    # Phase shifts based on training steps
+    phase = (step % 100) / 50.0 * np.pi
+    Z = np.sin(X*2 + phase) * np.sin(Y*2) + np.cos((X+Y)*1.5 - phase)
     grid = plt.cm.magma( (Z - Z.min()) / (Z.max() - Z.min() + 1e-8) )[:,:,:3]
     
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -494,14 +498,17 @@ def plot_fisher_manifold(solver=None, seed=42):
 
 def plot_correlation_mesh(solver=None, seed=42):
     """Visualizes electron-electron correlation and exclusion zones."""
-    if seed is not None: np.random.seed(seed + 202)
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 202 + (step // 10))
     res = 80
     x = np.linspace(-3, 3, res)
     y = np.linspace(-3, 3, res)
     X, Y = np.meshgrid(x, y)
     
-    # 'Holes' representing Pauli exclusion
-    Z = 1.0 - (np.exp(-(X-1)**2 - (Y-1)**2) + np.exp(-(X+1)**2 - (Y+1)**2))
+    # Exclusion zones tighten as energy lowers
+    tightness = 1.0 + (min(step, 1000) / 500.0)
+    Z = 1.0 - (np.exp(-tightness*(X-1)**2 - tightness*(Y-1)**2) + 
+               np.exp(-tightness*(X+1)**2 - tightness*(Y+1)**2))
     grid = plt.cm.viridis(Z)[:,:,:3]
     
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -515,15 +522,17 @@ def plot_correlation_mesh(solver=None, seed=42):
 
 def plot_berry_flow(solver=None, seed=42):
     """Visualizes the complex phase and topological Berry flow."""
-    if seed is not None: np.random.seed(seed + 303)
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 303 + (step // 20))
     res = 40 
     x = np.linspace(-3, 3, res)
     y = np.linspace(-3, 3, res)
     X, Y = np.meshgrid(x, y)
     
-    # Vortex-like field
-    U = -Y / (X**2 + Y**2 + 0.1)
-    V = X / (X**2 + Y**2 + 0.1)
+    # Vortex strength evolves
+    flow_scale = 0.1 + (np.sin(step / 10.0) * 0.05)
+    U = -Y / (X**2 + Y**2 + flow_scale)
+    V = X / (X**2 + Y**2 + flow_scale)
     
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.streamplot(X, Y, U, V, color='#6600ff', linewidth=1, density=1.2)
@@ -2002,10 +2011,13 @@ elif page == "🎨 Latent Dream Memory 🖼️":
     
     all_cols = row1 + row2 + row3 + row4
     
+    # Render loops with solver access for dynamic evolution
+    solver_ref = st.session_state.solver_3d if st.session_state.solver_3d else None
+
     for i, col in enumerate(all_cols):
         with col:
             seed = master_seed + i
-            fig = plot_stigmergy_map(seed=seed)
+            fig = plot_stigmergy_map(solver=solver_ref, seed=seed)
             st.pyplot(fig, clear_figure=True)
             st.caption(f"Cluster Instance #{i+1} — Seed: {seed}")
 
@@ -2022,7 +2034,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
     for i, col in enumerate(all_bloom_cols):
         with col:
             seed = master_seed + 100 + i
-            fig_bloom = plot_latent_bloom(seed=seed)
+            fig_bloom = plot_latent_bloom(solver=solver_ref, seed=seed)
             st.pyplot(fig_bloom, clear_figure=True)
             st.caption(f"Latent Bloom Output #{i+1} — Seed: {seed}")
 
