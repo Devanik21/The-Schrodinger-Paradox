@@ -237,61 +237,59 @@ if st.session_state.show_plots:
 # ============================================================
 def plot_stigmergy_map(seed=None):
     """
-    Level 20: The Final Meme Grid — Crunchy, dense, and multi-chromatic.
-    Final refinement: matching the pointillist 'Archive' look.
+    Level 20: The Final Meme Grid — Hazy-Crunchy hybrid.
+    Final refinement: 10% more blur while maintaining the dense cluster structure.
     """
     if seed is not None:
         np.random.seed(seed)
     
     size = 40
-    # 1. Base 'Latent Dust' (Very faint multi-colored noise)
-    grid = np.random.rand(size, size, 3) * 0.12
+    # 1. Base 'Latent Dust'
+    grid = np.random.rand(size, size, 3) * 0.15
     
-    # 2. High-Density Seeding (250+ points for that 'packed' look)
-    num_seeds = 300
+    # 2. High-Density Seeding
+    num_seeds = 320
     for _ in range(num_seeds):
         ry, rx = np.random.randint(0, size, 2)
-        # Random vibrant color with maxed saturation
         color = np.random.rand(3)
         color = color / (np.max(color) + 1e-8)
-        
-        strength = 0.3 + np.random.rand() * 0.7
+        strength = 0.4 + np.random.rand() * 0.6
         grid[ry, rx] = np.clip(grid[ry, rx] + color * strength, 0, 1)
 
-    # 3. Micro-Diffusion (Creates 2x2 and 3x3 mini-clusters)
-    for _ in range(1):
-        # Very localized smear
-        grid = (grid + np.roll(grid, 1, axis=1) * 0.3 + np.roll(grid, 1, axis=0) * 0.2) / 1.5
+    # 3. Micro-Diffusion (Increased to 3 iterations for that 10% extra blur)
+    for _ in range(3):
+        grid = (grid + 
+                np.roll(grid, 1, axis=1) * 0.4 + 
+                np.roll(grid, -1, axis=1) * 0.4 + 
+                np.roll(grid, 1, axis=0) * 0.4 + 
+                np.roll(grid, -1, axis=0) * 0.4) / 2.6
 
-    # 4. 'Stigmergy Streaks' (Horizontal artifacts from the original)
-    for _ in range(15):
+    # 4. 'Stigmergy Streaks'
+    for _ in range(12):
         ry = np.random.randint(0, size)
-        rx = np.random.randint(0, size-5)
-        color = np.random.rand(3) * 0.5
-        grid[ry, rx:rx+np.random.randint(2, 6)] += color
+        rx = np.random.randint(0, size-8)
+        color = np.random.rand(3) * 0.6
+        grid[ry, rx:rx+np.random.randint(3, 9)] += color
 
     # 5. Final Aesthetic Polish
     grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
-    grid = np.clip(grid * 1.2, 0, 1)
-    grid = grid ** 1.1 # Rich contrast
+    grid = np.clip(grid * 1.3, 0, 1)
+    grid = grid ** 1.2
     
     fig, ax = plt.subplots(figsize=(6, 6))
-    # 'Nearest' is the key to the original 'crunchy' texture
-    ax.imshow(grid, origin='upper', interpolation='nearest')
+    # 'Bilinear' provides the requested subtle haze/blur over the 'nearest' grid
+    ax.imshow(grid, origin='upper', interpolation='bilinear')
     
-    # Matching the original title and placement exactly
-    ax.text(0, -1.5, "Global Knowledge (Meme Grid)", color='white', 
+    ax.text(0, -1.8, "Global Knowledge (Meme Grid)", color='white', 
             fontsize=12, fontweight='bold', ha='left')
     
     ax.set_facecolor('#0e1117')
     fig.patch.set_facecolor('#0e1117') 
     
-    # Tick marks matching the reference
     ax.set_xticks([0, 10, 20, 30])
-    ax.set_yticks([0, 5, 10, 15, 20, 25, 30, 35])
-    ax.tick_params(colors='#666666', which='both', labelsize=8)
+    ax.set_yticks([0, 10, 20, 30])
+    ax.tick_params(colors='#555555', which='both', labelsize=8)
     
-    # Remove axis border for the 'floating' feel
     for spine in ax.spines.values():
         spine.set_visible(False)
     
