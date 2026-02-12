@@ -361,20 +361,24 @@ def compute_local_energy(log_psi_func, r_electrons: torch.Tensor,
             create_graph=False,
             retain_graph=True
         )[0]  # [N_w, N_e, 3]
-
         laplacian += torch.sum(v * hvp, dim=(1, 2))  # [N_w]
 
     laplacian = laplacian / n_hutchinson
 
     # Kinetic energy: T = -0.5 * (∇² log|ψ| + |∇ log|ψ||²)
-    kinetic = -0.5 * (laplacian + grad_sq)  # [N_w]
-
+    # This is the log-domain formula, theoretically more stable than ∇²ψ/ψ
+    E_kin = -0.5 * (laplacian + grad_sq)  # [N_w]
+    
     # Potential energy
-    potential = compute_potential_energy(r_electrons.detach(), system, device)  # [N_w]
-
-    E_L = kinetic.detach() + potential  # [N_w]
-
-    return E_L, log_psi.detach(), sign_psi.detach()
+    E_pot = compute_potential_energy(r_electrons.detach(), system, device)
+    
+    E_L = E_kin + E_pot
+    
+    # Stability Surgery: Protect against NaNs at the physics level
+    E_L = torch.nan_to_num(E_L, nan=0.0, posinf=1e6, neginf=-1e6)
+    
+    # Return E_L and detached components
+    return E_L, E_kin.detach(), E_pot.detach()
 
 
 # ============================================================
@@ -514,7 +518,12 @@ class BerryPhaseComputer:
             solver.equilibrate(n_steps=100)
             
             for step in range(n_vmc_steps):
-                solver.train_step(n_mcmc_steps=5)
+                try:
+                    solver.train_step(n_mcmc_steps=5)
+                except Exception as e:
+                    # Partial point failure is acceptable in topological loops
+                    print(f"Warning: Berry Phase Step {step} failed at λ point {idx}: {e}")
+                    continue
             
             # Store converged wavefunction & sampler
             self.wavefunctions.append(solver.wavefunction)

@@ -475,9 +475,11 @@ class NeuralWavefunction(nn.Module):
                 orb_up = self.orbital_up(h_up)
                 orb_up_k = orb_up[:, :, k * self.n_up:(k + 1) * self.n_up]
                 
-                # Stability Surgery: Add small diagonal jitter to prevent singular matrix in autograd
-                eps = 1e-7
+                # Stability Surgery: Robustness Hardeners
+                eps = 1e-6 # Increased from 1e-7
                 eye = torch.eye(self.n_up, device=device).unsqueeze(0)
+                # Clip orbital values and sanitize NaNs before slogdet
+                orb_up_k = torch.nan_to_num(orb_up_k, nan=0.0, posinf=1e6, neginf=-1e6)
                 orb_up_k = orb_up_k + eps * eye
                 
                 sign_up, logabsdet_up = torch.linalg.slogdet(orb_up_k)
@@ -489,9 +491,11 @@ class NeuralWavefunction(nn.Module):
                 orb_down = self.orbital_down(h_down)
                 orb_down_k = orb_down[:, :, k * self.n_down:(k + 1) * self.n_down]
                 
-                # Stability Surgery: Add small diagonal jitter
-                eps = 1e-7
+                # Stability Surgery: Robustness Hardeners
+                eps = 1e-6 # Increased from 1e-7
                 eye = torch.eye(self.n_down, device=device).unsqueeze(0)
+                # Clip orbital values and sanitize NaNs before slogdet
+                orb_down_k = torch.nan_to_num(orb_down_k, nan=0.0, posinf=1e6, neginf=-1e6)
                 orb_down_k = orb_down_k + eps * eye
                 
                 sign_down, logabsdet_down = torch.linalg.slogdet(orb_down_k)
@@ -652,9 +656,11 @@ class PeriodicNeuralWavefunction(nn.Module):
                 orb_up = self.orbital_up(h[:, :self.n_up, :])
                 phi_up = orb_up[:, :, k_det * self.n_up:(k_det + 1) * self.n_up]
                 
-                # Stability Surgery: Add small diagonal jitter
-                eps = 1e-7
+                # Stability Surgery: Robustness Hardeners
+                eps = 1e-6 # Increased from 1e-7
                 eye = torch.eye(self.n_up, device=r.device).unsqueeze(0)
+                # Clip orbital values and sanitize NaNs before slogdet
+                phi_up = torch.nan_to_num(phi_up, nan=0.0, posinf=1e6, neginf=-1e6)
                 phi_up = phi_up + eps * eye
                 
                 sign_up, logdet_up = torch.linalg.slogdet(phi_up)
@@ -665,9 +671,11 @@ class PeriodicNeuralWavefunction(nn.Module):
                 orb_dn = self.orbital_down(h[:, self.n_up:, :])
                 phi_dn = orb_dn[:, :, k_det * self.n_down:(k_det + 1) * self.n_down]
                 
-                # Stability Surgery: Add small diagonal jitter
-                eps = 1e-7
+                # Stability Surgery: Robustness Hardeners
+                eps = 1e-6 # Increased from 1e-7
                 eye = torch.eye(self.n_down, device=r.device).unsqueeze(0)
+                # Clip orbital values and sanitize NaNs before slogdet
+                phi_dn = torch.nan_to_num(phi_dn, nan=0.0, posinf=1e6, neginf=-1e6)
                 phi_dn = phi_dn + eps * eye
                 
                 sign_dn, logdet_dn = torch.linalg.slogdet(phi_dn)

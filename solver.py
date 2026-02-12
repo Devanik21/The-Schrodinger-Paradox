@@ -115,10 +115,15 @@ class StochasticReconfiguration:
         f = (O_centered.T @ E_L_centered.unsqueeze(1)).squeeze(1) / N_w
         
         try:
+            # Stability Surgery: Add jitter to S before solving
+            eps = 1e-5
+            S = S + eps * torch.eye(S.shape[0], device=self.device)
             delta_theta = torch.linalg.solve(S, f)
-        except (torch.linalg.LinAlgError, RuntimeError, Exception):
-            # Fallback for singular Fisher matrix
-            delta_theta = torch.linalg.pinv(S, rcond=1e-6) @ f
+        except (torch.linalg.LinAlgError, RuntimeError):
+            # Fallback to Tikhonov-regularized Pseudo-Inverse
+            eps_fallback = 1e-4
+            S_reg = S + eps_fallback * torch.eye(S.shape[0], device=self.device)
+            delta_theta = torch.matmul(torch.linalg.pinv(S_reg), f)
         
         idx = 0
         with torch.no_grad():
@@ -983,11 +988,15 @@ class TimeDependentVMC:
             # For time evolution (not minimization), we use the TDVP update
             # which propagates the state along the quantum time evolution
             try:
+                # Stability Surgery: Add jitter to S
+                eps_td = 1e-5
+                S = S + eps_td * torch.eye(S.shape[0], device=self.device)
                 theta_dot = torch.linalg.solve(S, f)
-            except (torch.linalg.LinAlgError, RuntimeError, Exception):
-                theta_dot = torch.linalg.pinv(S, rcond=1e-6) @ f
-            
-            # Update: θ(t+dt) = θ(t) - dt · θ̇
+            except (torch.linalg.LinAlgError, RuntimeError):
+                # Fallback to Tikhonov-regularized Pseudo-Inverse
+                eps_fallback = 1e-4
+                S_reg = S + eps_fallback * torch.eye(S.shape[0], device=self.device)
+                theta_dot = torch.matmul(torch.linalg.pinv(S_reg), f)
             # The sign ensures Schrödinger-like evolution (energy conservation)
             idx = 0
             with torch.no_grad():
