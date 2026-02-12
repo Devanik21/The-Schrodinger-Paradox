@@ -1783,11 +1783,13 @@ elif page == "🎨 Latent Dream Memory 🖼️":
 
     st.divider()
     st.subheader("🌋 Converged Latent Blooms (Final States)")
-    st.markdown("These 4 final plots represent the fully converged, hazy state of the neural memory field.")
+    st.markdown("These 8 final plots represent the fully converged, hazy state of the neural memory field.")
     
     bloom_row1 = st.columns(2)
     bloom_row2 = st.columns(2)
-    all_bloom_cols = bloom_row1 + bloom_row2
+    bloom_row3 = st.columns(2)
+    bloom_row4 = st.columns(2)
+    all_bloom_cols = bloom_row1 + bloom_row2 + bloom_row3 + bloom_row4
     
     for i, col in enumerate(all_bloom_cols):
         with col:
