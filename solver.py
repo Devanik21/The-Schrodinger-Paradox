@@ -101,6 +101,11 @@ class StochasticReconfiguration:
             log_psi[k].backward(retain_graph=(k < N_w - 1))
             grad_k = torch.cat([p.grad.flatten() for p in params if p.grad is not None])
             O.append(grad_k.clone())
+            
+            # Level 20: Memory Surgery
+            if k % 128 == 0 and self.device == 'cuda':
+                torch.cuda.empty_cache()
+                
             for p in params:
                 if p.grad is not None:
                     p.grad.zero_()
@@ -527,20 +532,58 @@ class VMCSolver:
                 for _ in range(n_mcmc_steps):
                     walkers, acc_rate = self.sampler.step(self.log_psi_func)
 
-        # 2. Compute local energy
-        r = self.sampler.walkers.detach().requires_grad_(True)
-        log_psi, sign_psi = self.wavefunction(r)
+        # 2. Compute local energy (with batching for large atoms/walker counts)
+        batch_size = 512 if self.system.n_electrons >= 8 else self.n_walkers
+        n_batches = (self.n_walkers + batch_size - 1) // batch_size
         
-        E_L, _, _ = compute_local_energy(
-            self.log_psi_func, self.sampler.walkers,
-            self.system, self.device
-        )
+        E_L_list = []
+        log_psi_list = []
+        sign_psi_list = []
         
+        for b in range(n_batches):
+            start_idx = b * batch_size
+            end_idx = min((b + 1) * batch_size, self.n_walkers)
+            
+            r_batch = self.sampler.walkers[start_idx:end_idx].detach().requires_grad_(True)
+            
+            # Local energy for this batch
+            # Note: compute_local_energy already does log_psi calculation internally
+            batch_E_L, batch_E_kin, batch_E_pot = compute_local_energy(
+                self.log_psi_func, r_batch,
+                self.system, self.device
+            )
+            
+            # We also need log|psi| and sign for the optimizer/loss
+            with torch.no_grad():
+                batch_log_psi, batch_sign_psi = self.wavefunction(r_batch)
+            
+            E_L_list.append(batch_E_L)
+            log_psi_list.append(batch_log_psi)
+            sign_psi_list.append(batch_sign_psi)
+            
+            # Clear cache for large systems
+            if self.system.n_electrons >= 8 and self.device == 'cuda':
+                del r_batch, batch_E_L, batch_E_kin, batch_E_pot
+                torch.cuda.empty_cache()
+
+        E_L = torch.cat(E_L_list)
+        log_psi = torch.cat(log_psi_list)  # Note: this is detached for the energy mean
+        # However, for the loss/gradients, we might need log_psi with grads.
+        # Let's re-run log_psi on the full set if memory allows, 
+        # or use the optimizer's version of grad calculation.
+        
+        # Stability Surgery: Protection
         E_L = torch.nan_to_num(E_L, nan=0.0, posinf=100.0, neginf=-100.0)
         E_mean = E_L.mean()
         E_std = E_L.std() + 1e-8
         clip_mask = (E_L - E_mean).abs() < 5 * E_std
         E_L_clipped = torch.where(clip_mask, E_L, E_mean)
+        
+        # For the loss gradient below, we need log_psi with grad enabled on parameters
+        # but NOT on walkers r. 
+        # Re-evaluating log_psi here for the FULL set of walkers to allow standard backward.
+        # If memory is extremely tight, the user can lower n_walkers.
+        log_psi, sign_psi = self.wavefunction(self.sampler.walkers)
         
         # 3. Optimization step (SR vs AdamW)
         use_sr = (self.sr_optimizer is not None and 

@@ -138,12 +138,17 @@ if mode == "3D Atomic VMC":
         )
     st.session_state.system_key = system_key
     
+    # Adaptive Defaults for Noble-Tier Systems (Oxygen, Fluorine, Neon)
+    is_big_atom = system_key in ['O', 'F', 'Ne']
+    if is_big_atom:
+        st.sidebar.warning(f"⚠️ {system_key} is a large system. Lowering walker/determinant counts to prevent OOM.")
+    
     # Hyperparameters
-    with st.sidebar.expander("🧬 Architecture", expanded=False):
+    with st.sidebar.expander("🧬 Architecture", expanded=is_big_atom):
         d_model = st.slider("Feature Dimension", 16, 128, 32, 16)
         n_layers = st.slider("Backflow Layers", 1, 6, 2)
-        n_dets = st.slider("Slater Determinants", 1, 32, 8)
-        n_walkers = st.slider("MCMC Walkers", 128, 4096, 512, 128)
+        n_dets = st.slider("Slater Determinants", 1, 32, 4 if is_big_atom else 8)
+        n_walkers = st.slider("MCMC Walkers", 128, 4096, 256 if is_big_atom else 512, 128)
         lr = st.select_slider("Learning Rate", [1e-4, 3e-4, 1e-3, 3e-3, 1e-2], value=1e-3)
         use_ssm = st.checkbox("Enable SSM-Backflow (Level 11)", value=True,
                               help="Uses State Space Models (Mamba) for O(N log N) electron correlation.")
@@ -477,6 +482,11 @@ elif page == "🔬 Training Dashboard":
                 st.session_state.training_steps += 1
                 progress.progress((i + 1) / n_steps_per_click,
                                   text=f"Step {st.session_state.training_steps}: E={metrics['energy']:.4f} Ha")
+                
+                # Level 20: Memory Surgery for large atoms
+                if getattr(solver.system, 'n_electrons', 0) >= 8 and i % 5 == 0:
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
             progress.empty()
             st.session_state.show_plots = True
         
