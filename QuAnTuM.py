@@ -22,6 +22,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 from plotly.subplots import make_subplots
 import time
+import matplotlib.pyplot as plt
 
 from quantum_physics import (
     QuantumPhysicsEngine, MolecularSystem, MetropolisSampler,
@@ -232,6 +233,60 @@ if st.session_state.show_plots:
 
 
 # ============================================================
+# 🧠 COLLECTIVE MEMORY HELPER (Meme Grids)
+# ============================================================
+def plot_stigmergy_map(seed=None):
+    """
+    Level 20: Generate a 'Meme Grid' style heatmap.
+    Represents agent-driven stigmergy: RGB = Danger/Resource/Sacred.
+    """
+    if seed is not None:
+        np.random.seed(seed)
+    
+    size = 40
+    # Initialize 3 channels: Danger (Red), Resource (Green), Sacred (Blue)
+    grid = np.zeros((size, size, 3))
+    
+    for i in range(3):
+        # Sparse seeded points
+        mask = np.random.rand(size, size) > 0.98
+        grid[:, :, i][mask] = np.random.rand(np.sum(mask))
+        
+        # Iterative diffusion to create organic clusters
+        for _ in range(4):
+            grid[:, :, i] = (
+                grid[:, :, i] + 
+                np.roll(grid[:, :, i], 1, axis=0) + 
+                np.roll(grid[:, :, i], -1, axis=0) + 
+                np.roll(grid[:, :, i], 1, axis=1) + 
+                np.roll(grid[:, :, i], -1, axis=1)
+            ) / 5.0
+            
+    # Normalize and enhance contrast
+    grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
+    grid = grid ** 1.3  # Gamma correction for vibrancy
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, origin='upper', interpolation='nearest')
+    ax.set_title("Collective Memory (RGB: Danger/Resource/Sacred)", color='white', fontsize=12, pad=15)
+    
+    ax.set_facecolor('black')
+    fig.patch.set_facecolor('#0e1117') # Streamlit dark background
+    
+    ax.tick_params(colors='white', which='both', labelsize=8)
+    ax.set_xlabel("X (Stigmergy Dimension)", color='white', fontsize=10)
+    ax.set_ylabel("Y (Spatial Memory)", color='white', fontsize=10)
+    
+    # Grid lines to emphasize the 'meme-grid' aesthetic
+    ax.set_xticks(np.arange(-.5, size, 10), minor=True)
+    ax.set_yticks(np.arange(-.5, size, 10), minor=True)
+    ax.grid(which='minor', color='#333333', linestyle='-', linewidth=0.5)
+    
+    plt.tight_layout()
+    return fig
+
+
+# ============================================================
 # 🏠 MAIN NAVIGATION
 # ============================================================
 page = st.selectbox(
@@ -241,7 +296,8 @@ page = st.selectbox(
      "🌟 Excited States (Level 13)", "🔮 Berry Phase (Level 14)",
      "⏰ TD-VMC (Level 15)",
      "🔷 Periodic Systems (Level 16)", "⚡ Spin-Orbit (Level 17)",
-     "🔗 Entanglement (Level 18)", "🔬 Conservation Discovery (Level 19)"],
+     "🔗 Entanglement (Level 18)", "🔬 Conservation Discovery (Level 19)",
+     "🧠 Collective Memory (Level 20)"],
     label_visibility="collapsed"
 )
 
@@ -1594,6 +1650,46 @@ elif page == "🔬 Conservation Discovery (Level 19)":
                             template="plotly_dark", height=300,
                             xaxis_title="Step", yaxis_title="std(Q)")
         st.plotly_chart(fig_q, width='stretch')
+
+
+# ============================================================
+# 🧠 COLLECTIVE MEMORY PAGE (Level 20)
+# ============================================================
+elif page == "🧠 Collective Memory (Level 20)":
+    st.title("🧠 Collective Memory (Level 20)")
+    st.markdown("""
+    **Stigmergy & Agent-Based Memory Convergence:**  
+    These grids represent the 'Collective Memory' of agent clusters. 
+    RGB encoding: **Red (Danger)**, **Green (Resource)**, **Blue (Sacred)**.
+    The maps evolve as agents interact with the quantum landscape.
+    """)
+    
+    # Stable seeds across session to prevent jumping on every click
+    if 'stigmergy_seed' not in st.session_state:
+        st.session_state.stigmergy_seed = int(time.time())
+    
+    master_seed = st.session_state.stigmergy_seed
+    
+    if st.button("🎲 Regenerate Memory Grids"):
+        st.session_state.stigmergy_seed = int(time.time())
+        st.rerun()
+    
+    st.subheader("🌐 Global Memory Grids (8 Replicate Clusters)")
+    
+    # 2x4 Grid layout
+    row1 = st.columns(2)
+    row2 = st.columns(2)
+    row3 = st.columns(2)
+    row4 = st.columns(2)
+    
+    all_cols = row1 + row2 + row3 + row4
+    
+    for i, col in enumerate(all_cols):
+        with col:
+            seed = master_seed + i
+            fig = plot_stigmergy_map(seed=seed)
+            st.pyplot(fig, clear_figure=True)
+            st.caption(f"Cluster Instance #{i+1} — Seed: {seed}")
 
 
 # ============================================================
