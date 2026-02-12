@@ -116,8 +116,9 @@ class StochasticReconfiguration:
         
         try:
             delta_theta = torch.linalg.solve(S, f)
-        except Exception:
-            delta_theta = S.pinverse() @ f
+        except (torch.linalg.LinAlgError, RuntimeError, Exception):
+            # Fallback for singular Fisher matrix
+            delta_theta = torch.linalg.pinv(S, rcond=1e-6) @ f
         
         idx = 0
         with torch.no_grad():
@@ -983,8 +984,8 @@ class TimeDependentVMC:
             # which propagates the state along the quantum time evolution
             try:
                 theta_dot = torch.linalg.solve(S, f)
-            except Exception:
-                theta_dot = S.pinverse() @ f
+            except (torch.linalg.LinAlgError, RuntimeError, Exception):
+                theta_dot = torch.linalg.pinv(S, rcond=1e-6) @ f
             
             # Update: θ(t+dt) = θ(t) - dt · θ̇
             # The sign ensures Schrödinger-like evolution (energy conservation)
