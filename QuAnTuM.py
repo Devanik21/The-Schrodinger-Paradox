@@ -277,7 +277,7 @@ def plot_stigmergy_map(seed=None):
     
     fig, ax = plt.subplots(figsize=(6, 6))
     # 'Nearest' is the key to the original 'crunchy' texture
-    ax.imshow(grid, origin='upper', interpolation='bicubic')
+    ax.imshow(grid, origin='upper', interpolation='nearest')
     
     # Matching the original title and placement exactly
     ax.text(0, -1.5, "Global Knowledge (Meme Grid)", color='white', 
