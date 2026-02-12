@@ -259,7 +259,7 @@ def plot_stigmergy_map(seed=None):
         grid[ry, rx] = np.clip(grid[ry, rx] + color * strength, 0, 1)
 
     # 3. Micro-Diffusion (Creates 2x2 and 3x3 mini-clusters)
-    for _ in range(5):
+    for _ in range(2):
         # Very localized smear
         grid = (grid + np.roll(grid, 1, axis=1) * 0.3 + np.roll(grid, 1, axis=0) * 0.2) / 1.5
 
