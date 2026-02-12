@@ -252,7 +252,7 @@ def plot_stigmergy_map(seed=None):
     for _ in range(num_seeds):
         ry, rx = np.random.randint(0, size, 2)
         # Random vibrant color with maxed saturation
-        color = np.random.rand(10)
+        color = np.random.rand(3)
         color = color / (np.max(color) + 1e-8)
         
         strength = 0.3 + np.random.rand() * 0.7
