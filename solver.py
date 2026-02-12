@@ -154,6 +154,7 @@ class StochasticReconfiguration:
         self.wavefunction.zero_grad()
         loss.backward()
         
+        updates = []  # Fix: Initialize updates list
         grad_norm_total = 0.0
         for layer_info in self.kfac_layers:
             module = layer_info['module']
