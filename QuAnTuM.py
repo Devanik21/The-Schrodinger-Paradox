@@ -156,7 +156,7 @@ if mode == "3D Atomic VMC":
         optimizer_key = 'sr' if 'Stochastic' in opt_type else 'adamw'
     
     # Initialize
-    if st.sidebar.button("🚀 Initialize System", use_container_width=True):
+    if st.sidebar.button("🚀 Initialize System", width='stretch'):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         system = ATOMS[system_key] if system_key in ATOMS else MOLECULES[system_key]
         
@@ -183,7 +183,7 @@ else:
     )
     grid_size = st.sidebar.slider("Grid Size", 64, 512, 256, 64)
     
-    if st.sidebar.button("🚀 Initialize System", use_container_width=True):
+    if st.sidebar.button("🚀 Initialize System", width='stretch'):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         st.session_state.solver_1d = SchrodingerSolver(grid_size=grid_size, device=device)
         solver_1d = st.session_state.solver_1d
@@ -213,18 +213,18 @@ st.sidebar.subheader("🏋️ Training")
 n_steps_per_click = st.sidebar.slider("Steps per click", 1, 100, 10)
 
 col_train1, col_train2 = st.sidebar.columns(2)
-train_btn = col_train1.button("▶️ Train", use_container_width=True)
-dream_btn = col_train2.button("🌙 Dream", use_container_width=True)
+train_btn = col_train1.button("▶️ Train", width='stretch')
+dream_btn = col_train2.button("🌙 Dream", width='stretch')
 
-measure_btn = st.sidebar.button("👁️ Measure (Collapse)", use_container_width=True)
+measure_btn = st.sidebar.button("👁️ Measure (Collapse)", width='stretch')
 
 # --- Master Plot Toggle ---
 st.sidebar.divider()
-if st.sidebar.button("🔍 Render All Plots", use_container_width=True, type="primary"):
+if st.sidebar.button("🔍 Render All Plots", width='stretch', type="primary"):
     st.session_state.show_plots = True
 
 if st.session_state.show_plots:
-    if st.sidebar.button("🙈 Hide Plots", use_container_width=True):
+    if st.sidebar.button("🙈 Hide Plots", width='stretch'):
         st.session_state.show_plots = False
 
 
@@ -272,7 +272,7 @@ if page == "⚛️ System Setup":
                     "Element": elem_names.get(Z, f"Z={Z}"),
                     "Z": Z, "x (Bohr)": R[0], "y (Bohr)": R[1], "z (Bohr)": R[2]
                 })
-            st.dataframe(nuc_data, use_container_width=True)
+            st.dataframe(nuc_data, width='stretch')
             
             # Hamiltonian
             st.subheader("Hamiltonian")
@@ -307,7 +307,7 @@ if page == "⚛️ System Setup":
                         "N_e": atom.n_electrons,
                         "E_exact (Ha)": atom.exact_energy
                     })
-                st.dataframe(ref_data, use_container_width=True)
+                st.dataframe(ref_data, width='stretch')
             else:
                 st.info("System not initialized. Click '🚀 Initialize System' in sidebar.")
         else:
@@ -432,7 +432,7 @@ elif page == "🔬 Training Dashboard":
                 template="plotly_dark",
                 height=400
             )
-            st.plotly_chart(fig_energy, use_container_width=True)
+            st.plotly_chart(fig_energy, width='stretch')
             
             # Variance + Acceptance side by side
             col_v, col_a = st.columns(2)
@@ -449,7 +449,7 @@ elif page == "🔬 Training Dashboard":
                     title="Energy Variance (→0 = exact eigenstate)",
                     template="plotly_dark", height=300
                 )
-                st.plotly_chart(fig_var, use_container_width=True)
+                st.plotly_chart(fig_var, width='stretch')
             
             with col_a:
                 fig_acc = go.Figure()
@@ -466,7 +466,7 @@ elif page == "🔬 Training Dashboard":
                     template="plotly_dark", height=300,
                     yaxis=dict(range=[0, 1])
                 )
-                st.plotly_chart(fig_acc, use_container_width=True)
+                st.plotly_chart(fig_acc, width='stretch')
     
     elif mode == "1D Demo (Teaching)" and st.session_state.solver_1d:
         solver_1d = st.session_state.solver_1d
@@ -489,7 +489,7 @@ elif page == "🔬 Training Dashboard":
                                       line=dict(color='#00ff88', width=3), fill='tozeroy'))
             fig.update_layout(title="Quantum State", template="plotly_dark", height=450,
                               xaxis_title="x", yaxis_title="Probability / Potential")
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
             
             if solver_1d.energy_history:
                 fig_e = go.Figure()
@@ -497,7 +497,7 @@ elif page == "🔬 Training Dashboard":
                                            line=dict(color='#00ff88', width=2)))
                 fig_e.update_layout(title="Energy Convergence", template="plotly_dark",
                                     height=300, xaxis_title="Step", yaxis_title="E (Eh)")
-                st.plotly_chart(fig_e, use_container_width=True)
+                st.plotly_chart(fig_e, width='stretch')
     else:
         st.info("Initialize a system from the sidebar to begin training.")
 
@@ -532,7 +532,7 @@ elif page == "🌊 Wavefunction Lab":
                     height=500,
                     margin=dict(l=0, r=0, t=40, b=0)
                 )
-                st.plotly_chart(fig_density, use_container_width=True)
+                st.plotly_chart(fig_density, width='stretch')
             except Exception as e:
                 st.warning(f"Density plot error: {e}")
             
@@ -557,7 +557,7 @@ elif page == "🌊 Wavefunction Lab":
                         zaxis_title='|ψ|²'
                     )
                 )
-                st.plotly_chart(fig_3d, use_container_width=True)
+                st.plotly_chart(fig_3d, width='stretch')
             except Exception as e:
                 st.warning(f"3D surface error: {e}")
             
@@ -592,7 +592,7 @@ elif page == "🌊 Wavefunction Lab":
                     template="plotly_dark",
                     height=400
                 )
-                st.plotly_chart(fig_radial, use_container_width=True)
+                st.plotly_chart(fig_radial, width='stretch')
             except Exception as e:
                 st.warning(f"Radial density error: {e}")
             
@@ -630,7 +630,7 @@ elif page == "🌊 Wavefunction Lab":
                         xaxis_title='x', yaxis_title='y', zaxis_title='z'
                     )
                 )
-                st.plotly_chart(fig_walkers, use_container_width=True)
+                st.plotly_chart(fig_walkers, width='stretch')
             except Exception as e:
                 st.warning(f"Walker plot error: {e}")
     
@@ -648,7 +648,7 @@ elif page == "🌊 Wavefunction Lab":
             fig_comp.add_trace(go.Scatter(x=x_np, y=psi_np[:, 1], mode='lines',
                                           name='Im(ψ)', line=dict(color='#ff6600', width=2)))
             fig_comp.update_layout(template="plotly_dark", height=350)
-            st.plotly_chart(fig_comp, use_container_width=True)
+            st.plotly_chart(fig_comp, width='stretch')
             
             # Phase
             phase = np.arctan2(psi_np[:, 1], psi_np[:, 0])
@@ -658,7 +658,7 @@ elif page == "🌊 Wavefunction Lab":
                                            line=dict(color='#ff00ff', width=2)))
             fig_phase.update_layout(template="plotly_dark", height=300,
                                      yaxis_title="Phase (rad)")
-            st.plotly_chart(fig_phase, use_container_width=True)
+            st.plotly_chart(fig_phase, width='stretch')
         else:
             st.info("Click '🔍 Render All Plots' to visualize.")
     else:
@@ -701,7 +701,7 @@ elif page == "📊 Quantum Grids":
                     margin=dict(l=0, r=0, t=40, b=0),
                     coloraxis_colorbar=dict(title="log|ψ|²")
                 )
-                st.plotly_chart(fig_field, use_container_width=True)
+                st.plotly_chart(fig_field, width='stretch')
             except Exception as e:
                 st.warning(f"Density field error: {e}")
             
@@ -724,7 +724,7 @@ elif page == "📊 Quantum Grids":
                     xaxis_title='x (Bohr)',
                     yaxis_title='y (Bohr)'
                 )
-                st.plotly_chart(fig_heat, use_container_width=True)
+                st.plotly_chart(fig_heat, width='stretch')
             except Exception as e:
                 st.warning(f"Walker heatmap error: {e}")
             
@@ -761,7 +761,7 @@ elif page == "📊 Quantum Grids":
                         margin=dict(l=0, r=0, t=40, b=0),
                         coloraxis_colorbar=dict(title="V (Ha)")
                     )
-                    st.plotly_chart(fig_V, use_container_width=True)
+                    st.plotly_chart(fig_V, width='stretch')
                 else:
                     st.caption("Potential landscape for multi-electron: showing electron-1 marginal")
             except Exception as e:
@@ -788,7 +788,7 @@ elif page == "📊 Quantum Grids":
                         xaxis_title='r₁ (distance from nucleus)',
                         yaxis_title='r₁₂ (inter-electron distance)'
                     )
-                    st.plotly_chart(fig_corr, use_container_width=True)
+                    st.plotly_chart(fig_corr, width='stretch')
                 except Exception as e:
                     st.warning(f"Correlation grid error: {e}")
     
@@ -811,7 +811,7 @@ elif page == "📊 Quantum Grids":
             template="plotly_dark",
             height=500 
         )
-        st.plotly_chart(fig_1d_grid, use_container_width=True)
+        st.plotly_chart(fig_1d_grid, width='stretch')
     else:
         st.info("Train the system and click '🔍 Render All Plots' to see quantum grids.")
 
@@ -849,7 +849,7 @@ elif page == "📈 Diagnostics":
                     title="Gradient Norm",
                     template="plotly_dark", height=300
                 )
-                st.plotly_chart(fig_grad, use_container_width=True)
+                st.plotly_chart(fig_grad, width='stretch')
             
             with col_s:
                 fig_step = go.Figure()
@@ -864,7 +864,7 @@ elif page == "📈 Diagnostics":
                     template="plotly_dark", height=300,
                     yaxis=dict(range=[0, 1])
                 )
-                st.plotly_chart(fig_step, use_container_width=True)
+                st.plotly_chart(fig_step, width='stretch')
             
             # Energy Statistics
             st.subheader("Energy Statistics")
@@ -905,7 +905,7 @@ elif page == "📈 Diagnostics":
                     xaxis_title="r (Bohr)",
                     yaxis_title="Count"
                 )
-                st.plotly_chart(fig_dist, use_container_width=True)
+                st.plotly_chart(fig_dist, width='stretch')
             except Exception as e:
                 st.warning(f"Distance distribution error: {e}")
         elif not solver.energy_history:
@@ -931,7 +931,7 @@ elif page == "📈 Diagnostics":
                 template="plotly_dark", height=350,
                 xaxis_title="Step", yaxis_title="E (Eh)"
             )
-            st.plotly_chart(fig_diag, use_container_width=True)
+            st.plotly_chart(fig_diag, width='stretch')
     else:
         st.info("Initialize and train a system to see diagnostics.")
 
@@ -971,7 +971,7 @@ elif page == "📉 PES Curves (Level 10)":
                 r_max_val = st.number_input("R_OH_max (Bohr)", value=5.0, step=0.5)
                 st.info("H₂O: R_OH_e = 1.809 Bohr, bent geometry")
         
-        if st.button("🚀 Run PES Scan", use_container_width=True, type="primary"):
+        if st.button("🚀 Run PES Scan", width='stretch', type="primary"):
             device = "cuda" if torch.cuda.is_available() else "cpu"
             scanner = PESSScanner(
                 pes_mol,
@@ -1049,7 +1049,7 @@ elif page == "📉 PES Curves (Level 10)":
                 template="plotly_dark",
                 height=500
             )
-            st.plotly_chart(fig_pes, use_container_width=True)
+            st.plotly_chart(fig_pes, width='stretch')
             
             # Variance along PES
             fig_pes_var = go.Figure()
@@ -1067,7 +1067,7 @@ elif page == "📉 PES Curves (Level 10)":
                 template="plotly_dark",
                 height=350
             )
-            st.plotly_chart(fig_pes_var, use_container_width=True)
+            st.plotly_chart(fig_pes_var, width='stretch')
             
             # Data table
             st.subheader("📋 PES Data")
@@ -1078,7 +1078,7 @@ elif page == "📉 PES Curves (Level 10)":
                     "Energy (Ha)": f"{e:.6f}",
                     "Variance (Ha²)": f"{v:.6f}"
                 })
-            st.dataframe(pes_table, use_container_width=True)
+            st.dataframe(pes_table, width='content')
 
 
 
@@ -1105,7 +1105,7 @@ elif page == "🌟 Excited States (Level 13)":
             exc_lambda = st.number_input("λ (orthogonality)", value=10.0, step=1.0)
             exc_walkers = st.slider("Walkers", 128, 1024, 256, key="exc_walk")
 
-        if st.button("🚀 Run Excited State Calculation", use_container_width=True, type="primary"):
+        if st.button("🚀 Run Excited State Calculation", width='stretch', type="primary"):
             device = "cuda" if torch.cuda.is_available() else "cpu"
             system = ATOMS[exc_atom]
             solver = ExcitedStateSolver(
@@ -1136,7 +1136,7 @@ elif page == "🌟 Excited States (Level 13)":
             fig_exc.update_layout(title="Multi-State Energy Convergence",
                                   template="plotly_dark", height=500,
                                   xaxis_title="Step", yaxis_title="Energy (Ha)")
-            st.plotly_chart(fig_exc, use_container_width=True)
+            st.plotly_chart(fig_exc, width='stretch')
 
             energies = solver.get_energies()
             st.subheader("Energy Level Diagram")
@@ -1168,7 +1168,7 @@ elif page == "🔮 Berry Phase (Level 14)":
             st.info("**H₃ loop:** equilateral → isosceles → equilateral")
             st.info("Expected: γ = π (conical intersection)")
 
-        if st.button("🚀 Compute Berry Phase", use_container_width=True, type="primary"):
+        if st.button("🚀 Compute Berry Phase", width='stretch', type="primary"):
             device = "cuda" if torch.cuda.is_available() else "cpu"
             computer = BerryPhaseComputer(
                 BerryPhaseComputer.h3_triangle_loop,
@@ -1206,7 +1206,7 @@ elif page == "🔮 Berry Phase (Level 14)":
             fig_bp.update_layout(title="Energy Along Parameter Loop",
                                  template="plotly_dark", height=400,
                                  xaxis_title="λ (rad)", yaxis_title="E (Ha)")
-            st.plotly_chart(fig_bp, use_container_width=True)
+            st.plotly_chart(fig_bp, width='stretch')
 
             if comp.overlaps:
                 fig_ov = go.Figure()
@@ -1219,7 +1219,7 @@ elif page == "🔮 Berry Phase (Level 14)":
                 fig_ov.update_layout(title="Overlaps Around Loop",
                                      template="plotly_dark", height=350,
                                      xaxis_title="k", yaxis_title="|Overlap|")
-                st.plotly_chart(fig_ov, use_container_width=True)
+                st.plotly_chart(fig_ov, width='stretch')
 
 
 # ============================================================
@@ -1245,7 +1245,7 @@ elif page == "⏰ TD-VMC (Level 15)":
             td_walkers = st.slider("Walkers", 128, 1024, 256, key="td_walk")
             st.info("First converges ground state, then evolves in time.")
 
-        if st.button("🚀 Run TD-VMC", use_container_width=True, type="primary"):
+        if st.button("🚀 Run TD-VMC", width='stretch', type="primary"):
             device = "cuda" if torch.cuda.is_available() else "cpu"
             system = ATOMS[td_atom]
             td = TimeDependentVMC(
@@ -1281,7 +1281,7 @@ elif page == "⏰ TD-VMC (Level 15)":
             fig_te.update_layout(title="Energy vs Time",
                                  template="plotly_dark", height=400,
                                  xaxis_title="t (a.u.)", yaxis_title="E (Ha)")
-            st.plotly_chart(fig_te, use_container_width=True)
+            st.plotly_chart(fig_te, width='stretch')
 
             if res['dipole']:
                 dx = [d[0] for d in res['dipole']]
@@ -1297,7 +1297,7 @@ elif page == "⏰ TD-VMC (Level 15)":
                 fig_dip.update_layout(title="Dipole Moment d(t)",
                                       template="plotly_dark", height=350,
                                       xaxis_title="t (a.u.)", yaxis_title="d (a.u.)")
-                st.plotly_chart(fig_dip, use_container_width=True)
+                st.plotly_chart(fig_dip, width='stretch')
 
 
 
@@ -1347,7 +1347,7 @@ elif page == "🔷 Periodic Systems (Level 16)":
         yaxis_title="E/electron (Ha)",
         template="plotly_dark", height=400
     )
-    st.plotly_chart(fig_heg, use_container_width=True)
+    st.plotly_chart(fig_heg, width='stretch')
     
     with st.expander("📝 Ewald Summation Details"):
         st.markdown("""
@@ -1410,7 +1410,7 @@ elif page == "⚡ Spin-Orbit (Level 17)":
         template="plotly_dark", height=400,
         yaxis_type="log"
     )
-    st.plotly_chart(fig_so, use_container_width=True)
+    st.plotly_chart(fig_so, width='stretch')
     
     with st.expander("📝 Breit-Pauli Physics"):
         st.markdown("""
@@ -1501,7 +1501,7 @@ elif page == "🔗 Entanglement (Level 18)":
             }
         ))
         fig_ent.update_layout(template="plotly_dark", height=300)
-        st.plotly_chart(fig_ent, use_container_width=True)
+        st.plotly_chart(fig_ent, width='stretch')
         st.caption("Green line = ln(2) ≈ 0.693 (maximum for 2-state system)")
 
 
@@ -1579,7 +1579,7 @@ elif page == "🔬 Conservation Discovery (Level 19)":
         ), row=1, col=2)
         fig_cons.update_layout(template="plotly_dark", height=350,
                                showlegend=True)
-        st.plotly_chart(fig_cons, use_container_width=True)
+        st.plotly_chart(fig_cons, width='stretch')
         
         # Q statistics
         fig_q = go.Figure()
@@ -1590,11 +1590,11 @@ elif page == "🔬 Conservation Discovery (Level 19)":
         fig_q.update_layout(title="Q Network Variance (target: 1.0)",
                             template="plotly_dark", height=300,
                             xaxis_title="Step", yaxis_title="std(Q)")
-        st.plotly_chart(fig_q, use_container_width=True)
+        st.plotly_chart(fig_q, width='stretch')
 
 
 # ============================================================
-# 🦶 FOOTER
+#  FOOTER
 # ============================================================
 st.sidebar.divider()
 st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
