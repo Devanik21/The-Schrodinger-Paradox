@@ -295,7 +295,7 @@ class MetropolisSampler:
             self.step_size *= 1.05
         elif self.acceptance_rate < self.target_acceptance - 0.05:
             self.step_size *= 0.95
-        self.step_size = max(0.0001, min(self.step_size, 0.01))  # Clamp: 2.0 is safer than 5.0
+        self.step_size = max(0.001, min(self.step_size, 0.05))  # Clamp: 2.0 is safer than 5.0
 
         return self.walkers, self.acceptance_rate
 
@@ -1223,4 +1223,5 @@ if __name__ == "__main__":
     print(f"  Potential energy: {V_h2.mean().item():.4f} ± {V_h2.std().item():.4f}")
 
     print("\n✅ All physics engine tests passed!")
+
 
