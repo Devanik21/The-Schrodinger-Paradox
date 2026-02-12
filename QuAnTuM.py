@@ -376,12 +376,11 @@ def plot_latent_bloom(solver=None, seed=None):
 def plot_master_bloom(solver=None, seed=42):
     """
     Level 20: The Master Latent Dimension Bloom.
-    This is the highest-fidelity visualization in the engine.
-    It synthesizes the 'Wavefunction Manifold' (SR Fisher Information) 
-    with the 'Latent Density'.
+    Evolves with training metrics.
     """
+    step = solver.step_count if solver else 0
     if seed is not None:
-        np.random.seed(seed)
+        np.random.seed(seed + (step // 5))
     
     res = 120 # Higher resolution for the 'Master'
     x = np.linspace(-3, 3, res)
@@ -546,7 +545,8 @@ def plot_berry_flow(solver=None, seed=42):
 
 def plot_entanglement_mesh(solver=None, seed=42):
     """Visualizes the Rényi-2 Entanglement Entropy connectivity (Level 18)."""
-    if seed is not None: np.random.seed(seed + 404)
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 404 + (step // 15))
     res = 80
     x = np.linspace(-3, 3, res)
     y = np.linspace(-3, 3, res)
@@ -567,7 +567,8 @@ def plot_entanglement_mesh(solver=None, seed=42):
 
 def plot_noether_landscape(solver=None, seed=42):
     """Visualizes the 'Discovery Density' where [H,Q] commutes (Level 19)."""
-    if seed is not None: np.random.seed(seed + 505)
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 505 + (step // 25))
     res = 80
     x = np.linspace(-3, 3, res)
     y = np.linspace(-3, 3, res)
@@ -588,7 +589,8 @@ def plot_noether_landscape(solver=None, seed=42):
 
 def plot_orthonormal_pressure(solver=None, seed=42):
     """Visualizes the orthogonality constraints for Excited States (Level 13)."""
-    if seed is not None: np.random.seed(seed + 606)
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 606 + (step // 5))
     res = 80
     # Ring-like repulsion representing orthogonality pressure
     x = np.linspace(-3, 3, res)
