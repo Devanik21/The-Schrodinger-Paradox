@@ -245,7 +245,7 @@ def plot_stigmergy_map(seed=None):
     
     size = 40
     # 1. Base 'Latent Dust' (Very faint multi-colored noise)
-    grid = np.random.rand(size, size, 3) * 0.3
+    grid = np.random.rand(size, size, 3) * 0.01
     
     # 2. High-Density Seeding (250+ points for that 'packed' look)
     num_seeds = 200
