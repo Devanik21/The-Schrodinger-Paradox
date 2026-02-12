@@ -237,70 +237,79 @@ if st.session_state.show_plots:
 # ============================================================
 def plot_stigmergy_map(seed=None):
     """
-    Level 20: High-fidelity replication of the 'Global Knowledge' Meme Grid.
-    Density, crunchy texture, and vibrant pixel-level color variety.
+    Level 20: 'The Stigmergy Painting' — Hazy, colorful, organic latent field.
+    Replaces sharp boxes with Gaussian blooms and high-iteration diffusion.
     """
     if seed is not None:
         np.random.seed(seed)
     
-    size = 40
-    # 1. Start with 'Chromatic Dust' (Base noise across entire grid)
-    grid = np.random.rand(size, size, 3) * 0.25
+    # Increase internal resolution for hazier blending
+    res = 60
+    grid = np.zeros((res, res, 3))
     
-    # 2. Add 'Latent Clusters' (High density of color memes)
-    # We use 60+ small seeds to create the 'packed' feeling of the original
-    num_seeds = 80
+    # 1. Base 'Aether' (Very faint multi-colored haze)
+    grid += np.random.rand(res, res, 3) * 0.1
+    
+    # 2. Add 'Neural Seeds' (150+ tiny color points)
+    num_seeds = 180
     for _ in range(num_seeds):
-        ry, rx = np.random.randint(0, size, 2)
+        ry, rx = np.random.randint(0, res, 2)
         color = np.random.rand(3)
-        # Force high saturation for some channels
-        color[np.random.randint(0, 3)] *= 1.5 
+        # Shift spectrum towards vibrant cyans, purples, and magentas
+        if np.random.rand() > 0.5:
+            color[1] *= 0.5 # Less green for 'cosmic' feel
         
-        strength = 0.4 + np.random.rand() * 0.6
+        strength = 0.2 + np.random.rand() * 0.6
         grid[ry, rx] = np.clip(grid[ry, rx] + color * strength, 0, 1)
 
-    # 3. Asymmetric Diffusion (Simulating agent 'streaks' and movement)
-    for _ in range(2):
-        # Slight horizontal smear
-        grid = (grid + np.roll(grid, 1, axis=1) * 0.4 + np.roll(grid, -1, axis=1) * 0.2) / 1.6
-        # Slight vertical decay
-        grid = (grid + np.roll(grid, 1, axis=0) * 0.3) / 1.3
+    # 3. Organic Multi-Stage Diffusion (The 'Hazy' secret)
+    # We use asymmetrical roll to create painting-like "strokes"
+    for i in range(8):
+        # Diffusion weights
+        w = 0.4 if i < 4 else 0.2
+        grid = (grid + 
+                np.roll(grid, 1, axis=0) * w + 
+                np.roll(grid, -1, axis=1) * w + 
+                np.roll(grid, 1, axis=1) * (w/2)) / (1 + 2.5*w)
 
-    # 4. Add 'Active Memory' hotspots (Large vibrant blooms)
-    for _ in range(6):
-        ry, rx = np.random.randint(5, size-5, 2)
+    # 4. 'Conscious Blooms' (Hazy blobs instead of boxes)
+    for _ in range(12):
+        ry, rx = np.random.randint(10, res-10, 2)
         color = np.random.rand(3)
-        # Create a 3x3 or 4x4 bloom
-        s = np.random.randint(2, 5)
-        grid[ry:ry+s, rx:rx+s] = np.clip(grid[ry:ry+s, rx:rx+s] + color * 0.8, 0, 1)
+        # Create a soft Gaussian-like bloom
+        y, x = np.ogrid[:res, :res]
+        dist_sq = (x - rx)**2 + (y - ry)**2
+        sigma_sq = (np.random.rand() * 5 + 2)**2
+        bloom = np.exp(-dist_sq / (2 * sigma_sq))
+        for i in range(3):
+            grid[:, :, i] += bloom * color[i] * 0.7
 
-    # 5. Final Aesthetic Polish: Contrast + Vibrancy
+    # 5. Final Saturation & Contrast Boost
+    # Normalization with high-end headroom for 'glow'
     grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
-    grid = np.clip(grid * 1.3, 0, 1) # Brighten
-    grid = grid ** 1.1 # Adjust gamma for rich blacks
+    grid = np.clip(grid * 1.4, 0, 1)
+    grid = grid ** 1.3 # Deepen the blacks for 'Dark Painting' feel
     
-    # Add digital 'Glitch' artifacts (Single high-intensity pixels)
-    for _ in range(30):
-        grid[np.random.randint(0,size), np.random.randint(0,size)] *= 2.0
-    grid = np.clip(grid, 0, 1)
+    # Chromatic aberration-style grain
+    for i in range(3):
+        noise = np.random.rand(res, res) * 0.05
+        grid[:, :, i] = np.clip(grid[:, :, i] + noise, 0, 1)
 
     fig, ax = plt.subplots(figsize=(6, 6))
-    # Use 'nearest' to keep the 'crunchy' pixel grid look
-    ax.imshow(grid, origin='upper', interpolation='nearest')
+    # 'Bilinear' interpolation for the maximum hazy/painting look
+    ax.imshow(grid, origin='upper', interpolation='bilinear')
     
-    # Matching the original title exactly
-    ax.set_title("Global Knowledge (Meme Grid)", color='white', 
-                 fontsize=12, loc='left', pad=10, fontweight='bold')
+    ax.set_title("Global Knowledge (Stigmergy Painting)", color='white', 
+                 fontsize=13, loc='left', pad=12, fontweight='bold', family='serif')
     
     ax.set_facecolor('#0e1117')
     fig.patch.set_facecolor('#0e1117') 
     
-    # Stylized labels to mimic the reference image
-    ax.set_xticks([0, 10, 20, 30])
-    ax.set_yticks([0, 5, 10, 15, 20, 25, 30, 35])
-    ax.tick_params(colors='#888888', which='both', labelsize=8)
+    # Gray ticks to mimic the archive style
+    ax.set_xticks([0, 20, 40])
+    ax.set_yticks([0, 10, 20, 30, 40, 50])
+    ax.tick_params(colors='#444444', which='both', labelsize=7)
     
-    # Remove axis spines for a cleaner 'floating' look
     for spine in ax.spines.values():
         spine.set_visible(False)
     
