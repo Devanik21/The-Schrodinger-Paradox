@@ -259,7 +259,7 @@ def plot_stigmergy_map(seed=None):
         grid[ry, rx] = np.clip(grid[ry, rx] + color * strength, 0, 1)
 
     # 3. Micro-Diffusion (Creates 2x2 and 3x3 mini-clusters)
-    for _ in range(2):
+    for _ in range(3):
         # Very localized smear
         grid = (grid + np.roll(grid, 1, axis=1) * 0.3 + np.roll(grid, 1, axis=0) * 0.2) / 1.5
 
@@ -1713,3 +1713,4 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
+
