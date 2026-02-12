@@ -371,7 +371,7 @@ class JastrowFactor(nn.Module):
         J_en = cusp_en.sum(dim=(1, 2))
 
         r_en_smooth = r_en ** 2
-        J_en_nn = self.scale_en * self.nn_en(r_en_smooth.unsqueeze(-1)).squeeze(-1).sum(dim=(1, 2))
+        J_en_nn = self.scale_en * self.nn_en(r_en_smooth).squeeze(-1).sum(dim=1)
 
         # e-e cusp
         J_ee = torch.zeros(N_w, device=device)

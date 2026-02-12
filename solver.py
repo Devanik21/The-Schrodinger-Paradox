@@ -426,7 +426,8 @@ class VMCSolver:
     def __init__(self, system: MolecularSystem, n_walkers: int = 1024,
                  d_model: int = 64, n_layers: int = 3, n_determinants: int = 16,
                  lr: float = 1e-3, device: str = 'cpu',
-                 optimizer_type: str = 'sr', use_flow_sampler: bool = False):
+                 optimizer_type: str = 'sr', use_flow_sampler: bool = False,
+                 use_ssm_backflow: bool = True):
         self.system = system
         self.device = device
         self.n_walkers = n_walkers
@@ -436,7 +437,8 @@ class VMCSolver:
         # Neural Wavefunction (Levels 4-7+11)
         self.wavefunction = NeuralWavefunction(
             system, d_model=d_model, n_layers=n_layers,
-            n_determinants=n_determinants
+            n_determinants=n_determinants,
+            use_ssm_backflow=use_ssm_backflow
         ).to(device)
 
         # MCMC Sampler (Level 2)
@@ -523,11 +525,10 @@ class VMCSolver:
         r = self.sampler.walkers.detach().requires_grad_(True)
         log_psi, sign_psi = self.wavefunction(r)
         
-        with torch.no_grad():
-            E_L, _, _ = compute_local_energy(
-                self.log_psi_func, self.sampler.walkers,
-                self.system, self.device
-            )
+        E_L, _, _ = compute_local_energy(
+            self.log_psi_func, self.sampler.walkers,
+            self.system, self.device
+        )
         
         E_L = torch.nan_to_num(E_L, nan=0.0, posinf=100.0, neginf=-100.0)
         E_mean = E_L.mean()
@@ -736,11 +737,10 @@ class ExcitedStateSolver:
             log_psi, sign_psi = wf(r)
             
             # 3. Local energy
-            with torch.no_grad():
-                E_L, _, _ = compute_local_energy(
-                    log_psi_func, sampler.walkers,
-                    self.system, self.device
-                )
+            E_L, _, _ = compute_local_energy(
+                log_psi_func, sampler.walkers,
+                self.system, self.device
+            )
             
             E_L = torch.nan_to_num(E_L, nan=0.0, posinf=100.0, neginf=-100.0)
             E_mean = E_L.mean()
@@ -926,11 +926,10 @@ class TimeDependentVMC:
             S += self.damping * torch.eye(self.n_params, device=S.device)
             
             # Local energy for force vector
-            with torch.no_grad():
-                E_L, _, _ = compute_local_energy(
-                    log_psi_func, self.sampler.walkers,
-                    self.system, self.device
-                )
+            E_L, _, _ = compute_local_energy(
+                log_psi_func, self.sampler.walkers,
+                self.system, self.device
+            )
             E_L = torch.nan_to_num(E_L, nan=0.0, posinf=100.0, neginf=-100.0)
             
             # Force: f = <O* · H|ψ>/⟨ψ|ψ⟩ ≈ <O · E_L> - <O><E_L>
@@ -940,11 +939,10 @@ class TimeDependentVMC:
             return S, f, E_L.mean().item()
         else:
             # Diagonal approximation for large networks
-            with torch.no_grad():
-                E_L, _, _ = compute_local_energy(
-                    log_psi_func, self.sampler.walkers,
-                    self.system, self.device
-                )
+            E_L, _, _ = compute_local_energy(
+                log_psi_func, self.sampler.walkers,
+                self.system, self.device
+            )
             E_L = torch.nan_to_num(E_L, nan=0.0, posinf=100.0, neginf=-100.0)
             
             E_centered = (E_L - E_L.mean()).detach()

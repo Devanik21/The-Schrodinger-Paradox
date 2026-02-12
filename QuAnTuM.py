@@ -144,6 +144,8 @@ if mode == "3D Atomic VMC":
         n_dets = st.slider("Slater Determinants", 1, 32, 8)
         n_walkers = st.slider("MCMC Walkers", 128, 4096, 512, 128)
         lr = st.select_slider("Learning Rate", [1e-4, 3e-4, 1e-3, 3e-3, 1e-2], value=1e-3)
+        use_ssm = st.checkbox("Enable SSM-Backflow (Level 11)", value=True,
+                              help="Uses State Space Models (Mamba) for O(N log N) electron correlation.")
     
     # Level 8: Optimizer selection
     with st.sidebar.expander("🧮 Optimizer (Level 8)", expanded=False):
@@ -163,7 +165,8 @@ if mode == "3D Atomic VMC":
         st.session_state.solver_3d = VMCSolver(
             system, n_walkers=n_walkers, d_model=d_model,
             n_layers=n_layers, n_determinants=n_dets,
-            lr=lr, device=device, optimizer_type=optimizer_key
+            lr=lr, device=device, optimizer_type=optimizer_key,
+            use_ssm_backflow=use_ssm
         )
         st.session_state.training_steps = 0
         st.session_state.show_plots = False
