@@ -237,50 +237,73 @@ if st.session_state.show_plots:
 # ============================================================
 def plot_stigmergy_map(seed=None):
     """
-    Level 20: Generate a 'Meme Grid' style heatmap.
-    Represents agent-driven stigmergy: RGB = Danger/Resource/Sacred.
+    Level 20: Generate a high-vibrancy 'Meme Grid' style heatmap.
+    Matches the original 'stigmergy' aesthetic with multi-color clusters.
     """
     if seed is not None:
         np.random.seed(seed)
     
     size = 40
-    # Initialize 3 channels: Danger (Red), Resource (Green), Sacred (Blue)
+    # Black base
     grid = np.zeros((size, size, 3))
     
-    for i in range(3):
-        # Sparse seeded points
-        mask = np.random.rand(size, size) > 0.98
-        grid[:, :, i][mask] = np.random.rand(np.sum(mask))
+    # 1. Generate 12 random "Color Memes"
+    # Each meme has a unique color and a unique spatial diffusion
+    num_memes = 12
+    for _ in range(num_memes):
+        # Random vibrant color vector
+        color = np.random.rand(3)
+        color = color / (np.max(color) + 1e-8)  # Maximize saturation
         
-        # Iterative diffusion to create organic clusters
-        for _ in range(4):
-            grid[:, :, i] = (
-                grid[:, :, i] + 
-                np.roll(grid[:, :, i], 1, axis=0) + 
-                np.roll(grid[:, :, i], -1, axis=0) + 
-                np.roll(grid[:, :, i], 1, axis=1) + 
-                np.roll(grid[:, :, i], -1, axis=1)
-            ) / 5.0
+        # Spatial distribution for this specific color
+        layer = np.zeros((size, size))
+        # Seed 2-3 hotspots per color
+        for _ in range(2):
+            ry, rx = np.random.randint(0, size, 2)
+            layer[ry, rx] = 0.8 + np.random.rand() * 0.2
             
-    # Normalize and enhance contrast
+        # Diffusion to create clusters
+        for _ in range(3):
+            layer = (layer + 
+                     np.roll(layer, 1, axis=0) * 0.5 + 
+                     np.roll(layer, -1, axis=0) * 0.5 + 
+                     np.roll(layer, 1, axis=1) * 0.5 + 
+                     np.roll(layer, -1, axis=1) * 0.5) / 2.5
+        
+        # Add to the RGB grid
+        for i in range(3):
+            grid[:, :, i] += layer * color[i]
+
+    # 2. Add high-frequency 'Stigmergic Grain'
+    grain = np.random.rand(size, size, 3) * 0.15
+    grid += grain * (grid > 0.05) # Only on active clusters
+
+    # 3. Non-linear saturation boost (The "Nobel Aesthetic" look)
     grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
-    grid = grid ** 1.3  # Gamma correction for vibrancy
+    grid = np.clip(grid * 1.5, 0, 1) # Boost brightness
+    grid = grid ** 1.2 # Contrast adjust
     
+    # 4. Sharpening: keep background dark
+    mask = (np.mean(grid, axis=-1, keepdims=True) > 0.1)
+    grid = grid * mask
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, origin='upper', interpolation='nearest')
-    ax.set_title("Collective Memory (RGB: Danger/Resource/Sacred)", color='white', fontsize=12, pad=15)
+    ax.set_title("Collective Memory (Stigmergy Phase Converged)", color='white', fontsize=12, pad=15)
     
     ax.set_facecolor('black')
-    fig.patch.set_facecolor('#0e1117') # Streamlit dark background
+    fig.patch.set_facecolor('#0e1117') 
     
-    ax.tick_params(colors='white', which='both', labelsize=8)
-    ax.set_xlabel("X (Stigmergy Dimension)", color='white', fontsize=10)
-    ax.set_ylabel("Y (Spatial Memory)", color='white', fontsize=10)
+    # Remove axis but keep the frame for the aesthetic
+    ax.set_xticks([])
+    ax.set_yticks([])
+    for spine in ax.spines.values():
+        spine.set_color('#333333')
+        spine.set_linewidth(1.5)
     
-    # Grid lines to emphasize the 'meme-grid' aesthetic
-    ax.set_xticks(np.arange(-.5, size, 10), minor=True)
-    ax.set_yticks(np.arange(-.5, size, 10), minor=True)
-    ax.grid(which='minor', color='#333333', linestyle='-', linewidth=0.5)
+    # Add subtle 'meme' coordinate labels to match the original
+    ax.set_xlabel("Latent Space Φ", color='#555555', fontsize=9)
+    ax.set_ylabel("Memory Axis Θ", color='#555555', fontsize=9)
     
     plt.tight_layout()
     return fig
