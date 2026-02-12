@@ -471,6 +471,70 @@ def plot_master_bloom(solver=None, seed=42):
     return fig
 
 
+def plot_fisher_manifold(solver=None, seed=42):
+    """Visualizes the curvature (Fisher Information) of the Hilbert space."""
+    if seed is not None: np.random.seed(seed + 101)
+    res = 80
+    x = np.linspace(-3, 3, res)
+    y = np.linspace(-3, 3, res)
+    X, Y = np.meshgrid(x, y)
+    
+    # Interference of 4 waves representing 'Parameter Sensitivities'
+    Z = np.sin(X*2) * np.sin(Y*2) + np.cos((X+Y)*1.5)
+    grid = plt.cm.magma( (Z - Z.min()) / (Z.max() - Z.min() + 1e-8) )[:,:,:3]
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3])
+    ax.set_title("FISHER INFORMATION MANIFOLD", color='#ffaa00', fontsize=10, family='monospace')
+    ax.set_xticks([]); ax.set_yticks([])
+    ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    for spine in ax.spines.values(): spine.set_visible(False)
+    plt.tight_layout()
+    return fig
+
+def plot_correlation_mesh(solver=None, seed=42):
+    """Visualizes electron-electron correlation and exclusion zones."""
+    if seed is not None: np.random.seed(seed + 202)
+    res = 80
+    x = np.linspace(-3, 3, res)
+    y = np.linspace(-3, 3, res)
+    X, Y = np.meshgrid(x, y)
+    
+    # 'Holes' representing Pauli exclusion
+    Z = 1.0 - (np.exp(-(X-1)**2 - (Y-1)**2) + np.exp(-(X+1)**2 - (Y+1)**2))
+    grid = plt.cm.viridis(Z)[:,:,:3]
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3])
+    ax.set_title("N-BODY CORRELATION MESH", color='#00ffcc', fontsize=10, family='monospace')
+    ax.set_xticks([]); ax.set_yticks([])
+    ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    for spine in ax.spines.values(): spine.set_visible(False)
+    plt.tight_layout()
+    return fig
+
+def plot_berry_flow(solver=None, seed=42):
+    """Visualizes the complex phase and topological Berry flow."""
+    if seed is not None: np.random.seed(seed + 303)
+    res = 40 
+    x = np.linspace(-3, 3, res)
+    y = np.linspace(-3, 3, res)
+    X, Y = np.meshgrid(x, y)
+    
+    # Vortex-like field
+    U = -Y / (X**2 + Y**2 + 0.1)
+    V = X / (X**2 + Y**2 + 0.1)
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.streamplot(X, Y, U, V, color='#6600ff', linewidth=1, density=1.2)
+    ax.set_title("TOPOLOGICAL BERRY FLOW", color='#aa44ff', fontsize=10, family='monospace')
+    ax.set_xticks([]); ax.set_yticks([])
+    ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    for spine in ax.spines.values(): spine.set_visible(False)
+    plt.tight_layout()
+    return fig
+
+
 # ============================================================
 # 🏠 MAIN NAVIGATION
 # ============================================================
@@ -1911,6 +1975,27 @@ elif page == "🎨 Latent Dream Memory 🖼️":
     fig_master = plot_master_bloom(solver=solver_ref, seed=master_seed + 999)
     st.pyplot(fig_master, clear_figure=True)
     st.caption("🌌 Master Consensus Field — Unified Neural Quantum State [Nobel Territory]")
+
+    st.divider()
+    st.subheader("🔭 Multimodal Latent Projections")
+    st.markdown("""
+    **Analytical Decompositions:** These specialized views isolate individual 
+    physical components from the latent state.
+    """)
+    
+    col_p1, col_p2, col_p3 = st.columns(3)
+    with col_p1:
+        fig_f = plot_fisher_manifold(solver=solver_ref, seed=master_seed)
+        st.pyplot(fig_f, clear_figure=True)
+        st.caption("Curvature / optimization intensity.")
+    with col_p2:
+        fig_c = plot_correlation_mesh(solver=solver_ref, seed=master_seed)
+        st.pyplot(fig_c, clear_figure=True)
+        st.caption("Exclusion & correlation zones.")
+    with col_p3:
+        fig_b = plot_berry_flow(solver=solver_ref, seed=master_seed)
+        st.pyplot(fig_b, clear_figure=True)
+        st.caption("Topological phase streamlines.")
 
 
 # ============================================================
