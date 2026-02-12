@@ -237,73 +237,72 @@ if st.session_state.show_plots:
 # ============================================================
 def plot_stigmergy_map(seed=None):
     """
-    Level 20: Generate a high-vibrancy 'Meme Grid' style heatmap.
-    Matches the original 'stigmergy' aesthetic with multi-color clusters.
+    Level 20: High-fidelity replication of the 'Global Knowledge' Meme Grid.
+    Density, crunchy texture, and vibrant pixel-level color variety.
     """
     if seed is not None:
         np.random.seed(seed)
     
     size = 40
-    # Black base
-    grid = np.zeros((size, size, 3))
+    # 1. Start with 'Chromatic Dust' (Base noise across entire grid)
+    grid = np.random.rand(size, size, 3) * 0.25
     
-    # 1. Generate 12 random "Color Memes"
-    # Each meme has a unique color and a unique spatial diffusion
-    num_memes = 12
-    for _ in range(num_memes):
-        # Random vibrant color vector
+    # 2. Add 'Latent Clusters' (High density of color memes)
+    # We use 60+ small seeds to create the 'packed' feeling of the original
+    num_seeds = 80
+    for _ in range(num_seeds):
+        ry, rx = np.random.randint(0, size, 2)
         color = np.random.rand(3)
-        color = color / (np.max(color) + 1e-8)  # Maximize saturation
+        # Force high saturation for some channels
+        color[np.random.randint(0, 3)] *= 1.5 
         
-        # Spatial distribution for this specific color
-        layer = np.zeros((size, size))
-        # Seed 2-3 hotspots per color
-        for _ in range(2):
-            ry, rx = np.random.randint(0, size, 2)
-            layer[ry, rx] = 0.8 + np.random.rand() * 0.2
-            
-        # Diffusion to create clusters
-        for _ in range(3):
-            layer = (layer + 
-                     np.roll(layer, 1, axis=0) * 0.5 + 
-                     np.roll(layer, -1, axis=0) * 0.5 + 
-                     np.roll(layer, 1, axis=1) * 0.5 + 
-                     np.roll(layer, -1, axis=1) * 0.5) / 2.5
-        
-        # Add to the RGB grid
-        for i in range(3):
-            grid[:, :, i] += layer * color[i]
+        strength = 0.4 + np.random.rand() * 0.6
+        grid[ry, rx] = np.clip(grid[ry, rx] + color * strength, 0, 1)
 
-    # 2. Add high-frequency 'Stigmergic Grain'
-    grain = np.random.rand(size, size, 3) * 0.15
-    grid += grain * (grid > 0.05) # Only on active clusters
+    # 3. Asymmetric Diffusion (Simulating agent 'streaks' and movement)
+    for _ in range(2):
+        # Slight horizontal smear
+        grid = (grid + np.roll(grid, 1, axis=1) * 0.4 + np.roll(grid, -1, axis=1) * 0.2) / 1.6
+        # Slight vertical decay
+        grid = (grid + np.roll(grid, 1, axis=0) * 0.3) / 1.3
 
-    # 3. Non-linear saturation boost (The "Nobel Aesthetic" look)
+    # 4. Add 'Active Memory' hotspots (Large vibrant blooms)
+    for _ in range(6):
+        ry, rx = np.random.randint(5, size-5, 2)
+        color = np.random.rand(3)
+        # Create a 3x3 or 4x4 bloom
+        s = np.random.randint(2, 5)
+        grid[ry:ry+s, rx:rx+s] = np.clip(grid[ry:ry+s, rx:rx+s] + color * 0.8, 0, 1)
+
+    # 5. Final Aesthetic Polish: Contrast + Vibrancy
     grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
-    grid = np.clip(grid * 1.5, 0, 1) # Boost brightness
-    grid = grid ** 1.2 # Contrast adjust
+    grid = np.clip(grid * 1.3, 0, 1) # Brighten
+    grid = grid ** 1.1 # Adjust gamma for rich blacks
     
-    # 4. Sharpening: keep background dark
-    mask = (np.mean(grid, axis=-1, keepdims=True) > 0.1)
-    grid = grid * mask
+    # Add digital 'Glitch' artifacts (Single high-intensity pixels)
+    for _ in range(30):
+        grid[np.random.randint(0,size), np.random.randint(0,size)] *= 2.0
+    grid = np.clip(grid, 0, 1)
 
     fig, ax = plt.subplots(figsize=(6, 6))
+    # Use 'nearest' to keep the 'crunchy' pixel grid look
     ax.imshow(grid, origin='upper', interpolation='nearest')
-    ax.set_title("Collective Memory (Stigmergy Phase Converged)", color='white', fontsize=12, pad=15)
     
-    ax.set_facecolor('black')
+    # Matching the original title exactly
+    ax.set_title("Global Knowledge (Meme Grid)", color='white', 
+                 fontsize=12, loc='left', pad=10, fontweight='bold')
+    
+    ax.set_facecolor('#0e1117')
     fig.patch.set_facecolor('#0e1117') 
     
-    # Remove axis but keep the frame for the aesthetic
-    ax.set_xticks([])
-    ax.set_yticks([])
-    for spine in ax.spines.values():
-        spine.set_color('#333333')
-        spine.set_linewidth(1.5)
+    # Stylized labels to mimic the reference image
+    ax.set_xticks([0, 10, 20, 30])
+    ax.set_yticks([0, 5, 10, 15, 20, 25, 30, 35])
+    ax.tick_params(colors='#888888', which='both', labelsize=8)
     
-    # Add subtle 'meme' coordinate labels to match the original
-    ax.set_xlabel("Latent Space Φ", color='#555555', fontsize=9)
-    ax.set_ylabel("Memory Axis Θ", color='#555555', fontsize=9)
+    # Remove axis spines for a cleaner 'floating' look
+    for spine in ax.spines.values():
+        spine.set_visible(False)
     
     plt.tight_layout()
     return fig
