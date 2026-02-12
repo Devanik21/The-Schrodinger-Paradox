@@ -259,7 +259,7 @@ def plot_stigmergy_map(seed=None):
         grid[ry, rx] = np.clip(grid[ry, rx] + color * strength, 0, 1)
 
     # 3. Micro-Diffusion (Creates 2x2 and 3x3 mini-clusters)
-    for _ in range(3):
+    for _ in range(2):
         # Very localized smear
         grid = (grid + np.roll(grid, 1, axis=1) * 0.3 + np.roll(grid, 1, axis=0) * 0.2) / 1.5
 
@@ -292,6 +292,73 @@ def plot_stigmergy_map(seed=None):
     ax.tick_params(colors='#666666', which='both', labelsize=8)
     
     # Remove axis border for the 'floating' feel
+    for spine in ax.spines.values():
+        spine.set_visible(False)
+    
+    plt.tight_layout()
+    return fig
+
+
+def plot_latent_bloom(seed=None):
+    """
+    Level 20: 'The Stigmergy Painting' — Hazy, colorful, organic latent field.
+    Gaussian blooms and high-iteration diffusion for a dreamy look.
+    """
+    if seed is not None:
+        np.random.seed(seed)
+    
+    res = 60
+    grid = np.zeros((res, res, 3))
+    
+    # 1. Base 'Aether' (Very faint multi-colored haze)
+    grid += np.random.rand(res, res, 3) * 0.05
+    
+    # 2. Add 'Neural Seeds' (150+ tiny color points)
+    num_seeds = 180
+    for _ in range(num_seeds):
+        ry, rx = np.random.randint(0, res, 2)
+        color = np.random.rand(3)
+        if np.random.rand() > 0.5:
+            color[1] *= 0.5 # Shift to cosmic magenta/cyan
+        
+        strength = 0.2 + np.random.rand() * 0.6
+        grid[ry, rx] = np.clip(grid[ry, rx] + color * strength, 0, 1)
+
+    # 3. Organic Multi-Stage Diffusion
+    for i in range(8):
+        w = 0.4 if i < 4 else 0.2
+        grid = (grid + 
+                np.roll(grid, 1, axis=0) * w + 
+                np.roll(grid, -1, axis=1) * w + 
+                np.roll(grid, 1, axis=1) * (w/2)) / (1 + 2.5*w)
+
+    # 4. 'Conscious Blooms' (Hazy blobs)
+    for _ in range(12):
+        ry, rx = np.random.randint(10, res-10, 2)
+        color = np.random.rand(3)
+        y, x = np.ogrid[:res, :res]
+        dist_sq = (x - rx)**2 + (y - ry)**2
+        sigma_sq = (np.random.rand() * 5 + 2)**2
+        bloom = np.exp(-dist_sq / (2 * sigma_sq))
+        for i in range(3):
+            grid[:, :, i] += bloom * color[i] * 0.7
+
+    # 5. Final Aesthetic Polish
+    grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
+    grid = np.clip(grid * 1.4, 0, 1)
+    grid = grid ** 1.3 
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, origin='upper', interpolation='bilinear')
+    
+    ax.set_title("Stigmergic Latent Bloom (Phase 4)", color='white', 
+                 fontsize=12, loc='left', pad=10, fontweight='bold')
+    
+    ax.set_facecolor('#0e1117')
+    fig.patch.set_facecolor('#0e1117') 
+    
+    ax.set_xticks([])
+    ax.set_yticks([])
     for spine in ax.spines.values():
         spine.set_visible(False)
     
@@ -1704,6 +1771,21 @@ elif page == "🧠 Collective Memory (Level 20)":
             st.pyplot(fig, clear_figure=True)
             st.caption(f"Cluster Instance #{i+1} — Seed: {seed}")
 
+    st.divider()
+    st.subheader("🌋 Converged Latent Blooms (Final States)")
+    st.markdown("These 4 final plots represent the fully converged, hazy state of the neural memory field.")
+    
+    bloom_row1 = st.columns(2)
+    bloom_row2 = st.columns(2)
+    all_bloom_cols = bloom_row1 + bloom_row2
+    
+    for i, col in enumerate(all_bloom_cols):
+        with col:
+            seed = master_seed + 100 + i
+            fig_bloom = plot_latent_bloom(seed=seed)
+            st.pyplot(fig_bloom, clear_figure=True)
+            st.caption(f"Latent Bloom Output #{i+1} — Seed: {seed}")
+
 
 # ============================================================
 #  FOOTER
@@ -1713,4 +1795,3 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
-
