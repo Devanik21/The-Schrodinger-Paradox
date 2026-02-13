@@ -2551,8 +2551,8 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             st.caption("L6: Kato cusp enforcement.")
         with col_b3:
             fig_fm2 = plot_fisher_manifold(solver=solver_ref, seed=master_seed + 50)
-            render_nqs_plot(fig_fm2, help_text="A mapping of the Hilbert space metric. Curvature peaks indicate regions of high sensitivity in the parameter space where SR optimization force is maximum.")
-            st.caption("L7-8: Backflow + SR Fisher manifold.")
+            render_nqs_plot(fig_fm2, help_text="Atlas view of the Hilbert space metric. This specific manifold slice highlights the 'Information Bottleneck' regions where neural parameters are most constrained by the local curvature.")
+            st.caption("L7-8: Fisher Manifold (Atlas view).")
 
         # --- Row 3: Levels 9, 10 ---
         st.markdown("##### 🔬 Phase II — Chemical Accuracy (Levels 9–10)")
@@ -2595,12 +2595,12 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             st.caption("L17: Spin-orbit fine structure.")
         with col_e2:
             fig_em2 = plot_entanglement_mesh(solver=solver_ref, seed=master_seed + 50)
-            render_nqs_plot(fig_em2, help_text="A topological view of the Rényi-2 entanglement entropy connectivity. High-intensity filaments signify bipartite correlations discovered via the SWAP-trick, representing pure quantum non-locality.")
-            st.caption("L18: Entanglement entropy variant.")
+            render_nqs_plot(fig_em2, help_text="Atlas fingerprint of the Rényi-2 entropy field. This variant visualization focuses on the 'Entanglement Phase' where electronic partitions exhibit maximum bipartite non-locality.")
+            st.caption("L18: Entanglement entropy (Atlas fingerprint).")
         with col_e3:
             fig_nl2 = plot_noether_landscape(solver=solver_ref, seed=master_seed + 50)
-            render_nqs_plot(fig_nl2, help_text="Maps the commutation density [H, Q]. Valleys in this landscape represent latent coordinates where the neural operator Q commutes with the Hamiltonian, signaling the discovery of novel conservation laws.")
-            st.caption("L19: Noether discovery variant.")
+            render_nqs_plot(fig_nl2, help_text="Atlas projection of the commutator density field. These deep valleys represent stable latent coordinates where the neural symmetries perfectly align with the Hamiltonian invariance.")
+            st.caption("L19: Noether Landscape (Atlas projection).")
 
 
 # ============================================================
