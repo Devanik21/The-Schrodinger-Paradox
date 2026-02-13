@@ -374,9 +374,9 @@ def compute_local_energy(log_psi_func, r_electrons: torch.Tensor,
     E_L = E_kin + E_pot
     
     # Stability Surgery: Protect against NaNs at the physics level
-    # Tightened for PES stability (L10): no atom below Ne should be < -500 Ha
-    E_L = torch.nan_to_num(E_L, nan=0.0, posinf=500.0, neginf=-500.0)
-    E_L = torch.clamp(E_L, min=-500.0, max=500.0)
+    # Widened (L21): -500 was too tight and caused a 'Gradient Black Hole'
+    E_L = torch.nan_to_num(E_L, nan=0.0, posinf=1e5, neginf=-1e5)
+    E_L = torch.clamp(E_L, min=-1e5, max=1e5)
     
     # Return E_L and detached components
     return E_L, E_kin.detach(), E_pot.detach()
