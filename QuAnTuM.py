@@ -2003,7 +2003,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.session_state.stigmergy_seed = int(time.time())
         st.rerun()
     
-    st.subheader("🌐 Global Memory Grids (8 Replicate Clusters)")
+    st.subheader("⚱️ Global Memory Grids (8 Replicate Clusters)")
     
     # 2x4 Grid layout
     row1 = st.columns(2)
@@ -2024,7 +2024,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             st.caption(f"Cluster Instance #{i+1} — Seed: {seed}")
 
     st.divider()
-    st.subheader("🌋 Converged Latent Blooms (Final States)")
+    st.subheader("☄️ Converged Latent Blooms (Final States)")
     st.markdown("These 8 final plots represent the fully converged, hazy state of the neural memory field.")
     
     bloom_row1 = st.columns(2)
