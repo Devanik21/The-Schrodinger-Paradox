@@ -343,26 +343,37 @@ def compute_local_energy(log_psi_func, r_electrons: torch.Tensor,
     # |∇ log|ψ||² per walker
     grad_sq = torch.sum(grad_log_psi ** 2, dim=(1, 2))  # [N_w]
 
-    # Laplacian via Hutchinson trace estimator
-    laplacian = torch.zeros(N_w, device=device)
-    for _ in range(n_hutchinson):
-        # Random vector v ~ N(0, I)
-        v = torch.randn_like(r)
-
-        # JVP: v · ∇(log|ψ|)  (dot product across all dimensions)
-        vg = torch.sum(v * grad_log_psi, dim=(1, 2))  # [N_w]
-
-        # Gradient of vg w.r.t. r gives v^T H
-        # Then dot with v gives v^T H v = trace estimator
-        hvp = torch.autograd.grad(
-            vg, r,
-            grad_outputs=torch.ones_like(vg),
-            create_graph=False,
-            retain_graph=True
-        )[0]  # [N_w, N_e, 3]
-        laplacian += torch.sum(v * hvp, dim=(1, 2))  # [N_w]
-
-    laplacian = laplacian / n_hutchinson
+    # Laplacian Calculation
+    # Level 21 Surgery: Use EXACT Laplacian for small systems (H, He)
+    # This kills the 'variational dive' noise that leads to E < -0.5
+    if N_e <= 2:
+        laplacian = torch.zeros(N_w, device=device)
+        # Compute exact diagonal of Hessian for each electron coord
+        for i in range(N_e):
+            for j in range(3):  # x, y, z
+                ei = grad_log_psi[:, i, j]
+                # Second derivative
+                hii = torch.autograd.grad(
+                    ei, r,
+                    grad_outputs=torch.ones_like(ei),
+                    create_graph=False,
+                    retain_graph=True
+                )[0][:, i, j]
+                laplacian += hii
+    else:
+        # Hutchinson trace estimator for large systems (Level 3)
+        laplacian = torch.zeros(N_w, device=device)
+        for _ in range(n_hutchinson):
+            v = torch.randn_like(r)
+            vg = torch.sum(v * grad_log_psi, dim=(1, 2))
+            hvp = torch.autograd.grad(
+                vg, r,
+                grad_outputs=torch.ones_like(vg),
+                create_graph=False,
+                retain_graph=True
+            )[0]
+            laplacian += torch.sum(v * hvp, dim=(1, 2))
+        laplacian = laplacian / n_hutchinson
 
     # Kinetic energy: T = -0.5 * (∇² log|ψ| + |∇ log|ψ||²)
     # This is the log-domain formula, theoretically more stable than ∇²ψ/ψ

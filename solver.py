@@ -60,11 +60,16 @@ class StochasticReconfiguration:
                  max_norm: float = 0.5):  # Trust region: limit max parameter change
         self.wavefunction = wavefunction
         self.lr = lr
-        self.damping = damping
-        self.damping_decay = damping_decay
+        self.damping = 1e-2  # Noble Tier: lower damping for better precision
+        self.max_grad_norm = 1.0
+        self.trust_region = 0.05 # L21: Tighten trust region for high-precision convergence
+        
+        # Exponential decay for damping (Level 8)
+        self.damping_min = 1e-4
+        self.damping_decay = 0.995
+        
         self.max_sr_params = max_sr_params
         self.use_kfac = use_kfac
-        self.max_norm = max_norm
         self.step_count = 0
         
         self.n_params = sum(p.numel() for p in wavefunction.parameters() if p.requires_grad)
