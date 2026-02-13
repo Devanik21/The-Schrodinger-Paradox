@@ -569,11 +569,14 @@ class VMCSolver:
             
             r_batch = self.sampler.walkers[start_idx:end_idx].detach().requires_grad_(True)
             
+            # Level 20: Cusp-Aware Hutchinson Sampling
+            # For H and He, we use more samples to kill the "dive" noise
+            n_h = 4 if self.system.n_electrons <= 2 else 1
+            
             # Local energy for this batch
-            # Note: compute_local_energy already does log_psi calculation internally
             batch_E_L, batch_E_kin, batch_E_pot = compute_local_energy(
                 self.log_psi_func, r_batch,
-                self.system, self.device
+                self.system, self.device, n_hutchinson=n_h
             )
             
             # We also need log|psi| and sign for the optimizer/loss
@@ -590,20 +593,16 @@ class VMCSolver:
                 torch.cuda.empty_cache()
 
         E_L = torch.cat(E_L_list)
-        log_psi = torch.cat(log_psi_list)  # Note: this is detached for the energy mean
-        # However, for the loss/gradients, we might need log_psi with grads.
-        # Let's re-run log_psi on the full set if memory allows, 
-        # or use the optimizer's version of grad calculation.
+        log_psi = torch.cat(log_psi_list)  
         
         # Stability Surgery: Protection (Refined for Phase 4)
-        # We use median-based clipping to survive extreme outliers (e.g. 10^8 Energy)
+        # Tighten the "Variational Guardrail" (3.0 * MAD instead of 5.0)
         E_L = torch.nan_to_num(E_L, nan=0.0, posinf=1e5, neginf=-1e5)
         E_median = torch.median(E_L)
         E_diff = (E_L - E_median).abs()
         median_abs_deviation = torch.median(E_diff)
         
-        # Robust clipping: median ± 5 * MAD
-        clip_width = 5.0 * median_abs_deviation + 1e-4
+        clip_width = 3.0 * median_abs_deviation + 1e-4
         E_L_clipped = torch.clamp(E_L, min=E_median - clip_width, max=E_median + clip_width)
         
         # For the loss gradient below, we need log_psi with grad enabled on parameters
