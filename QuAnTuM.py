@@ -818,6 +818,8 @@ def plot_pes_landscape(solver=None, seed=42):
     R2 = np.sqrt((X+0.7)**2 + Y**2) + 0.01
     Z = D_e * (1 - np.exp(-a*(R1 - r_e)))**2 + D_e * (1 - np.exp(-a*(R2 - r_e)))**2
     Z = Z - 2.5/np.sqrt((X-0.7)**2 + (Y)**2 + 0.5) - 2.5/np.sqrt((X+0.7)**2 + (Y)**2 + 0.5)
+    # Add random topological jitter (Level 10 dynamic requirement)
+    Z = Z + np.random.randn(res, res) * 0.015
     Z = np.clip(Z, -3, 10)
     Z_norm = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
     grid = plt.cm.terrain(Z_norm)[:,:,:3]
@@ -888,6 +890,9 @@ def plot_tdvmc_dynamics(solver=None, seed=42):
     t_phase = (step % 120) / 60.0 * np.pi
     Z_real = np.exp(-(X**2 + Y**2)*0.3) * np.cos(X*2 - t_phase) * np.cos(Y*1.5 + t_phase*0.5)
     Z_imag = np.exp(-(X**2 + Y**2)*0.3) * np.sin(X*2 - t_phase) * np.sin(Y*1.5 + t_phase*0.5)
+    # Quantum fluctuations jitter
+    Z_real += np.random.randn(res, res) * 0.01
+    Z_imag += np.random.randn(res, res) * 0.01
     amp = np.sqrt(Z_real**2 + Z_imag**2)
     phase_field = np.arctan2(Z_imag, Z_real)
     Z_norm = (amp - amp.min()) / (amp.max() - amp.min() + 1e-8)
@@ -916,6 +921,8 @@ def plot_bloch_lattice(solver=None, seed=42):
     k_twist = 0.3 + 0.2*np.sin(phase)
     bloch = np.cos(k_twist*X)*np.cos(k_twist*Y) * np.exp(-0.02*(X**2+Y**2))
     Z = V_lat * 0.5 + bloch * 0.8
+    # Crystal defect jitter
+    Z = Z + np.random.randn(res, res) * 0.02
     Z_norm = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
     grid = plt.cm.gnuplot2(Z_norm)[:,:,:3]
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -938,6 +945,9 @@ def plot_spinorbit_split(solver=None, seed=42):
     theta = np.arctan2(Y, X)
     psi_up = np.exp(-R*1.2) * np.cos(theta) * (1 + 0.3*np.cos(2*theta))
     psi_dn = np.exp(-R*1.2) * np.sin(theta) * (1 + 0.3*np.sin(2*theta))
+    # Relativistic jitter
+    psi_up += np.random.randn(res, res) * 0.005
+    psi_dn += np.random.randn(res, res) * 0.005
     Z_up = (np.abs(psi_up) - np.abs(psi_up).min()) / (np.abs(psi_up).max() - np.abs(psi_up).min() + 1e-8)
     Z_dn = (np.abs(psi_dn) - np.abs(psi_dn).min()) / (np.abs(psi_dn).max() - np.abs(psi_dn).min() + 1e-8)
     grid = np.zeros((res, res, 3))
@@ -2344,7 +2354,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.markdown("---")
         st.markdown("""
         <div style='text-align: center; padding: 60px 20px;'>
-            <p style='font-size: 1.5em; color: #888;'>🎨 36 Latent Dream Visualizations await...</p>
+            <p style='font-size: 1.5em; color: #888;'>🎨 38 Latent Dream Visualizations await...</p>
             <p style='color: #555;'>Press the button below to render all 20-level latent field maps.</p>
         </div>
         """, unsafe_allow_html=True)
@@ -2356,7 +2366,9 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         if 'stigmergy_seed' not in st.session_state:
             st.session_state.stigmergy_seed = int(time.time())
         
-        master_seed = st.session_state.stigmergy_seed
+        # Time-based subtle drift for continuous evolution (drift every 30s)
+        time_drift = int(time.time() // 30) % 1000
+        master_seed = st.session_state.stigmergy_seed + time_drift
         
         if st.button("🎲 Regenerate Memory Grids"):
             st.session_state.stigmergy_seed = int(time.time())
