@@ -172,14 +172,13 @@ def compute_distances(r_electrons: torch.Tensor, r_nuclei: torch.Tensor):
     N_n = r_nuclei.shape[0]
 
     # Electron-Electron: r_i - r_j
-    # [N_w, N_e, 1, 3] - [N_w, 1, N_e, 3] = [N_w, N_e, N_e, 3]
     r_ee_vec = r_electrons.unsqueeze(2) - r_electrons.unsqueeze(1)
-    r_ee = torch.norm(r_ee_vec, dim=-1)  # [N_w, N_e, N_e]
+    # Safe norm: add eps before sqrt to avoid NaN gradient at zero
+    r_ee = torch.sqrt(torch.sum(r_ee_vec**2, dim=-1) + 1e-12)  # [N_w, N_e, N_e]
 
     # Electron-Nuclear: r_i - R_I
-    # [N_w, N_e, 1, 3] - [1, 1, N_n, 3] = [N_w, N_e, N_n, 3]
     r_en_vec = r_electrons.unsqueeze(2) - r_nuclei.unsqueeze(0).unsqueeze(0)
-    r_en = torch.norm(r_en_vec, dim=-1)  # [N_w, N_e, N_n]
+    r_en = torch.sqrt(torch.sum(r_en_vec**2, dim=-1) + 1e-12)  # [N_w, N_e, N_n]
 
     return r_ee, r_en, r_ee_vec, r_en_vec
 

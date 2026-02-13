@@ -265,7 +265,7 @@ else:
 
 # --- Training Controls ---
 st.sidebar.divider()
-st.sidebar.subheader("Training")
+st.sidebar.subheader("🏋️ Training")
 
 n_steps_per_click = st.sidebar.slider("Steps per click", 1, 100, 10)
 
@@ -273,7 +273,7 @@ col_train1, col_train2 = st.sidebar.columns(2)
 train_btn = col_train1.button("▶️ Train", width='stretch')
 dream_btn = col_train2.button("🌙 Dream", width='stretch')
 
-measure_btn = st.sidebar.button(" Measure (Collapse)", width='stretch')
+measure_btn = st.sidebar.button("👁️ Measure (Collapse)", width='stretch')
 
 # --- Master Plot Toggle ---
 st.sidebar.divider()
@@ -281,7 +281,7 @@ if st.sidebar.button("🔍 Render All Plots", width='stretch', type="primary"):
     st.session_state.show_plots = True
 
 if st.session_state.show_plots:
-    if st.sidebar.button(" Hide Plots", width='stretch'):
+    if st.sidebar.button("🙈 Hide Plots", width='stretch'):
         st.session_state.show_plots = False
 
 
@@ -2611,7 +2611,6 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
-
 
 
 

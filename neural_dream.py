@@ -263,7 +263,7 @@ class DeepBackflowNet(nn.Module):
 
         # --- Single-electron input features ---
         r_en_vec = r_electrons.unsqueeze(2) - r_nuclei.unsqueeze(0).unsqueeze(0)
-        r_en = torch.norm(r_en_vec, dim=-1)
+        r_en = torch.sqrt(torch.sum(r_en_vec**2, dim=-1) + 1e-12)
 
         r_en_feats = torch.cat([
             r_en,
@@ -277,7 +277,7 @@ class DeepBackflowNet(nn.Module):
         # --- Pairwise input features ---
         if N_e > 1:
             r_ee_vec = r_electrons.unsqueeze(2) - r_electrons.unsqueeze(1)
-            r_ee_dist = torch.norm(r_ee_vec, dim=-1)  # [N_w, N_e, N_e] (no keepdim)
+            r_ee_dist = torch.sqrt(torch.sum(r_ee_vec**2, dim=-1) + 1e-12)  # [N_w, N_e, N_e] (no keepdim)
             r_ee = r_ee_dist.unsqueeze(-1)  # [N_w, N_e, N_e, 1]
 
             spin_flag = spin_mask_parallel.float().unsqueeze(0).unsqueeze(-1)
@@ -363,7 +363,7 @@ class JastrowFactor(nn.Module):
 
         # e-n cusp
         r_en_vec = r_electrons.unsqueeze(2) - r_nuclei.unsqueeze(0).unsqueeze(0)
-        r_en = torch.norm(r_en_vec, dim=-1)
+        r_en = torch.sqrt(torch.sum(r_en_vec**2, dim=-1) + 1e-12)
 
         b_en_safe = F.softplus(self.b_en)
         cusp_en = -charges.unsqueeze(0).unsqueeze(0) * r_en / \
@@ -379,7 +379,7 @@ class JastrowFactor(nn.Module):
 
         if N_e > 1:
             r_ee_vec = r_electrons.unsqueeze(2) - r_electrons.unsqueeze(1)
-            r_ee = torch.norm(r_ee_vec, dim=-1)
+            r_ee = torch.sqrt(torch.sum(r_ee_vec**2, dim=-1) + 1e-12)
 
             a_ee = torch.where(spin_mask_parallel,
                               torch.tensor(0.25, device=device),
