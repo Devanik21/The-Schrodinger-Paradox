@@ -122,13 +122,14 @@ class StochasticReconfiguration:
         f = (O_centered.T @ E_L_centered.unsqueeze(1)).squeeze(1) / N_w
         
         try:
-            # Stability Surgery: Add jitter to S before solving
-            eps = 1e-4
-            S = S + eps * torch.eye(S.shape[0], device=S.device)
+            # Level 21: Adaptive Shock Absorption
+            # Jitter now scales with damping to prevent "matrix shocks"
+            jitter = max(1e-5, damping * 0.1)
+            S = S + jitter * torch.eye(S.shape[0], device=S.device)
             delta_theta = torch.linalg.solve(S, f)
         except (torch.linalg.LinAlgError, RuntimeError):
-            # Fallback to Tikhonov-regularized Pseudo-Inverse
-            eps_fallback = 1e-3
+            # Fallback to Tikhonov-regularized Pseudo-Inverse (Higher Shock resistance)
+            eps_fallback = max(1e-3, damping)
             S_reg = S + eps_fallback * torch.eye(S.shape[0], device=S.device)
             delta_theta = torch.matmul(torch.linalg.pinv(S_reg), f)
         
