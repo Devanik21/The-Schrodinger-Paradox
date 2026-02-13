@@ -2370,9 +2370,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         time_drift = int(time.time() // 30) % 1000
         master_seed = st.session_state.stigmergy_seed + time_drift
         
-        if st.button("🎲 Regenerate Memory Grids"):
-            st.session_state.stigmergy_seed = int(time.time())
-            st.rerun()
+        col_ctrl1, col_ctrl2 = st.columns([1, 1])
+        with col_ctrl1:
+            if st.button("🎲 Regenerate Memory Grids", use_container_width=True):
+                st.session_state.stigmergy_seed = int(time.time())
+                st.rerun()
+        with col_ctrl2:
+            if st.button("✨ Hide Gallery & Reset", use_container_width=True):
+                st.session_state.latent_dream_loaded = False
+                st.rerun()
     
         st.subheader("🏺 Global Memory Grids (8 Replicate Clusters)")
         
