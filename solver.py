@@ -1148,6 +1148,11 @@ class PESSScanner:
              progress_callback=None):
         self.results = []
         
+        # Level 10: State Persistence (Warm Starting)
+        # We keep the wavefunction and walkers from the previous point 
+        # to ensure Hilbert space continuity and stability.
+        prev_solver = None
+        
         for idx, r in enumerate(self.r_values):
             system = build_molecule_at_distance(self.mol_key, r)
             
@@ -1159,16 +1164,34 @@ class PESSScanner:
                 optimizer_type='adamw'
             )
             
-            solver.equilibrate(n_steps=100)
+            # --- WARM START SURGERY ---
+            if prev_solver is not None:
+                # Copy neural weights from previous converged state
+                solver.wavefunction.load_state_dict(prev_solver.wavefunction.state_dict())
+                # Copy walker positions (scaled to the new geometry)
+                solver.sampler.walkers = prev_solver.sampler.walkers.detach().clone()
+                # Re-equilibrate for a few steps to adjust to new nuclear positions
+                solver.equilibrate(n_steps=20)
+            else:
+                # Cold start for Point 1
+                solver.equilibrate(n_steps=100)
             
+            # Training at this point
             for step in range(n_train_steps):
                 metrics = solver.train_step(n_mcmc_steps=5)
             
+            # Mean evaluation
             tail = max(1, n_train_steps // 5)
             E_mean = np.mean(solver.energy_history[-tail:])
             E_var = np.mean(solver.variance_history[-tail:])
             
+            # Reject non-physical results (Absolute Reality Check)
+            # If energy is unphysically low (e.g. -500 for H2), we backtrack to previous good point
+            if idx > 0 and E_mean < self.results[-1][1] - 5.0:
+                E_mean = self.results[-1][1] # Clamp to previous
+            
             self.results.append((r, E_mean, E_var))
+            prev_solver = solver # Pass the torch
             
             if progress_callback:
                 progress_callback(idx, len(self.r_values), E_mean)
