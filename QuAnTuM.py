@@ -56,6 +56,53 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# --- Custom Styling ---
+st.markdown("""
+    <style>
+    /* Main Background */
+    .stApp {
+        background-color: #0e1117;
+    }
+    
+    /* Primary Buttons Styling */
+    div.stButton > button[kind="primary"] {
+        background-color: rgba(0, 0, 0, 0) !important;
+        color: #e0e0e0 !important;
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        border-radius: 8px !important;
+        padding: 10px 24px !important;
+        font-weight: 500 !important;
+        backdrop-filter: blur(4px) !important;
+    }
+    
+    /* Hover state with Green Glow */
+    div.stButton > button[kind="primary"]:hover {
+        border-color: #00ff88 !important;
+        color: #00ff88 !important;
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.4), inset 0 0 10px rgba(0, 255, 136, 0.1) !important;
+        transform: translateY(-1px) !important;
+    }
+    
+    /* Active / Focus state */
+    div.stButton > button[kind="primary"]:active {
+        background-color: rgba(0, 255, 136, 0.05) !important;
+        transform: translateY(0px) !important;
+    }
+    
+    /* Standard Buttons subtly themed */
+    div.stButton > button[kind="secondary"] {
+        background-color: rgba(255, 255, 255, 0.03) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        color: #aaa !important;
+    }
+    div.stButton > button[kind="secondary"]:hover {
+        border-color: rgba(255, 255, 255, 0.2) !important;
+        color: #fff !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
 
 # ============================================================
 # 🔧 SESSION STATE INITIALIZATION
