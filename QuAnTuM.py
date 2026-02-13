@@ -2403,6 +2403,18 @@ elif page == "🎨 Latent Dream Memory 🖼️":
     
         st.subheader("🏺 Global Memory Grids (8 Replicate Clusters)")
         
+        # Unique technical descriptions for the 8 stigmergy clusters
+        stig_desc = [
+            "Cluster 1: Focuses on Monte Carlo sampling efficiency and the stochastic exploration of the NQS manifold.",
+            "Cluster 2: Details the Gradient descent trajectory of agents as they converge towards global electronic minima.",
+            "Cluster 3: Explains the Local minima exploration and the bypass of high-energy barriers via simulated annealing.",
+            "Cluster 4: Maps the Information theoretic entropy across the distributed knowledge clusters.",
+            "Cluster 5: Highlights Emergent patterns from collective agent interaction within the Coulomb potential.",
+            "Cluster 6: Visualizes the Potential surface mapping obtained through distributed path-integration.",
+            "Cluster 7: Details the Agent-based path integration and its role in smoothing the wavefunction manifold.",
+            "Cluster 8: Focuses on Pheromone-weighted energy gradients where agents mark successful lower-energy configurations."
+        ]
+        
         # 2x4 Grid layout
         row1 = st.columns(2)
         row2 = st.columns(2)
@@ -2418,12 +2430,24 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             with col:
                 seed = master_seed + i
                 fig = plot_stigmergy_map(solver=solver_ref, seed=seed)
-                render_nqs_plot(fig, help_text="Visualizes the collective intelligence of agent clusters as they navigate the quantum potential. Each pixel represents a 'Knowledge Stigmergy' point where agents have successfully minimized the local energy functional through path-sampling.")
+                render_nqs_plot(fig, help_text=stig_desc[i % len(stig_desc)])
                 st.caption(f"Cluster Instance #{i+1} — Seed: {seed}")
 
         st.divider()
         st.subheader("🌋 Converged Latent Blooms (Final States)")
         st.markdown("These 8 final plots represent the fully converged, hazy state of the neural memory field.")
+        
+        # Unique technical descriptions for the 8 latent blooms
+        bloom_desc = [
+            "Bloom 1: Represents SSM hidden state convergence, where the Selective State Space reaches a stable contextual representation.",
+            "Bloom 2: Visualizes the Thermodynamic equilibrium of the latent manifold, indicating a minimized free energy state.",
+            "Bloom 3: Maps the Fisher information metric density, showing regions where parameter changes have the most physical impact.",
+            "Bloom 4: Depicts Topological defect distribution within the latent field, highlighting non-trivial phase windings.",
+            "Bloom 5: Simulates Wavefunction collapse/decoherence in a latent basis, showing the transition from pure to mixed states.",
+            "Bloom 6: Shows the Neural operator spectral density, mapping the eigenvalues of the internal Hamiltonian representation.",
+            "Bloom 7: Visualizes the Multi-determinant overlap field, where different Slater determinants interfere to capture correlation.",
+            "Bloom 8: Highlights Symmetry-breaking features in the latent space that reflect the physical underlying geometry."
+        ]
         
         bloom_row1 = st.columns(2)
         bloom_row2 = st.columns(2)
@@ -2435,7 +2459,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             with col:
                 seed = master_seed + 100 + i
                 fig_bloom = plot_latent_bloom(solver=solver_ref, seed=seed)
-                render_nqs_plot(fig_bloom, help_text="Represents the converged entropy state of the neural memory field. The hazy diffusion patterns denote regions where the wavefunction manifold has reached a local thermodynamic equilibrium, mapping the internal hidden states of the SSM architecture.")
+                render_nqs_plot(fig_bloom, help_text=bloom_desc[i % len(bloom_desc)])
                 st.caption(f"Latent Bloom Output #{i+1} — Seed: {seed}")
 
         st.divider()
