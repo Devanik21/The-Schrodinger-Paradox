@@ -287,15 +287,14 @@ class MetropolisSampler:
 
         # Track acceptance rate (exponential moving average)
         current_rate = accept.float().mean().item()
-        # Settle faster (0.1) to reach Nobel stability quickly
-        self.acceptance_rate = 0.9 * self.acceptance_rate + 0.1 * current_rate
+        self.acceptance_rate = 0.95 * self.acceptance_rate + 0.05 * current_rate
 
-        # Surgical Precision Tuning: Target exactly 50.0% for "Nobel Tier" sampling
-        if self.acceptance_rate > self.target_acceptance + 0.005:
-            self.step_size *= 1.02
-        elif self.acceptance_rate < self.target_acceptance - 0.005:
-            self.step_size *= 0.98
-        self.step_size = max(0.01, min(self.step_size, 2.0))  # Stable range [0.01, 2.0]
+        # Adapt step size
+        if self.acceptance_rate > self.target_acceptance + 0.05:
+            self.step_size *= 1.05
+        elif self.acceptance_rate < self.target_acceptance - 0.05:
+            self.step_size *= 0.95
+        self.step_size = max(0.001, min(self.step_size, 2.0))  # Released: 2.0 is much better for H than 0.01
 
         return self.walkers, self.acceptance_rate
 
@@ -344,49 +343,40 @@ def compute_local_energy(log_psi_func, r_electrons: torch.Tensor,
     # |∇ log|ψ||² per walker
     grad_sq = torch.sum(grad_log_psi ** 2, dim=(1, 2))  # [N_w]
 
-    # Laplacian Selection (Level 21 Surgical Stability)
-    if n_hutchinson == 0:
-        # EXACT LAPLACIAN: Precise, zero-variance second derivatives
-        # Eliminates the stochastic noise that causes "Energy Dives"
-        laplacian = torch.zeros(N_w, device=device)
-        for i in range(N_e):
-            for alpha in range(3):
-                # Compute ∂²log|ψ|/∂r_iα² exactly via backprop
-                g_coord = grad_log_psi[:, i, alpha]
-                h_coord = torch.autograd.grad(
-                    g_coord, r, grad_outputs=torch.ones_like(g_coord),
-                    create_graph=False, retain_graph=True
-                )[0][:, i, alpha]
-                laplacian += h_coord
-    else:
-        # Stochastic Laplacian via Hutchinson trace estimator
-        laplacian = torch.zeros(N_w, device=device)
-        for _ in range(n_hutchinson):
-            # Random vector v ~ N(0, I)
-            v = torch.randn_like(r)
+    # Laplacian via Hutchinson trace estimator
+    laplacian = torch.zeros(N_w, device=device)
+    for _ in range(n_hutchinson):
+        # Random vector v ~ N(0, I)
+        v = torch.randn_like(r)
 
-            # JVP: v · ∇(log|ψ|)
-            vg = torch.sum(v * grad_log_psi, dim=(1, 2))
+        # JVP: v · ∇(log|ψ|)  (dot product across all dimensions)
+        vg = torch.sum(v * grad_log_psi, dim=(1, 2))  # [N_w]
 
-            # HVP: v^T H v
-            hvp = torch.autograd.grad(
-                vg, r, grad_outputs=torch.ones_like(vg),
-                create_graph=False, retain_graph=True
-            )[0]
-            laplacian += torch.sum(v * hvp, dim=(1, 2))
-        laplacian = laplacian / n_hutchinson
+        # Gradient of vg w.r.t. r gives v^T H
+        # Then dot with v gives v^T H v = trace estimator
+        hvp = torch.autograd.grad(
+            vg, r,
+            grad_outputs=torch.ones_like(vg),
+            create_graph=False,
+            retain_graph=True
+        )[0]  # [N_w, N_e, 3]
+        laplacian += torch.sum(v * hvp, dim=(1, 2))  # [N_w]
+
+    laplacian = laplacian / n_hutchinson
 
     # Kinetic energy: T = -0.5 * (∇² log|ψ| + |∇ log|ψ||²)
-    E_kin = -0.5 * (laplacian + grad_sq)
+    # This is the log-domain formula, theoretically more stable than ∇²ψ/ψ
+    E_kin = -0.5 * (laplacian + grad_sq)  # [N_w]
     
     # Potential energy
     E_pot = compute_potential_energy(r_electrons.detach(), system, device)
     
     E_L = E_kin + E_pot
     
-    # Precise Guardrail Dressing (Level 21): 2000 Ha is the safe limit for H-Ne
-    E_L = torch.nan_to_num(E_L, nan=0.0, posinf=2000.0, neginf=-2000.0)
-    E_L = torch.clamp(E_L, min=-2000.0, max=2000.0)
+    # Stability Surgery: Protect against NaNs at the physics level
+    # Widened (L21): -500 was too tight and caused a 'Gradient Black Hole'
+    E_L = torch.nan_to_num(E_L, nan=0.0, posinf=1e5, neginf=-1e5)
+    E_L = torch.clamp(E_L, min=-1e5, max=1e5)
     
     # Return E_L and detached components
     return E_L, E_kin.detach(), E_pot.detach()
@@ -1234,5 +1224,4 @@ if __name__ == "__main__":
     print(f"  Potential energy: {V_h2.mean().item():.4f} ± {V_h2.std().item():.4f}")
 
     print("\n✅ All physics engine tests passed!")
-
 
