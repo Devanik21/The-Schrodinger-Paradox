@@ -2395,7 +2395,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             with col:
                 seed = master_seed + i
                 fig = plot_stigmergy_map(solver=solver_ref, seed=seed)
-                st.pyplot(fig, clear_figure=True)
+                st.pyplot(fig, clear_figure=True, help="Visualizes the collective intelligence of agent clusters as they navigate the quantum potential. Each pixel represents a 'Knowledge Stigmergy' point where agents have successfully minimized the local energy functional through path-sampling.")
                 st.caption(f"Cluster Instance #{i+1} — Seed: {seed}")
 
         st.divider()
@@ -2412,7 +2412,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             with col:
                 seed = master_seed + 100 + i
                 fig_bloom = plot_latent_bloom(solver=solver_ref, seed=seed)
-                st.pyplot(fig_bloom, clear_figure=True)
+                st.pyplot(fig_bloom, clear_figure=True, help="Represents the converged entropy state of the neural memory field. The hazy diffusion patterns denote regions where the wavefunction manifold has reached a local thermodynamic equilibrium, mapping the internal hidden states of the SSM architecture.")
                 st.caption(f"Latent Bloom Output #{i+1} — Seed: {seed}")
 
         st.divider()
@@ -2426,7 +2426,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         # Render the Master Bloom (passing the solver if initialized)
         solver_ref = st.session_state.solver_3d if st.session_state.solver_3d else None
         fig_master = plot_master_bloom(solver=solver_ref, seed=master_seed + 999)
-        st.pyplot(fig_master, clear_figure=True)
+        st.pyplot(fig_master, clear_figure=True, help="The high-fidelity synthesis of the entire Wavefunction Manifold (Ψ) and the Selective State Space (SSM). This plot visualizes the singularity where optimization curvature (Fisher Information) meets the physical constraints of the Hamiltonian.")
         st.caption("🌌 Master Consensus Field — Unified Neural Quantum State [Nobel Territory]")
 
         st.divider()
@@ -2439,29 +2439,29 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         col_p1, col_p2, col_p3 = st.columns(3)
         with col_p1:
             fig_f = plot_fisher_manifold(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_f, clear_figure=True)
+            st.pyplot(fig_f, clear_figure=True, help="A mapping of the Hilbert space metric. Curvature peaks indicate regions of high sensitivity in the parameter space where Stochastic Reconfiguration (SR) exerts maximum optimization force to preserve the natural gradient.")
             st.caption("Curvature / optimization intensity.")
         with col_p2:
             fig_c = plot_correlation_mesh(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_c, clear_figure=True)
+            st.pyplot(fig_c, clear_figure=True, help="Depicts the electron-electron exclusion topology. The mesh density represents the many-body Jastrow factor's success in enforcing the Coulomb hole, preventing electronic overlap as required by the Pauli principle.")
             st.caption("Exclusion & correlation zones.")
         with col_p3:
             fig_b = plot_berry_flow(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_b, clear_figure=True)
+            st.pyplot(fig_b, clear_figure=True, help="Visualizes the non-abelian gauge field and complex phase streamlines of the wavefunction. This vector field tracks the geometric phase (γ) acquired during adiabatic cycles in the parameter manifold.")
             st.caption("Topological phase streamlines.")
         
         col_p4, col_p5, col_p6 = st.columns(3)
         with col_p4:
             fig_e = plot_entanglement_mesh(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_e, clear_figure=True)
+            st.pyplot(fig_e, clear_figure=True, help="A topological view of the Rényi-2 entanglement entropy connectivity. High-intensity filaments signify bipartite correlations discovered via the SWAP-trick, representing pure quantum non-locality.")
             st.caption("Quantum Entanglement (S₂) topology.")
         with col_p5:
             fig_n = plot_noether_landscape(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_n, clear_figure=True)
+            st.pyplot(fig_n, clear_figure=True, help="Maps the commutation density |[H, Q]|. Valleys in this landscape represent latent coordinates where the neural operator Q commutes with the Hamiltonian, signaling the discovery of novel conservation laws.")
             st.caption("Conservation discovery potential.")
         with col_p6:
             fig_o = plot_orthonormal_pressure(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_o, clear_figure=True)
+            st.pyplot(fig_o, clear_figure=True, help="Visualizes the penalty-functional pressure for excited states. The fields show how Gram-Schmidt or orthogonality constraints 'push' secondary energy levels away from the ground state to prevent collapsed solutions.")
             st.caption("Excited-state orthogonality field.")
 
         # ============================================================
@@ -2480,15 +2480,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         col_a1, col_a2, col_a3 = st.columns(3)
         with col_a1:
             fig_hw = plot_hamiltonian_well(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_hw, clear_figure=True)
+            st.pyplot(fig_hw, clear_figure=True, help="The direct representation of the external potential V(r). Visualizes the primary attractive wells formed by ionic charges and the repulsive ridges generated by mutual electronic interaction.")
             st.caption("L1: 3D Coulomb Hamiltonian.")
         with col_a2:
             fig_mw = plot_mcmc_walker_field(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_mw, clear_figure=True)
+            st.pyplot(fig_mw, clear_figure=True, help="The steady-state probability distribution from the Metropolis-Hastings Markov Chain. This density field represents the sampling efficiency of the engine across the 3N-dimensional configuration space.")
             st.caption("L2: Metropolis-Hastings walker topology.")
         with col_a3:
             fig_ah = plot_autograd_hessian(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_ah, clear_figure=True)
+            st.pyplot(fig_ah, clear_figure=True, help="The trace of the second-order derivative tensor (Laplacian) computed via Hutchinson's estimator. This field maps the kinetic energy density and the local curvature of the log-wavefunction.")
             st.caption("L3: Hutchinson Laplacian curvature.")
 
         # --- Row 2: Levels 4-5, 6 ---
@@ -2496,15 +2496,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         col_b1, col_b2, col_b3 = st.columns(3)
         with col_b1:
             fig_ld = plot_logdomain_landscape(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_ld, clear_figure=True)
+            st.pyplot(fig_ld, clear_figure=True, help="Visualizes the logarithmic magnitude and nodal surfaces of the Slater Determinant. The phase transitions (teal to crimson) denote the anti-symmetric sign flips required for fermionic statistics.")
             st.caption("L4-5: Log|ψ| + Slater antisymmetry nodes.")
         with col_b2:
             fig_ce = plot_cusp_enforcement(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_ce, clear_figure=True)
+            st.pyplot(fig_ce, clear_figure=True, help="The enforcement of first-order continuity at electronic singularities. These sharp peaks represent the analytic requirements for the wavefunction as r -> 0 to cancel the infinite Coulomb potential.")
             st.caption("L6: Kato cusp enforcement.")
         with col_b3:
             fig_fm2 = plot_fisher_manifold(solver=solver_ref, seed=master_seed + 50)
-            st.pyplot(fig_fm2, clear_figure=True)
+            st.pyplot(fig_fm2, clear_figure=True, help="A mapping of the Hilbert space metric. Curvature peaks indicate regions of high sensitivity in the parameter space where SR optimization force is maximum.")
             st.caption("L7-8: Backflow + SR Fisher manifold.")
 
         # --- Row 3: Levels 9, 10 ---
@@ -2512,15 +2512,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         col_c1, col_c2, col_c3 = st.columns(3)
         with col_c1:
             fig_as = plot_atomic_shells(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_as, clear_figure=True)
+            st.pyplot(fig_as, clear_figure=True, help="The radial and angular density distributions of electronic shells. Visualizes the hierarchical structure of quantum numbers (n, l, m) emerging from the converged neural parameters.")
             st.caption("L9: Atomic shell structure (H→Ne).")
         with col_c2:
             fig_pl = plot_pes_landscape(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_pl, clear_figure=True)
+            st.pyplot(fig_pl, clear_figure=True, help="The Potential Energy Surface (PES) manifold for polyatomic systems. This landscape maps the total energy as a function of nuclear geometry, showing the local minima (stable bonds) and saddle points (transition states).")
             st.caption("L10: Molecular PES energy landscape.")
         with col_c3:
             fig_sd = plot_ssm_dataflow(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_sd, clear_figure=True)
+            st.pyplot(fig_sd, clear_figure=True, help="A visualization of the Selective State Space (SSM) hidden state propagation. These channels represent the flow of contextual information through the neural architecture, replacing traditional recurrent bottlenecks.")
             st.caption("L11: SSM-Backflow data channels.")
 
         # --- Row 4: Levels 12, 15, 16 ---
@@ -2528,15 +2528,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         col_d1, col_d2, col_d3 = st.columns(3)
         with col_d1:
             fig_fa = plot_flow_acceptance(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_fa, clear_figure=True)
+            st.pyplot(fig_fa, clear_figure=True, help="The bijective mapping density between the base Gaussian distribution and the target quantum state. This field optimizes the MCMC acceptance ratio using normalizing flows to eliminate autocorrelation.")
             st.caption("L12: Flow-VMC acceptance field.")
         with col_d2:
             fig_td = plot_tdvmc_dynamics(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_td, clear_figure=True)
+            st.pyplot(fig_td, clear_figure=True, help="Real-time evolution of the probability amplitude and phase field. This encoding follows the time-dependent Schrödinger equation, mapping the evolution of wavepackets in an external field.")
             st.caption("L15: TD-VMC quantum dynamics.")
         with col_d3:
             fig_bl = plot_bloch_lattice(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_bl, clear_figure=True)
+            st.pyplot(fig_bl, clear_figure=True, help="The electronic band structure and lattice potential for crystals. This plot visualizes the implementation of periodic boundary conditions and the Bloch theorem for the Homogeneous Electron Gas.")
             st.caption("L16: Bloch periodic lattice.")
 
         # --- Row 5: Level 17 ---
@@ -2544,15 +2544,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         col_e1, col_e2, col_e3 = st.columns(3)
         with col_e1:
             fig_so = plot_spinorbit_split(solver=solver_ref, seed=master_seed)
-            st.pyplot(fig_so, clear_figure=True)
+            st.pyplot(fig_so, clear_figure=True, help="Visualizes relativistic splitting using 2-component spinors. Red and blue channels represent spin-up/spin-down densities split by the Breit-Pauli L-S coupling interaction.")
             st.caption("L17: Spin-orbit fine structure.")
         with col_e2:
             fig_em2 = plot_entanglement_mesh(solver=solver_ref, seed=master_seed + 50)
-            st.pyplot(fig_em2, clear_figure=True)
+            st.pyplot(fig_em2, clear_figure=True, help="A topological view of the Rényi-2 entanglement entropy connectivity. High-intensity filaments signify bipartite correlations discovered via the SWAP-trick, representing pure quantum non-locality.")
             st.caption("L18: Entanglement entropy variant.")
         with col_e3:
             fig_nl2 = plot_noether_landscape(solver=solver_ref, seed=master_seed + 50)
-            st.pyplot(fig_nl2, clear_figure=True)
+            st.pyplot(fig_nl2, clear_figure=True, help="Maps the commutation density [H, Q]. Valleys in this landscape represent latent coordinates where the neural operator Q commutes with the Hamiltonian, signaling the discovery of novel conservation laws.")
             st.caption("L19: Noether discovery variant.")
 
 
@@ -2564,7 +2564,6 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
-
 
 
 
