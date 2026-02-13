@@ -971,13 +971,17 @@ def render_nqs_plot(fig, help_text):
     fig.savefig(buf, format="png", dpi=100, bbox_inches='tight', facecolor='#0e1117')
     buf.seek(0)
     st.image(buf, width='stretch')
-    # Use custom HTML for a native browser hover tooltip (replaces the '?' icon for compatibility)
+    # Use HTML <details> for a mobile-friendly 'tap to reveal' tooltip
     tooltip_html = f'''
-    <div style="text-align: center; margin-top: -15px; margin-bottom: 25px;">
-        <span style="cursor: help; font-size: 1.2em; filter: drop-shadow(0 0 5px #00ff88); opacity: 0.8;" 
-              title="{help_text}">
-              ℹ️
-        </span>
+    <div style="text-align: center; margin-top: -15px; margin-bottom: 25px; font-family: monospace;">
+        <details style="color: #00ff88; cursor: pointer;">
+            <summary style="list-style: none; font-size: 1.2em; filter: drop-shadow(0 0 5px #00ff88); opacity: 0.8; outline: none;">
+                ℹ️
+            </summary>
+            <div style="font-size: 0.85em; color: #e0e0e0; padding: 10px; line-height: 1.4; border: 1px solid rgba(0, 255, 136, 0.2); border-radius: 8px; margin-top: 10px; background: rgba(0,0,0,0.2);">
+                {help_text}
+            </div>
+        </details>
     </div>
     '''
     st.markdown(tooltip_html, unsafe_allow_html=True)
