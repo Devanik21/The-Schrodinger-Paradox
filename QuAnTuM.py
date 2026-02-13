@@ -970,13 +970,13 @@ def render_nqs_plot(fig, help_text):
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=100, bbox_inches='tight', facecolor='#0e1117')
     buf.seek(0)
-    st.image(buf, use_container_width=True)
+    st.image(buf, width='stretch')
     # Use custom HTML for a native browser hover tooltip (replaces the '?' icon for compatibility)
     tooltip_html = f'''
-    <div style="text-align: center; margin-top: -10px; margin-bottom: 20px;">
-        <span style="cursor: help; color: #00ff88; font-family: monospace; font-size: 0.85em; border-bottom: 1px dotted #00ff88;" 
+    <div style="text-align: center; margin-top: -15px; margin-bottom: 25px;">
+        <span style="cursor: help; font-size: 1.2em; filter: drop-shadow(0 0 5px #00ff88); opacity: 0.8;" 
               title="{help_text}">
-              🔬 Latent Physics [HOVER FOR INFO]
+              ℹ️
         </span>
     </div>
     '''
@@ -2375,7 +2375,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             <p style='color: #555;'>Press the button below to render all 20-level latent field maps.</p>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("✨ Render Latent Dream Gallery ✨", type="primary", use_container_width=True):
+        if st.button("✨ Render Latent Dream Gallery ✨", type="primary", width='stretch'):
             st.session_state.latent_dream_loaded = True
             st.rerun()
     else:
@@ -2389,11 +2389,11 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         
         col_ctrl1, col_ctrl2 = st.columns([1, 1])
         with col_ctrl1:
-            if st.button("🎲 Regenerate Memory Grids", use_container_width=True):
+            if st.button("🎲 Regenerate Memory Grids", width='stretch'):
                 st.session_state.stigmergy_seed = int(time.time())
                 st.rerun()
         with col_ctrl2:
-            if st.button("✨ Hide Gallery & Reset", use_container_width=True):
+            if st.button("✨ Hide Gallery & Reset", width='stretch'):
                 st.session_state.latent_dream_loaded = False
                 st.rerun()
     
