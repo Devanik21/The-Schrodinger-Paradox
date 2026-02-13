@@ -211,7 +211,7 @@ if mode == "3D Atomic VMC":
         optimizer_key = 'sr' if 'Stochastic' in opt_type else 'adamw'
     
     # Initialize
-    if st.sidebar.button("🚀 Initialize System", width='stretch'):
+    if st.sidebar.button("♾️ Initialize System", width='stretch'):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         system = ATOMS[system_key] if system_key in ATOMS else MOLECULES[system_key]
         
@@ -239,7 +239,7 @@ else:
     )
     grid_size = st.sidebar.slider("Grid Size", 64, 512, 256, 64)
     
-    if st.sidebar.button("🚀 Initialize System", width='stretch'):
+    if st.sidebar.button("♾️ Initialize System", width='stretch'):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         st.session_state.solver_1d = SchrodingerSolver(grid_size=grid_size, device=device)
         solver_1d = st.session_state.solver_1d
@@ -1045,7 +1045,7 @@ if page == "⚛️ System Setup":
                     })
                 st.dataframe(ref_data, width='stretch')
             else:
-                st.info("System not initialized. Click '🚀 Initialize System' in sidebar.")
+                st.info("System not initialized. Click '♾️ Initialize System' in sidebar.")
         else:
             st.warning("Select a system from the sidebar.")
     
@@ -1133,7 +1133,7 @@ elif page == "🔬 Training Dashboard":
                 if st.session_state.training_steps <= solver.sr_warmup_steps:
                     st.info(f"🔥 AdamW warm-up phase ({st.session_state.training_steps}/{solver.sr_warmup_steps} steps)")
                 else:
-                    st.success("🚀 Stochastic Reconfiguration ACTIVE (natural gradient)")
+                    st.success("♾️ Stochastic Reconfiguration ACTIVE (natural gradient)")
         else:
             col1.metric("Energy ⟨E⟩", "—")
             col2.metric("Error |ΔE|", "—")
@@ -1712,7 +1712,7 @@ elif page == "📉 PES Curves (Level 10)":
                 r_max_val = st.number_input("R_OH_max (Bohr)", value=5.0, step=0.5)
                 st.info("H₂O: R_OH_e = 1.809 Bohr, bent geometry")
         
-        if st.button("🚀 Run PES Scan", width='stretch', type="primary"):
+        if st.button("♾️ Run PES Scan", width='stretch', type="primary"):
             device = "cuda" if torch.cuda.is_available() else "cpu"
             scanner = PESSScanner(
                 pes_mol,
@@ -1846,7 +1846,7 @@ elif page == "🌟 Excited States (Level 13)":
             exc_lambda = st.number_input("λ (orthogonality)", value=10.0, step=1.0)
             exc_walkers = st.slider("Walkers", 128, 1024, 256, key="exc_walk")
 
-        if st.button("🚀 Run Excited State Calculation", width='stretch', type="primary"):
+        if st.button("♾️ Run Excited State Calculation", width='stretch', type="primary"):
             device = "cuda" if torch.cuda.is_available() else "cpu"
             system = ATOMS[exc_atom]
             solver = ExcitedStateSolver(
@@ -1909,7 +1909,7 @@ elif page == "🔮 Berry Phase (Level 14)":
             st.info("**H₃ loop:** equilateral → isosceles → equilateral")
             st.info("Expected: γ = π (conical intersection)")
 
-        if st.button("🚀 Compute Berry Phase", width='stretch', type="primary"):
+        if st.button("♾️ Compute Berry Phase", width='stretch', type="primary"):
             device = "cuda" if torch.cuda.is_available() else "cpu"
             computer = BerryPhaseComputer(
                 BerryPhaseComputer.h3_triangle_loop,
@@ -1986,7 +1986,7 @@ elif page == "⏰ TD-VMC (Level 15)":
             td_walkers = st.slider("Walkers", 128, 1024, 256, key="td_walk")
             st.info("First converges ground state, then evolves in time.")
 
-        if st.button("🚀 Run TD-VMC", width='stretch', type="primary"):
+        if st.button("♾️ Run TD-VMC", width='stretch', type="primary"):
             device = "cuda" if torch.cuda.is_available() else "cpu"
             system = ATOMS[td_atom]
             td = TimeDependentVMC(
@@ -2524,7 +2524,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             st.caption("L11: SSM-Backflow data channels.")
 
         # --- Row 4: Levels 12, 15, 16 ---
-        st.markdown("##### 🚀 Phase III & IV — Beyond FermiNet (Levels 12–17)")
+        st.markdown("##### ♾️ Phase III & IV — Beyond FermiNet (Levels 12–17)")
         col_d1, col_d2, col_d3 = st.columns(3)
         with col_d1:
             fig_fa = plot_flow_acceptance(solver=solver_ref, seed=master_seed)
@@ -2564,6 +2564,7 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
+
 
 
 
