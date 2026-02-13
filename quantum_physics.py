@@ -287,14 +287,15 @@ class MetropolisSampler:
 
         # Track acceptance rate (exponential moving average)
         current_rate = accept.float().mean().item()
-        self.acceptance_rate = 0.98 * self.acceptance_rate + 0.02 * current_rate
+        # Settle faster (0.1) to reach Nobel stability quickly
+        self.acceptance_rate = 0.9 * self.acceptance_rate + 0.1 * current_rate
 
         # Surgical Precision Tuning: Target exactly 50.0% for "Nobel Tier" sampling
         if self.acceptance_rate > self.target_acceptance + 0.005:
             self.step_size *= 1.02
         elif self.acceptance_rate < self.target_acceptance - 0.005:
             self.step_size *= 0.98
-        self.step_size = max(0.001, min(self.step_size, 2.5))  # Boosted max to 2.5 for better H/He shock exploration
+        self.step_size = max(0.01, min(self.step_size, 2.0))  # Stable range [0.01, 2.0]
 
         return self.walkers, self.acceptance_rate
 

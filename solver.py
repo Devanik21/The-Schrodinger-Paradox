@@ -122,14 +122,14 @@ class StochasticReconfiguration:
         f = (O_centered.T @ E_L_centered.unsqueeze(1)).squeeze(1) / N_w
         
         try:
-            # Level 21: Adaptive Shock Absorption
-            # Jitter now scales with damping to prevent "matrix shocks"
-            jitter = max(1e-5, damping * 0.1)
-            S = S + jitter * torch.eye(S.shape[0], device=S.device)
-            delta_theta = torch.linalg.solve(S, f)
+            # Level 21: Adaptive Matrix Armor
+            # Jitter now scales more aggressively to protect against singular shocks
+            jitter = max(2e-4, damping * 0.2)
+            S_armored = S + jitter * torch.eye(S.shape[0], device=S.device)
+            delta_theta = torch.linalg.solve(S_armored, f)
         except (torch.linalg.LinAlgError, RuntimeError):
-            # Fallback to Tikhonov-regularized Pseudo-Inverse (Higher Shock resistance)
-            eps_fallback = max(1e-3, damping)
+            # Fallback to Tikhonov-regularized Pseudo-Inverse (Enhanced Shock resistance)
+            eps_fallback = max(5e-3, damping)
             S_reg = S + eps_fallback * torch.eye(S.shape[0], device=S.device)
             delta_theta = torch.matmul(torch.linalg.pinv(S_reg), f)
         
@@ -499,7 +499,7 @@ class VMCSolver:
         if optimizer_type == 'sr':
             self.sr_optimizer = StochasticReconfiguration(
                 self.wavefunction, lr=lr,
-                damping=1e-3, damping_decay=0.999,
+                damping=0.05, damping_decay=0.99,  # Boosted for "Nobel Tier" stability
                 use_kfac=True
             )
             self.optimizer = optim.AdamW(self.wavefunction.parameters(), lr=lr)
