@@ -966,11 +966,21 @@ def plot_spinorbit_split(solver=None, seed=42):
     return fig
 
 def render_nqs_plot(fig, help_text):
-    """Utility to render a matplotlib figure as an image to support 'help' tooltips."""
+    """Utility to render a matplotlib figure as an image with a robust hover tooltip."""
     buf = io.BytesIO()
     fig.savefig(buf, format="png", dpi=100, bbox_inches='tight', facecolor='#0e1117')
     buf.seek(0)
-    st.image(buf, use_container_width=True, help=help_text)
+    st.image(buf, use_container_width=True)
+    # Use custom HTML for a native browser hover tooltip (replaces the '?' icon for compatibility)
+    tooltip_html = f'''
+    <div style="text-align: center; margin-top: -10px; margin-bottom: 20px;">
+        <span style="cursor: help; color: #00ff88; font-family: monospace; font-size: 0.85em; border-bottom: 1px dotted #00ff88;" 
+              title="{help_text}">
+              🔬 Latent Physics [HOVER FOR INFO]
+        </span>
+    </div>
+    '''
+    st.markdown(tooltip_html, unsafe_allow_html=True)
     plt.close(fig)
 
 
