@@ -1593,22 +1593,9 @@ elif page == "📈 Diagnostics":
         col1, col2, col3, col4, col5 = st.columns(5)
         col1.metric("Training Steps", st.session_state.training_steps)
         col2.metric("MCMC Step Size", f"{solver.sampler.step_size:.4f}")
-        
-        # Nobel Tier Requirement: Exactly 50.0% MCMC acceptance
-        acc = solver.sampler.acceptance_rate
-        is_nobel_acc = abs(acc - 0.5) < 0.005
-        col3.metric("Acceptance Rate", f"{acc:.2%}", 
-                    delta="⭐ NOBEL TARGET" if is_nobel_acc else None)
-        
-        # Nobel Tier Requirement: Equilibrated AND Accuracy < 100 mHa
-        best_e = min(solver.energy_history) if solver.energy_history else 0
-        system = ATOMS.get(st.session_state.system_key) or MOLECULES.get(st.session_state.system_key)
-        best_err = abs(best_e - system.exact_energy) * 1000 if system and system.exact_energy else 999
-        is_nobel_tier = solver.equilibrated and best_err < 100 and is_nobel_acc
-        
-        col4.metric("Nobel Tier", "🏆 ACHIEVED" if is_nobel_tier else "🔍 SCANNING",
-                    delta="✅" if is_nobel_tier else None)
-        col5.metric("Optimizer", f"{solver.optimizer_type.upper()} [SHOCK-AF]")
+        col3.metric("Acceptance Rate", f"{solver.sampler.acceptance_rate:.1%}")
+        col4.metric("Equilibrated", "✅" if solver.equilibrated else "❌")
+        col5.metric("Optimizer", solver.optimizer_type.upper())
         
         if st.session_state.show_plots and solver.energy_history:
             st.divider()
