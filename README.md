@@ -1055,7 +1055,7 @@ The above copyright notice and this permission notice shall be included in all c
   title = {The Schrödinger Dream: Neural Quantum State Solver with SSM-Backflow},
   year = {2026},
   publisher = {GitHub},
-  url = {https://github.com/Devanik21/schrodinger-dream}
+  url = {https://github.com/Devanik21/The-Schrodinger-Paradox}
 }
 ```
 
