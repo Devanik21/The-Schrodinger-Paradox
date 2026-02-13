@@ -2571,7 +2571,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             st.caption("L11: SSM-Backflow data channels.")
 
         # --- Row 4: Levels 12, 15, 16 ---
-        st.markdown("##### ♾️ Phase III & IV — Beyond FermiNet (Levels 12–17)")
+        st.markdown("##### ♾️ Phase III & IV — Advanced Engines (Levels 12, 15, 16)")
         col_d1, col_d2, col_d3 = st.columns(3)
         with col_d1:
             fig_fa = plot_flow_acceptance(solver=solver_ref, seed=master_seed)
@@ -2586,8 +2586,8 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             render_nqs_plot(fig_bl, help_text="The electronic band structure and lattice potential for crystals. This plot visualizes the implementation of periodic boundary conditions and the Bloch theorem for the Homogeneous Electron Gas.")
             st.caption("L16: Bloch periodic lattice.")
 
-        # --- Row 5: Level 17 ---
-        st.markdown("##### ⚛️ Relativistic & Topological (Level 17)")
+        # --- Row 5: Levels 17, 18, 19 ---
+        st.markdown("##### ⚛️ Phase IV — Relativistic & Topological Frontiers (Levels 17–19)")
         col_e1, col_e2, col_e3 = st.columns(3)
         with col_e1:
             fig_so = plot_spinorbit_split(solver=solver_ref, seed=master_seed)
