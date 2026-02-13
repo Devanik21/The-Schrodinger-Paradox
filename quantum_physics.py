@@ -352,11 +352,11 @@ def compute_local_energy(log_psi_func, r_electrons: torch.Tensor,
         for i in range(N_e):
             for j in range(3):  # x, y, z
                 ei = grad_log_psi[:, i, j]
-                # Second derivative
+                # Second derivative — MUST have create_graph=True for optimizer
                 hii = torch.autograd.grad(
                     ei, r,
                     grad_outputs=torch.ones_like(ei),
-                    create_graph=False,
+                    create_graph=True,  # CRITICAL: Preserves gradient path to parameters
                     retain_graph=True
                 )[0][:, i, j]
                 laplacian += hii
