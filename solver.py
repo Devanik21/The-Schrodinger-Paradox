@@ -55,9 +55,9 @@ class StochasticReconfiguration:
     Tikhonov damping: S → S + λI with exponentially decaying λ.
     """
     def __init__(self, wavefunction, lr: float = 0.01,
-                 damping: float = 0.1, damping_decay: float = 0.99,  # Increased damping for stability
+                 damping: float = 1.0, damping_decay: float = 0.99,  # High start for cold stability
                  max_sr_params: int = 5000, use_kfac: bool = True,
-                 max_norm: float = 0.2):  # Trust region: limit max parameter change
+                 max_norm: float = 0.1):  # Tight trust region for safety
         self.wavefunction = wavefunction
         self.lr = lr
         self.damping = damping
@@ -84,7 +84,7 @@ class StochasticReconfiguration:
     
     def compute_update(self, log_psi, E_L, walkers):
         self.step_count += 1
-        current_damping = max(self.damping * (self.damping_decay ** self.step_count), 1e-6)
+        current_damping = max(self.damping * (self.damping_decay ** self.step_count), 0.01)
         
         if self.use_full_sr:
             return self._full_sr_update(log_psi, E_L, current_damping)
@@ -498,8 +498,8 @@ class VMCSolver:
         if optimizer_type == 'sr':
             self.sr_optimizer = StochasticReconfiguration(
                 self.wavefunction, lr=lr,
-                damping=0.1, damping_decay=0.99,
-                use_kfac=True, max_norm=0.2
+                damping=1.0, damping_decay=0.99,
+                use_kfac=True, max_norm=0.1
             )
             self.optimizer = optim.AdamW(self.wavefunction.parameters(), lr=lr)
         else:
@@ -615,11 +615,23 @@ class VMCSolver:
         # If memory is extremely tight, the user can lower n_walkers.
         log_psi, sign_psi = self.wavefunction(self.sampler.walkers)
         
-        # 3. Optimization step (SR vs AdamW)
+        # 3. Calculate metrics before update (for divergence detection)
+        energy = E_L_clipped.mean().item()
+        variance = E_L_clipped.var().item()
+
+        # 4. Optimization step (SR vs AdamW)
         use_sr = (self.sr_optimizer is not None and 
                   self.step_count > self.sr_warmup_steps)
         
         if use_sr:
+            # Pre-SR Check: If energy is already divergent, refuse to update
+            if energy < -1000.0:
+                 return {
+                    'energy': energy, 'variance': variance,
+                    'acceptance_rate': acc_rate, 'grad_norm': 0.0,
+                    'warning': "Energy Divergence Detected: Rejecting Update"
+                }
+
             grad_norm = self.sr_optimizer.compute_update(
                 log_psi, E_L_clipped, self.sampler.walkers
             )
@@ -628,24 +640,22 @@ class VMCSolver:
             E_centered = (E_L_clipped - E_L_clipped.mean()).detach()
             loss = torch.mean(2.0 * E_centered * log_psi)
             
-            if torch.isnan(loss) or torch.isinf(loss):
+            if torch.isnan(loss) or torch.isinf(loss) or energy < -1000.0:
                 self.optimizer.zero_grad()
                 return {
-                    'energy': float('nan'), 'variance': float('nan'),
+                    'energy': energy, 'variance': variance,
                     'acceptance_rate': acc_rate, 'grad_norm': 0.0
                 }
             
             loss.backward()
+            # Absolute Grad Clip for Baseline
             grad_norm = torch.nn.utils.clip_grad_norm_(
-                self.wavefunction.parameters(), max_norm=1.0
+                self.wavefunction.parameters(), max_norm=0.5
             )
             self.optimizer.step()
             grad_norm = grad_norm.item() if isinstance(grad_norm, torch.Tensor) else grad_norm
 
-        # 4. Record metrics
-        energy = E_L_clipped.mean().item()
-        variance = E_L_clipped.var().item()
-
+        # 5. Record metrics
         self.energy_history.append(energy)
         self.variance_history.append(variance)
         self.acceptance_history.append(acc_rate)
