@@ -462,7 +462,7 @@ class VMCSolver:
                  d_model: int = 64, n_layers: int = 3, n_determinants: int = 16,
                  lr: float = 1e-3, device: str = 'cpu',
                  optimizer_type: str = 'sr', use_flow_sampler: bool = False,
-                 use_ssm_backflow: bool = True):
+                 use_ssm_backflow: bool = True, sampler: MetropolisSampler = None):
         self.system = system
         self.device = device
         self.n_walkers = n_walkers
@@ -476,13 +476,16 @@ class VMCSolver:
             use_ssm_backflow=use_ssm_backflow
         ).to(device)
 
-        # MCMC Sampler (Level 2)
-        self.sampler = MetropolisSampler(
-            n_walkers=n_walkers,
-            n_electrons=system.n_electrons,
-            device=device
-        )
-        self.sampler.initialize_around_nuclei(system)
+        # MCMC Sampler (Level 2) - Reuse if provided for topological continuity
+        if sampler is not None:
+            self.sampler = sampler
+        else:
+            self.sampler = MetropolisSampler(
+                n_walkers=n_walkers,
+                n_electrons=system.n_electrons,
+                device=device
+            )
+            self.sampler.initialize_around_nuclei(system)
 
         # Level 12: Flow sampler (optional)
         self.flow_sampler = None

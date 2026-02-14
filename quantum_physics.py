@@ -507,8 +507,15 @@ class BerryPhaseComputer:
         samplers = []
         
         # Step 1: Converge wavefunction at each λ
-        # NOBEL-TIER FIX: Use 'Warm Start' to preserve topological continuity
+        # NOBEL-TIER FIX: Use 'Warm Start' + 'Walker Persistence' to preserve topological continuity
         prev_weights = None
+        # Initialize a single sampler to be used across the entire loop
+        shared_sampler = MetropolisSampler(
+            n_walkers=n_walkers, 
+            n_electrons=self.system_builder(0.0).n_electrons,
+            device=self.device
+        )
+        shared_sampler.initialize_around_nuclei(self.system_builder(0.0))
         
         for idx, lam in enumerate(self.lambda_values):
             system = self.system_builder(lam)
@@ -518,14 +525,17 @@ class BerryPhaseComputer:
                 d_model=d_model, n_layers=n_layers,
                 n_determinants=n_determinants,
                 lr=lr, device=self.device,
-                optimizer_type='adamw'
+                optimizer_type='adamw',
+                sampler=shared_sampler  # PERSISTENT WALKERS
             )
             
-            # Carry over weights from previous point to track the sign
+            # Carry over weights from previous point to track the global phase
             if prev_weights is not None:
                 solver.wavefunction.load_state_dict(prev_weights)
             
-            solver.equilibrate(n_steps=100)
+            # Since we share the sampler, we only need a small equilibration 
+            # as the nuclei move slightly.
+            solver.equilibrate(n_steps=20)
             
             for step in range(n_vmc_steps):
                 try:
@@ -534,9 +544,13 @@ class BerryPhaseComputer:
                     print(f"Warning: Berry Phase Step {step} failed at λ point {idx}: {e}")
                     continue
             
-            # Store converged wavefunction & sampler
+            # Store converged wavefunction & a CLONE of current walkers for overlap calc
             self.wavefunctions.append(solver.wavefunction)
-            samplers.append(solver.sampler)
+            # Re-read the wavefunction into a detach state for the history
+            # We must store the sampler state at this geometry
+            samplers.append(MetropolisSampler(n_walkers, system.n_electrons, self.device))
+            samplers[-1].walkers = solver.sampler.walkers.detach().clone()
+            
             # Update weights for the next point in the loop
             prev_weights = solver.wavefunction.state_dict()
             
