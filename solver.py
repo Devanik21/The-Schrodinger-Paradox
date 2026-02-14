@@ -55,9 +55,9 @@ class StochasticReconfiguration:
     Tikhonov damping: S → S + λI with exponentially decaying λ.
     """
     def __init__(self, wavefunction, lr: float = 0.01,
-                 damping: float = 0.05, damping_decay: float = 0.95,  # Increased damping for stability
+                 damping: float = 0.1, damping_decay: float = 0.99,  # Increased damping for stability
                  max_sr_params: int = 5000, use_kfac: bool = True,
-                 max_norm: float = 0.5):  # Trust region: limit max parameter change
+                 max_norm: float = 0.2):  # Trust region: limit max parameter change
         self.wavefunction = wavefunction
         self.lr = lr
         self.damping = damping
@@ -498,8 +498,8 @@ class VMCSolver:
         if optimizer_type == 'sr':
             self.sr_optimizer = StochasticReconfiguration(
                 self.wavefunction, lr=lr,
-                damping=1e-3, damping_decay=0.999,
-                use_kfac=True
+                damping=0.1, damping_decay=0.99,
+                use_kfac=True, max_norm=0.2
             )
             self.optimizer = optim.AdamW(self.wavefunction.parameters(), lr=lr)
         else:
@@ -595,14 +595,18 @@ class VMCSolver:
         E_L = torch.cat(E_L_list)
         log_psi = torch.cat(log_psi_list)  
         
-        # Stability Surgery: Protection (Refined for Phase 4)
-        # Tighten the "Variational Guardrail" (3.0 * MAD instead of 5.0)
-        E_L = torch.nan_to_num(E_L, nan=0.0, posinf=1e5, neginf=-1e5)
+        # Stability Surgery: Protection (Phase 4 Robustness)
+        # 1. Absolute Floor: Atoms H->Ne are > -130 Ha. -500 is a very safe floor.
+        E_L = torch.clamp(E_L, min=-500.0, max=500.0)
+        E_L = torch.nan_to_num(E_L, nan=0.0, posinf=500.0, neginf=-500.0)
+        
+        # 2. Adaptive Guardrail: Clamp based on MAD from median
         E_median = torch.median(E_L)
         E_diff = (E_L - E_median).abs()
         median_abs_deviation = torch.median(E_diff)
         
-        clip_width = 3.0 * median_abs_deviation + 1e-4
+        # Tighten the "Variational Guardrail" (2.0 * MAD instead of 3.0)
+        clip_width = 2.0 * median_abs_deviation + 1e-4
         E_L_clipped = torch.clamp(E_L, min=E_median - clip_width, max=E_median + clip_width)
         
         # For the loss gradient below, we need log_psi with grad enabled on parameters
