@@ -597,9 +597,10 @@ class VMCSolver:
         log_psi = torch.cat(log_psi_list)  
         
         # Stability Surgery: Protection (Phase 4 Robustness)
-        # 1. Absolute Floor: Atoms H->Ne are > -130 Ha. -500 is a very safe floor.
-        E_L = torch.clamp(E_L, min=-500.0, max=500.0)
-        E_L = torch.nan_to_num(E_L, nan=0.0, posinf=500.0, neginf=-500.0)
+        # 1. Absolute Floor: Widen to -10,000 to prevent Zero Variance Deadlock.
+        # This allows the Rejection Watchdog (at -1000) to trigger properly.
+        E_L = torch.clamp(E_L, min=-10000.0, max=10000.0)
+        E_L = torch.nan_to_num(E_L, nan=0.0, posinf=10000.0, neginf=-10000.0)
         
         # 2. Adaptive Guardrail: Clamp based on MAD from median
         E_median = torch.median(E_L)

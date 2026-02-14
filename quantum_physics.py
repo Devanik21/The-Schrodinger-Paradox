@@ -374,10 +374,9 @@ def compute_local_energy(log_psi_func, r_electrons: torch.Tensor,
     E_L = E_kin + E_pot
     
     # Stability Surgery: Protect against NaNs at the physics level
-    # Tighten (L20): 1e5 was too loose, allowing 'parameter explosions' to hide.
-    # atoms H->Ne are all > -130 Ha. -2000.0 is a safe global floor.
-    E_L = torch.nan_to_num(E_L, nan=0.0, posinf=2000.0, neginf=-2000.0)
-    E_L = torch.clamp(E_L, min=-2000.0, max=2000.0)
+    # Widened (L20): Match solver floor to prevent 'Zero Variance' saturation.
+    E_L = torch.nan_to_num(E_L, nan=0.0, posinf=10000.0, neginf=-10000.0)
+    E_L = torch.clamp(E_L, min=-10000.0, max=10000.0)
     
     # Return E_L and detached components
     return E_L, E_kin.detach(), E_pot.detach()
