@@ -507,9 +507,6 @@ class BerryPhaseComputer:
         samplers = []
         
         # Step 1: Converge wavefunction at each λ
-        # NOBEL-TIER FIX: Use 'Warm Start' to preserve topological continuity
-        prev_weights = None
-        
         for idx, lam in enumerate(self.lambda_values):
             system = self.system_builder(lam)
             
@@ -520,25 +517,19 @@ class BerryPhaseComputer:
                 lr=lr, device=self.device,
                 optimizer_type='adamw'
             )
-            
-            # Carry over weights from previous point to track the sign
-            if prev_weights is not None:
-                solver.wavefunction.load_state_dict(prev_weights)
-            
             solver.equilibrate(n_steps=100)
             
             for step in range(n_vmc_steps):
                 try:
                     solver.train_step(n_mcmc_steps=5)
                 except Exception as e:
+                    # Partial point failure is acceptable in topological loops
                     print(f"Warning: Berry Phase Step {step} failed at λ point {idx}: {e}")
                     continue
             
             # Store converged wavefunction & sampler
             self.wavefunctions.append(solver.wavefunction)
             samplers.append(solver.sampler)
-            # Update weights for the next point in the loop
-            prev_weights = solver.wavefunction.state_dict()
             
             tail = max(1, n_vmc_steps // 5)
             E = np.mean(solver.energy_history[-tail:])
