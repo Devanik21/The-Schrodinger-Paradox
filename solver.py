@@ -826,17 +826,27 @@ class ExcitedStateSolver:
             r = sampler.walkers.detach().requires_grad_(True)
             log_psi, sign_psi = wf(r)
             
+            # Level 20: Cusp-Aware Hutchinson Sampling (H/He precision)
+            n_h = 16 if self.system.n_electrons <= 2 else 2
+            
             # 3. Local energy
             E_L, _, _ = compute_local_energy(
                 log_psi_func, sampler.walkers,
-                self.system, self.device
+                self.system, self.device,
+                n_hutchinson=n_h
             )
             
-            E_L = torch.nan_to_num(E_L, nan=0.0, posinf=100.0, neginf=-100.0)
-            E_mean = E_L.mean()
-            E_std = E_L.std() + 1e-8
-            clip_mask = (E_L - E_mean).abs() < 5 * E_std
-            E_L_clipped = torch.where(clip_mask, E_L, E_mean)
+            # Stability Surgery: Protection (Phase 4 Robustness)
+            energy_val = E_L.mean().item()
+            if energy_val < -500.0:  # Watchdog
+                results.append({'energy': 0.0, 'variance': 0.0})
+                continue
+
+            E_median = torch.median(E_L)
+            E_diff = (E_L - E_median).abs()
+            median_abs_deviation = torch.median(E_diff)
+            clip_width = 5.0 * median_abs_deviation + 1e-4
+            E_L_clipped = torch.clamp(E_L, min=E_median - clip_width, max=E_median + clip_width)
             
             # 4. Variance minimization loss
             energy = E_L_clipped.mean()
@@ -1015,10 +1025,14 @@ class TimeDependentVMC:
             S = (O_centered.T @ O_centered) / N_w
             S += self.damping * torch.eye(self.n_params, device=S.device)
             
+            # Level 20: High Precision Hutchinson for Dynamics
+            n_h = 16 if self.system.n_electrons <= 2 else 2
+
             # Local energy for force vector
             E_L, _, _ = compute_local_energy(
                 log_psi_func, self.sampler.walkers,
-                self.system, self.device
+                self.system, self.device,
+                n_hutchinson=n_h
             )
             E_L = torch.nan_to_num(E_L, nan=0.0, posinf=100.0, neginf=-100.0)
             
