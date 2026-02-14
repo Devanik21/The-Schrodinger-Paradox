@@ -123,7 +123,8 @@ class StochasticReconfiguration:
         
         try:
             # Stability Surgery: Add jitter to S before solving
-            eps = 1e-4
+            # Precision Surgery: Lower jitter for convergence phase
+            eps = 1e-5
             S = S + eps * torch.eye(S.shape[0], device=S.device)
             delta_theta = torch.linalg.solve(S, f)
         except (torch.linalg.LinAlgError, RuntimeError):
@@ -570,8 +571,8 @@ class VMCSolver:
             r_batch = self.sampler.walkers[start_idx:end_idx].detach().requires_grad_(True)
             
             # Level 20: Cusp-Aware Hutchinson Sampling
-            # For H and He, we use more samples to kill the "dive" noise
-            n_h = 4 if self.system.n_electrons <= 2 else 1
+            # Increased to 16 for H/He to kill the sub-ground-state bias
+            n_h = 16 if self.system.n_electrons <= 2 else 2
             
             # Local energy for this batch
             batch_E_L, batch_E_kin, batch_E_pot = compute_local_energy(
@@ -605,8 +606,8 @@ class VMCSolver:
         E_diff = (E_L - E_median).abs()
         median_abs_deviation = torch.median(E_diff)
         
-        # Tighten the "Variational Guardrail" (2.0 * MAD instead of 3.0)
-        clip_width = 2.0 * median_abs_deviation + 1e-4
+        # Relax the "Variational Guardrail" (5.0 * MAD for unbiased precision)
+        clip_width = 5.0 * median_abs_deviation + 1e-4
         E_L_clipped = torch.clamp(E_L, min=E_median - clip_width, max=E_median + clip_width)
         
         # For the loss gradient below, we need log_psi with grad enabled on parameters
