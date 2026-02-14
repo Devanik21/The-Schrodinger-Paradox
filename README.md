@@ -1065,19 +1065,63 @@ The above copyright notice and this permission notice shall be included in all c
 
 ### System Screenshots and Results
 
-*[This section is intentionally left blank for the addition of Streamlit application screenshots, including:*
-- *Live energy convergence plots*
-- *Wavefunction visualizations*
-- *Potential energy surface curves*
-- *Berry phase loop diagrams*  
-- *Entanglement entropy maps*
-- *Excited state energy levels*
-- *Real-time training dashboards*
-- *Comparison tables with exact energies*
-- *Numerical precision and variance statistics*
-- *All plots, metrics, tables, and analytical outputs]*
+---
 
-**Placeholder for visual documentation of the computational system.**
+
+![Screenshot_14-2-2026_104859_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/5f915437-a825-4e56-9c76-fa6437f2eaf3)
+![Screenshot_14-2-2026_105356_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/c5bdcf1b-91e4-4193-ab5a-27eb6ce7ed53)
+![Screenshot_14-2-2026_10546_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/78eaac17-aa93-4dfe-a963-153883177c4a)
+![Screenshot_14-2-2026_105418_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/524fbda2-21f0-49f0-894b-0d248039bd1a)
+![Screenshot_14-2-2026_103749_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/4f6803f8-751b-4e1a-a39a-916da69920cd)
+![Screenshot_14-2-2026_10381_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/558897c5-03d0-4298-bdea-18f484fad07c)
+![Screenshot_14-2-2026_103810_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/083974a4-8fd5-410a-83d8-ad6496366df6)
+![Screenshot_14-2-2026_103832_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/14ad43c3-b69d-4a62-b6d6-1fbd0810faf0)
+![Screenshot_14-2-2026_103838_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/de2f212c-26c2-4520-8889-347730735732)
+![Screenshot_14-2-2026_103843_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/b89f6a02-c622-466e-b20b-6496ccc6b445)
+![Screenshot_14-2-2026_103854_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/8a8206da-9eb8-4ee2-a7a0-48779aa195c3)
+![Screenshot_14-2-2026_10392_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/91fba5ee-f094-4edc-802d-32483438b6e9)
+![Screenshot_14-2-2026_10398_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/8bda1679-44e9-42cc-ac05-c874ad38e698)
+![Screenshot_14-2-2026_103924_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/9cb7a991-7a4f-47b1-b0fa-f78a0b5326af)
+![Screenshot_14-2-2026_103929_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/91887f1b-b558-428e-ac95-562169668315)
+![Screenshot_14-2-2026_103938_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/3170097a-e938-4850-a537-748e58ce5064)
+![Screenshot_14-2-2026_103952_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/30d7d9fe-8953-4e9e-a460-f88ec330cddc)
+![Screenshot_14-2-2026_10402_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/bdc3662b-2dc3-49ec-8b44-34e652b86069)
+![Screenshot_14-2-2026_10407_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/bdfe0886-fa00-4ea1-b06c-e9b76e4fa189)
+![Screenshot_14-2-2026_104020_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/e2b51537-70c0-4ecc-af48-27c235e2575a)
+![Screenshot_14-2-2026_104030_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/47512da1-6ffe-43ff-9e14-bd1c5673b4b6)
+![Screenshot_14-2-2026_104036_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/720b80c8-0c57-4948-84b3-5ba91c02273a)
+![Screenshot_14-2-2026_104044_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/77f64b97-5a85-48e0-82c9-d3d2eefc153c)
+![Screenshot_14-2-2026_104051_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/7f520f9d-8c54-4724-9faf-46bfbb4cde32)
+![Screenshot_14-2-2026_104224_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/7e25e08c-b989-413d-832b-ef41a03cc427)
+![Screenshot_14-2-2026_104231_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/8dfcd135-1a0b-4837-a3d3-6479f24613f3)
+![Screenshot_14-2-2026_104245_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/2bf85025-8d24-4945-bf86-0902ed986ef7)
+![Screenshot_14-2-2026_104252_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/f48edbd0-2797-4eaa-a45a-6366de84522d)
+![Screenshot_14-2-2026_104257_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/c682f57b-a120-426e-8219-25afd673148c)
+![Screenshot_14-2-2026_104330_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/d8bab139-765e-4930-8a16-9f2d16351e4d)
+![Screenshot_14-2-2026_104338_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/678dd6c3-df90-4369-93ce-bd047160846d)
+![Screenshot_14-2-2026_104345_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/fa390d84-5370-4875-8d26-653381c815a9)
+![Screenshot_14-2-2026_104350_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/8d0d19b6-60f9-4ce6-8a77-854c9a91ec56)
+![Screenshot_14-2-2026_104451_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/0961f549-7619-4f23-8739-6820eb194535)
+![Screenshot_14-2-2026_10451_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/e3f27790-0ca6-4703-ae79-7f13b8abe320)
+![Screenshot_14-2-2026_10459_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/254e38f7-ee60-4655-9a1f-e6af859cc474)
+![Screenshot_14-2-2026_104520_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/0f04898f-30d8-4d93-acad-b59f8c6b967c)
+![Screenshot_14-2-2026_104532_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/7551a318-ae5f-49de-b526-b6c19973099c)
+![Screenshot_14-2-2026_104539_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/f3450718-cb0c-4dc9-9b53-0b24b28465c9)
+<img width="989" height="989" alt="40ceb7599fab7b53eca0c8fcea6c7ee6b7622e94238126f8898d35a3" src="https://github.com/user-attachments/assets/cdcfc05c-7fa2-440b-9e86-a0ffeed7db2a" />
+![Screenshot_14-2-2026_104555_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/6e273f82-ff87-4fa7-a274-ac60918ee903)
+![Screenshot_14-2-2026_10461_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/60364697-699f-4c6a-81bc-e0cad595b01c)
+![Screenshot_14-2-2026_10467_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/f22dfaec-2e36-4aed-a942-994e7df3db9a)
+![Screenshot_14-2-2026_104612_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/a09c6c56-0d32-4825-9d58-747956c673ce)
+![Screenshot_14-2-2026_104619_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/17d0a4d4-9e42-4a9d-8e7a-940f4cf5b81a)
+![Screenshot_14-2-2026_104624_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/a7b06b81-ebf8-4198-8881-c4ac83956618)
+![Screenshot_14-2-2026_104630_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/ff5580d8-fe7f-4355-8b04-893f675752db)
+![Screenshot_14-2-2026_104741_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/f6ce1325-86c3-4fcc-8fa7-7a93dc7a4046)
+![Screenshot_14-2-2026_104748_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/58f14217-9785-4176-8f37-208f04854e89)
+![Screenshot_14-2-2026_104752_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/164ac19e-eb43-41bf-b515-df1b3b4a0496)
+![Screenshot_14-2-2026_104830_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/1df3f6ae-7578-4453-ba93-10d0dcdb84e8)
+![Screenshot_14-2-2026_104835_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/1004ed80-69ae-4cde-9142-811286571654)
+![Screenshot_14-2-2026_104845_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/20069845-5133-4131-9693-4677771f0674)
+![Screenshot_14-2-2026_104851_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/a9e82511-8e68-42db-a3ee-c433b23bb750)
 
 ---
 
