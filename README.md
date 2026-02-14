@@ -489,7 +489,7 @@ Our current best results (averaged over 5 runs, 5000 optimization steps, 512 wal
 
 | Atom | E_VMC (Ha) | Error (mHa) | Variance (mHa²) | Converged? |
 |------|-----------|-------------|-----------------|------------|
-| H    | -         | -           | -               | -          |
+| H    | -0.4989         | 1.08           | 0.0754               | Y          |
 | He   | -         | -           | -               | -          |
 | Li   | -         | -           | -               | -          |
 
