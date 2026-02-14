@@ -1068,6 +1068,9 @@ The above copyright notice and this permission notice shall be included in all c
 ---
 
 
+![Screenshot_14-2-2026_12828_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/c80ce29c-f437-4f69-81de-30e35d94fe6c)
+
+
 ![Screenshot_14-2-2026_104859_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/5f915437-a825-4e56-9c76-fa6437f2eaf3)
 ![Screenshot_14-2-2026_105356_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/c5bdcf1b-91e4-4193-ab5a-27eb6ce7ed53)
 ![Screenshot_14-2-2026_10546_quantumpy-segqyeleleu3foypnxhcul streamlit app](https://github.com/user-attachments/assets/78eaac17-aa93-4dfe-a963-153883177c4a)
