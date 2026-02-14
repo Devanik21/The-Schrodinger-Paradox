@@ -483,9 +483,9 @@ We benchmark against NIST Atomic Spectra Database exact energies:
 
 **Chemical Accuracy Criterion:** ΔE < 1.6 mHa (1 kcal/mol), the threshold for quantitative chemical predictions.
 
-Our current best results (averaged over 5 runs, 5000 optimization steps, 512 walkers):
+Our current best results:
 
-*Placeholder for empirical results - these would need to be measured*
+
 
 | Atom | E_VMC (Ha) | Error (mHa) | Variance (mHa²) | Converged? |
 |------|-----------|-------------|-----------------|------------|
@@ -493,7 +493,6 @@ Our current best results (averaged over 5 runs, 5000 optimization steps, 512 wal
 | He   | -         | -           | -               | -          |
 | Li   | -         | -           | -               | -          |
 
-*(Note: Actual results would be inserted after systematic testing)*
 
 ### 5.2 Molecular Potential Energy Surfaces
 
