@@ -1019,7 +1019,10 @@ def plot_orthonormal_pressure(_solver=None, seed=42):
     ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
     for spine in ax.spines.values(): spine.set_visible(False)
     plt.tight_layout()
-    return fig@st.cache_data
+    return fig
+
+
+@st.cache_data
 def plot_quantum_stress_tensor(_solver=None, seed=42):
     solver = _solver
     """Visualizes the local stress tensor field within the electron cloud."""
