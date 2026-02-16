@@ -194,7 +194,7 @@ if mode == "3D Atomic VMC":
     # Hyperparameters
     with st.sidebar.expander("🧬 Architecture", expanded=is_big_atom):
         d_model = st.slider("Feature Dimension", 16, 128, 128, 16)
-        n_layers = st.slider("Backflow Layers", 1, 6, 2)
+        n_layers = st.slider("Backflow Layers", 1, 12, 6)
         n_dets = st.slider("Slater Determinants", 1, 32, 4 if is_big_atom else 8)
         n_walkers = st.slider("MCMC Walkers", 128, 4096, 256 if is_big_atom else 1024, 128)
         lr = st.select_slider("Learning Rate", [1e-4, 3e-4, 1e-3, 3e-3, 1e-2], value=1e-3)
@@ -4422,6 +4422,7 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
+
 
 
 
