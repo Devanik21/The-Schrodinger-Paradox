@@ -628,8 +628,9 @@ class VMCSolver:
             multiplier = 1.06 if self.system.n_electrons == 1 else 1.15
             div_thresh = self.system.exact_energy * multiplier
             
-            # Variance Trap: 1.0 for H (optimized for throughput vs spikes)
-            var_thresh = 1.0 if self.system.n_electrons == 1 else 25.0
+            # The "Precision" Variance Sweet Spot (Tuned between 1.0 and 1.2)
+            # 1.1 is the 'Golden Ratio' for Hydrogen: tight but resilient.
+            var_thresh = 1.1 if self.system.n_electrons == 1 else 25.0
         else:
             # Fallback heuristic: Tighter than before
             div_thresh = -1.2 * (self.system.n_electrons ** 2)
