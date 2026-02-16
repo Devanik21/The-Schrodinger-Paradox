@@ -497,46 +497,91 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
     Level 20: The Master Latent Dimension Bloom.
     Evolves with training metrics.
     """
-    step = solver.step_count if solver else 0
-    if seed is not None:
-        np.random.seed(seed + (step // 5))
-    
-    res = 120 # Higher resolution for the 'Master'
-    x = np.linspace(-3, 3, res)
-    y = np.linspace(-3, 3, res)
-    X, Y = np.meshgrid(x, y)
-    
-    # 1. Base Layer: The 'Probability Cloud'
-    energy_factor = 1.0
-    if solver and hasattr(solver, 'energy_history') and len(solver.energy_history) > 0:
-        energy_factor = min(2.0, max(0.2, abs(solver.energy_history[-1]) / 10.0))
-    
-    # Complex interference pattern (Harmonic synthesis)
-    Z = np.sin(X * 1.5 * energy_factor) * np.cos(Y * 1.5) + \
-        np.sin((X+Y) * 2.2) * 0.5 + \
-        np.cos(np.sqrt(X**2 + Y**2) * 3.0) * 0.3
-    
-    # 2. RGB Synthesis (Dimensionality Mapping)
-    R = np.exp(-(X**2 + Y**2) / (2 * 1.5**2)) * (1 + 0.2 * np.random.randn(res, res))
-    G = np.abs(Z) * R
-    B = np.sin(np.arctan2(Y, X) * 3 + Z * 2) * 0.5 + 0.5
-    
-    grid = np.stack([R, G, B * 0.8], axis=-1)
-    grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
-    
-    # 3. Add 'Fisher Jitters' (Visualizing the SR Natural Gradient)
-    num_jitters = 300
-    for _ in range(num_jitters):
-        ry, rx = np.random.randint(0, res, 2)
-        grid[ry, rx] += np.random.rand(3) * 0.4
-    
-    # 4. Final Haze (Multi-scale blur)
-    grid = np.clip(grid * 1.5, 0, 1)
-    grid = grid ** 1.4 # Gamma correction for 'Deep Quantum' look
-    
+    if solver is None or not hasattr(solver, 'sampler') or solver.sampler.walkers is None:
+        # --- OFFLINE PROCEDURAL FALLBACK (Artistic Mode) ---
+        step = solver.step_count if solver else 0
+        if seed is not None:
+             np.random.seed(seed + (step // 5))
+        
+        res = 120 
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        energy_factor = 1.0
+        if solver and hasattr(solver, 'energy_history') and len(solver.energy_history) > 0:
+            energy_factor = min(2.0, max(0.2, abs(solver.energy_history[-1]) / 10.0))
+        Z = np.sin(X * 1.5 * energy_factor) * np.cos(Y * 1.5) + np.sin((X+Y) * 2.2) * 0.5
+        R = np.exp(-(X**2 + Y**2) / (2 * 1.5**2)) * (1 + 0.2 * np.random.randn(res, res))
+        G = np.abs(Z) * R
+        B = np.sin(np.arctan2(Y, X) * 3 + Z * 2) * 0.5 + 0.5
+        grid = np.stack([R, G, B * 0.8], axis=-1)
+        grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
+        num_jitters = 300
+        for _ in range(num_jitters):
+            ry, rx = np.random.randint(0, res, 2)
+            grid[ry, rx] += np.random.rand(3) * 0.4
+        grid = np.clip(grid * 1.5, 0, 1) ** 1.4
+
+    else:
+        # --- REAL-TIME HIGH-FIDELITY MASTER PROJECTION ---
+        # "The RGB Singularity": 3 Orthogonal Slices -> RGB Channels
+        
+        # 1. Extract Walkers [N_w, D]
+        walkers = solver.sampler.walkers.detach().cpu().numpy()
+        N_w, N_e, _ = walkers.shape
+        D = N_e * 3
+        flat_walkers = walkers.reshape(N_w, D)
+        
+        res = 120 # High Res
+        rng = np.random.RandomState(seed + 777)
+        
+        # 2. Generate 3 ORTHOGONAL projection planes (one for R, G, B)
+        # Create a [D, 6] matrix to get 3 pairs of [D, 2] vectors
+        proj_matrix = rng.randn(D, 6)
+        Q, _ = np.linalg.qr(proj_matrix) # Orthonormal basis in R^D
+        
+        grid = np.zeros((res, res, 3))
+        
+        from scipy.ndimage import gaussian_filter
+        sigma = 1.0 # sharper than standard blooms
+        
+        for ch in range(3):
+            # Project onto plane 'ch' (using cols 2*ch and 2*ch+1)
+            P_ch = Q[:, 2*ch : 2*ch+2] # [D, 2]
+            latent_2d = flat_walkers @ P_ch # [N_w, 2]
+            
+            # Binning
+            center = np.mean(latent_2d, axis=0)
+            latent_centered = latent_2d - center
+            scale = np.std(latent_centered) * 3.5 + 1e-8
+            coords = (latent_centered / scale + 0.5) * res
+            coords = np.clip(coords, 0, res-1).astype(int)
+            
+            # Channel Density
+            channel_grid = np.zeros((res, res))
+            for i in range(N_w):
+                cx, cy = coords[i]
+                channel_grid[cy, cx] += 1.0
+                
+            # Smooth
+            channel_grid = gaussian_filter(channel_grid, sigma=sigma)
+            
+            # Normalize Channel
+            c_max = channel_grid.max() + 1e-8
+            grid[:,:,ch] = channel_grid / c_max
+            
+        # 3. Master Polish: Composite the RGB channels
+        # Boost contrast significantly to look like "Nebula"
+        grid = grid * 3.0 
+        grid = np.clip(grid, 0, 1)
+        grid = grid ** 0.7 # Gamma for glowing core
+        
+        # Add slight white noise for "Quantum Grain"
+        noise = rng.randn(res, res, 3) * 0.05
+        grid = np.clip(grid + noise, 0, 1)
+
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111)
-    ax.imshow(grid, origin='lower', interpolation='bilinear', extent=[-3, 3, -3, 3])
+    ax.imshow(grid, origin='lower', interpolation='bicubic', extent=[-3, 3, -3, 3])
     
     # Labels matching the elite laboratory style
     ax.text(-2.8, 2.7, "MASTER LATENT DIMENSION BLOOM", color='white', 
