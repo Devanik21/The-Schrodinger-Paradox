@@ -193,10 +193,10 @@ if mode == "3D Atomic VMC":
     
     # Hyperparameters
     with st.sidebar.expander("🧬 Architecture", expanded=is_big_atom):
-        d_model = st.slider("Feature Dimension", 16, 128, 32, 16)
+        d_model = st.slider("Feature Dimension", 16, 128, 128, 16)
         n_layers = st.slider("Backflow Layers", 1, 6, 2)
         n_dets = st.slider("Slater Determinants", 1, 32, 4 if is_big_atom else 8)
-        n_walkers = st.slider("MCMC Walkers", 128, 4096, 256 if is_big_atom else 512, 128)
+        n_walkers = st.slider("MCMC Walkers", 128, 4096, 256 if is_big_atom else 1024, 128)
         lr = st.select_slider("Learning Rate", [1e-4, 3e-4, 1e-3, 3e-3, 1e-2], value=1e-3)
         use_ssm = st.checkbox("Enable SSM-Backflow (Level 11)", value=True,
                               help="Uses State Space Models (Mamba) for O(N log N) electron correlation.")
@@ -267,7 +267,7 @@ else:
 st.sidebar.divider()
 st.sidebar.subheader("Training")
 
-n_steps_per_click = st.sidebar.slider("Steps per click", 1, 100, 10)
+n_steps_per_click = st.sidebar.slider("Steps per click", 1, 100, 50)
 
 col_train1, col_train2 = st.sidebar.columns(2)
 train_btn = col_train1.button("▶️ Train", width='stretch')
@@ -4422,6 +4422,7 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
+
 
 
 
