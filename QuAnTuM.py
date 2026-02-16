@@ -288,7 +288,9 @@ if st.session_state.show_plots:
 # ============================================================
 # 🧠 COLLECTIVE MEMORY HELPER (Meme Grids)
 # ============================================================
-def plot_stigmergy_map(solver=None, seed=None):
+@st.cache_data
+def plot_stigmergy_map(_solver=None, seed=None):
+    solver = _solver
     """
     Level 20: Real-Time Global Knowledge Map (Meme Grid).
     Now tied to live MCMC walker positions.
@@ -380,7 +382,6 @@ def plot_stigmergy_map(solver=None, seed=None):
 
 
 
-@st.cache_data
 @st.cache_data
 def plot_latent_bloom(_solver=None, seed=None, step=0, bloom_id=0):
     solver = _solver
@@ -987,18 +988,32 @@ def plot_orthonormal_pressure(_solver=None, seed=42):
 def plot_hamiltonian_well(_solver=None, seed=42):
     solver = _solver
     """Level 1: Coulomb potential landscape — the energy well that electrons inhabit."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 111 + (step // 8))
     res = 100
-    x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
-    X, Y = np.meshgrid(x, y)
-    R = np.sqrt(X**2 + Y**2) + 0.05
-    phase = (step % 80) / 40.0 * np.pi
-    Z = -2.0/R + 0.3*np.sin(R*3 - phase) * np.exp(-R*0.5)
-    Z = Z + 0.15*np.cos(X*2)*np.cos(Y*2) * np.exp(-R*0.3)
-    Z = np.clip(Z, -5, 2)
-    Z_norm = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
-    grid = plt.cm.cubehelix_r(Z_norm)[:,:,:3]
+    if solver is None:
+        step = 0
+        if seed is not None: np.random.seed(seed + 111 + (step // 8))
+        x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
+        X, Y = np.meshgrid(x, y)
+        R = np.sqrt(X**2 + Y**2) + 0.05
+        Z = -2.0/R + 0.3*np.sin(R*3) * np.exp(-R*0.5)
+        Z_norm = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
+        grid = plt.cm.cubehelix_r(Z_norm)[:,:,:3]
+    else:
+        # --- REAL PHYSICS: LIVE COULOMB POTENTIAL ---
+        x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
+        X, Y = np.meshgrid(x, y)
+        r_grid = torch.zeros((res*res, 1, 3), device=solver.device)
+        r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        
+        with torch.no_grad():
+            V = compute_potential_energy(r_grid, solver.system, solver.device)
+            V = V.reshape(res, res).cpu().numpy()
+            
+        V = np.clip(V, -10, 2)
+        V_norm = (V - V.min()) / (V.max() - V.min() + 1e-8)
+        grid = plt.cm.cubehelix_r(V_norm)[:,:,:3]
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bicubic', extent=[-4, 4, -4, 4])
     ax.set_title("COULOMB POTENTIAL WELL", color='#ff6644', fontsize=10, family='monospace')
@@ -1012,24 +1027,36 @@ def plot_hamiltonian_well(_solver=None, seed=42):
 def plot_mcmc_walker_field(_solver=None, seed=42):
     solver = _solver
     """Level 2: MCMC Walker density — Metropolis-Hastings sampling topology."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 222 + (step // 6))
     res = 100
-    grid = np.zeros((res, res, 3))
-    n_walkers = 300 + (step % 100)
-    centers = np.random.randn(5, 2) * 1.5
-    for cx, cy in centers:
-        pts = np.random.randn(n_walkers // 5, 2) * 0.4 + np.array([cx, cy])
-        for px, py in pts:
-            ix = int((px + 4) / 8.0 * res); iy = int((py + 4) / 8.0 * res)
-            if 0 <= ix < res and 0 <= iy < res:
-                grid[iy, ix, 0] += 0.15 + np.random.rand()*0.1
-                grid[iy, ix, 1] += 0.08 + np.random.rand()*0.05
-                grid[iy, ix, 2] += 0.02
-    for _ in range(3):
-        grid = (grid + np.roll(grid, 1, 0)*0.3 + np.roll(grid, -1, 0)*0.3 +
-                np.roll(grid, 1, 1)*0.3 + np.roll(grid, -1, 1)*0.3) / 2.2
-    grid = np.clip(grid, 0, 1)
+    if solver is None:
+        step = 0
+        if seed is not None: np.random.seed(seed + 222 + (step // 6))
+        # Fallback procedural clusters
+        grid = np.zeros((res, res, 3))
+        centers = np.random.randn(3, 2) * 1.5
+        for cx, cy in centers:
+            pts = np.random.randn(50, 2) * 0.4 + np.array([cx, cy])
+            for px, py in pts:
+                ix = int((px + 4) / 8.0 * res); iy = int((py + 4) / 8.0 * res)
+                if 0 <= ix < res and 0 <= iy < res:
+                    grid[iy, ix] += np.array([0.2, 0.15, 0.05])
+    else:
+        # --- REAL PHYSICS: LIVE WALKER DENSITY ---
+        walkers = solver.sampler.walkers.detach().cpu().numpy()
+        N_w, N_e, _ = walkers.shape
+        
+        # Project all electrons to 2D
+        pos_2d = walkers.reshape(-1, 3)[:, :2]
+        
+        # 2D Histogram
+        H, xedges, yedges = np.histogram2d(pos_2d[:, 0], pos_2d[:, 1], bins=res, range=[[-4, 4], [-4, 4]])
+        density = H.T
+        
+        from scipy.ndimage import gaussian_filter
+        density = gaussian_filter(density, sigma=1.2)
+        norm_D = (density - density.min()) / (density.max() - density.min() + 1e-8)
+        grid = plt.cm.YlOrBr(norm_D)[:,:,:3]
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-4, 4, -4, 4])
     ax.set_title("MCMC WALKER DENSITY", color='#ffcc44', fontsize=10, family='monospace')
@@ -1043,17 +1070,43 @@ def plot_mcmc_walker_field(_solver=None, seed=42):
 def plot_autograd_hessian(_solver=None, seed=42):
     solver = _solver
     """Level 3: Autograd Hessian Trace — Hutchinson estimator curvature field."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 333 + (step // 12))
-    res = 90
-    x = np.linspace(-3.5, 3.5, res); y = np.linspace(-3.5, 3.5, res)
-    X, Y = np.meshgrid(x, y)
-    phase = (step % 60) / 30.0 * np.pi
-    Z1 = np.exp(-(X**2 + Y**2)*0.3) * np.sin(X*3 + phase) * np.cos(Y*3)
-    Z2 = -4*np.exp(-((X-1.5)**2 + Y**2)*0.5) - 4*np.exp(-((X+1.5)**2 + Y**2)*0.5)
-    Z = Z1 + Z2*0.3 + np.random.randn(res, res)*0.02
-    Z_norm = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
-    grid = plt.cm.twilight_shifted(Z_norm)[:,:,:3]
+    res = 80
+    if solver is None:
+        step = 0
+        if seed is not None: np.random.seed(seed + 333 + (step // 12))
+        x = np.linspace(-3.5, 3.5, res); y = np.linspace(-3.5, 3.5, res)
+        X, Y = np.meshgrid(x, y)
+        Z1 = np.exp(-(X**2 + Y**2)*0.3) * np.sin(X*3)
+        Z_norm = (Z1 - Z1.min()) / (Z1.max() - Z1.min() + 1e-8)
+        grid = plt.cm.twilight_shifted(Z_norm)[:,:,:3]
+    else:
+        # --- REAL PHYSICS: LOG-PSI LAPLACIAN ---
+        x = np.linspace(-3.5, 3.5, res); y = np.linspace(-3.5, 3.5, res)
+        X, Y = np.meshgrid(x, y)
+        
+        # Use a small subset of walkers or a grid evaluation
+        r = solver.sampler.walkers.detach()
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_scan.requires_grad = True
+        
+        log_psi, _ = solver.log_psi_func(r_scan)
+        
+        # Hessian Trace (Laplacian) via brute-force autograd for 2D slice
+        grad = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=True)[0]
+        # Trace is sum( d^2 logPsi / d x_i^2 )
+        laplacian = torch.zeros(res*res, device=solver.device)
+        for i in range(3): # x, y, z for electron 0
+            g_i = grad[:, 0, i]
+            laplacian += torch.autograd.grad(g_i.sum(), r_scan, retain_graph=True)[0][:, 0, i]
+            
+        L = laplacian.detach().cpu().numpy().reshape(res, res)
+        L = np.clip(L, np.percentile(L, 5), np.percentile(L, 95)) # outlier rejection
+        L_norm = (L - L.min()) / (L.max() - L.min() + 1e-8)
+        grid = plt.cm.twilight_shifted(L_norm)[:,:,:3]
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bicubic', extent=[-3.5, 3.5, -3.5, 3.5])
     ax.set_title("AUTOGRAD HESSIAN TRACE", color='#cc88ff', fontsize=10, family='monospace')
@@ -1067,21 +1120,45 @@ def plot_autograd_hessian(_solver=None, seed=42):
 def plot_logdomain_landscape(_solver=None, seed=42):
     solver = _solver
     """Level 4-5: Log-domain wavefunction + Slater determinant antisymmetry."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 444 + (step // 10))
     res = 90
-    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
-    X, Y = np.meshgrid(x, y)
-    phase = (step % 90) / 45.0 * np.pi
-    psi = np.sin(X*2 + phase)*np.cos(Y*1.5) - np.sin(Y*2 - phase)*np.cos(X*1.5)
-    log_psi = np.log(np.abs(psi) + 1e-10)
-    sign = np.sign(psi)
-    Z_norm = (log_psi - log_psi.min()) / (log_psi.max() - log_psi.min() + 1e-8)
-    grid = np.zeros((res, res, 3))
-    grid[:,:,0] = Z_norm * (sign < 0) * 0.9
-    grid[:,:,1] = Z_norm * (sign > 0) * 0.85
-    grid[:,:,2] = Z_norm * 0.6
-    grid = np.clip(grid, 0, 1)
+    if solver is None:
+        step = 0
+        if seed is not None: np.random.seed(seed + 444 + (step // 10))
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        psi = np.sin(X*2)*np.cos(Y*1.5)
+        log_psi = np.log(np.abs(psi) + 1e-10)
+        Z_norm = (log_psi - log_psi.min()) / (log_psi.max() - log_psi.min() + 1e-8)
+        grid = plt.cm.viridis(Z_norm)[:,:,:3]
+    else:
+        # --- REAL PHYSICS: WAVEFUNCTION TOPOLOGY ---
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        
+        r = solver.sampler.walkers.detach()
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        
+        with torch.no_grad():
+            log_psi, _ = solver.log_psi_func(r_scan)
+            
+        lp = log_psi.cpu().numpy().reshape(res, res)
+        # Sign estimate (using phase if complex, or just parity)
+        # For FermiNet, log_psi is often real, so we visualize the density and nodal regions
+        Z_norm = (lp - lp.min()) / (lp.max() - lp.min() + 1e-8)
+        
+        # Dual color channel for nodal crossing (antisymmetry)
+        grid = np.zeros((res, res, 3))
+        # Use high-frequency noise to simulate nodal "shimmer" where lp is very negative
+        nodal_mask = (lp < np.percentile(lp, 15)).astype(float)
+        
+        grid[:,:,0] = Z_norm * 0.4 + nodal_mask * 0.5 # Reddish for nodes
+        grid[:,:,1] = Z_norm * 0.9 
+        grid[:,:,2] = Z_norm * 0.7 
+        grid = np.clip(grid, 0, 1)
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3])
     ax.set_title("LOG-DOMAIN SLATER NODES", color='#44ffcc', fontsize=10, family='monospace')
@@ -1095,16 +1172,46 @@ def plot_logdomain_landscape(_solver=None, seed=42):
 def plot_cusp_enforcement(_solver=None, seed=42):
     solver = _solver
     """Level 6: Kato Cusp Conditions — enforced electron-nucleus and e-e cusps."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 555 + (step // 7))
     res = 100
-    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
-    X, Y = np.meshgrid(x, y)
-    R = np.sqrt(X**2 + Y**2) + 0.01
-    Z_cusp = np.exp(-2.0*R) * (1 - R*0.5) + 0.3*np.exp(- ((R-1.5)**2)/0.1)
-    Z_cusp = Z_cusp + np.random.randn(res,res) * 0.005
-    Z_norm = (Z_cusp - Z_cusp.min()) / (Z_cusp.max() - Z_cusp.min() + 1e-8)
-    grid = plt.cm.hot(Z_norm)[:,:,:3]
+    if solver is None:
+        step = 0
+        if seed is not None: np.random.seed(seed + 555 + (step // 7))
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        R = np.sqrt(X**2 + Y**2) + 0.01
+        Z_cusp = np.exp(-2.0*R) * (1 - R*0.5)
+        Z_norm = (Z_cusp - Z_cusp.min()) / (Z_cusp.max() - Z_cusp.min() + 1e-8)
+        grid = plt.cm.hot(Z_norm)[:,:,:3]
+    else:
+        # --- REAL PHYSICS: LOCAL KINETIC ENERGY SINGULARITIES ---
+        # The cusp is where Kinetic Energy exactly cancels the Potential Divergence
+        # We plot the magnitude of the Local Kinetic Energy field
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        
+        r = solver.sampler.walkers.detach()
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_scan.requires_grad = True
+        
+        # Local energy components
+        log_psi, _ = solver.log_psi_func(r_scan)
+        grad = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=True)[0]
+        laplacian = torch.zeros(res*res, device=solver.device)
+        for i in range(3):
+            laplacian += torch.autograd.grad(grad[:, 0, i].sum(), r_scan, retain_graph=True)[0][:, 0, i]
+            
+        K_L = -0.5 * (laplacian + (grad**2).sum(dim=(1,2)))
+        K_L = K_L.detach().cpu().numpy().reshape(res, res)
+        
+        # Cusp regions are where KE is extremely high/variable
+        Z = np.abs(K_L)
+        Z = np.clip(Z, 0, np.percentile(Z, 98))
+        norm_Z = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
+        grid = plt.cm.hot(norm_Z)[:,:,:3]
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3])
     ax.set_title("KATO CUSP CONDITIONS", color='#ff4400', fontsize=10, family='monospace')
@@ -1118,19 +1225,39 @@ def plot_cusp_enforcement(_solver=None, seed=42):
 def plot_atomic_shells(_solver=None, seed=42):
     solver = _solver
     """Level 9: Atomic electron shell structure — H through Ne orbital density."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 666 + (step // 9))
     res = 100
-    x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
-    X, Y = np.meshgrid(x, y)
-    R = np.sqrt(X**2 + Y**2) + 0.01
-    theta = np.arctan2(Y, X)
-    Z = (np.exp(-R) * 4.0 +
-         np.exp(-(R-1.5)**2)*2.0 * np.cos(theta)**2 +
-         np.exp(-(R-1.5)**2)*2.0 * np.sin(theta)**2 * 0.6 +
-         np.exp(-(R-2.5)**2)*1.0 * np.cos(2*theta))
-    Z_norm = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
-    grid = plt.cm.cividis(Z_norm)[:,:,:3]
+    if solver is None:
+        step = 0
+        if seed is not None: np.random.seed(seed + 666 + (step // 9))
+        x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
+        X, Y = np.meshgrid(x, y)
+        R = np.sqrt(X**2 + Y**2) + 0.01
+        Z = np.exp(-R) * 4.0 + np.exp(-(R-1.5)**2)*2.0 
+        Z_norm = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
+        grid = plt.cm.cividis(Z_norm)[:,:,:3]
+    else:
+        # --- REAL PHYSICS: RADIALLY INTEGRATED DENSITY ---
+        walkers = solver.sampler.walkers.detach().cpu().numpy()
+        N_w, N_e, _ = walkers.shape
+        # Distance from nucleus (assume centered at 0)
+        radii = np.linalg.norm(walkers, axis=2).flatten()
+        
+        # 1D Radial Histogram
+        hist, bin_edges = np.histogram(radii, bins=res, range=[0, 4])
+        # Project 1D shells back to 2D image for the Atlas
+        x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
+        X, Y = np.meshgrid(x, y)
+        R = np.sqrt(X**2 + Y**2)
+        
+        # Interpolate hist values onto R grid
+        indices = np.clip((R / 4.0 * res).astype(int), 0, res-1)
+        Z = hist[indices]
+        
+        from scipy.ndimage import gaussian_filter
+        Z = gaussian_filter(Z.astype(float), sigma=1.5)
+        norm_Z = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
+        grid = plt.cm.cividis(norm_Z)[:,:,:3]
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bicubic', extent=[-4, 4, -4, 4])
     ax.set_title("ATOMIC ORBITAL SHELLS", color='#88ccff', fontsize=10, family='monospace')
@@ -1144,21 +1271,31 @@ def plot_atomic_shells(_solver=None, seed=42):
 def plot_pes_landscape(_solver=None, seed=42):
     solver = _solver
     """Level 10: Molecular Potential Energy Surface — bond energy landscape."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 777 + (step // 11))
     res = 100
-    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
-    X, Y = np.meshgrid(x, y)
-    D_e = 5.0; a = 1.2; r_e = 1.4
-    R1 = np.sqrt((X-0.7)**2 + Y**2) + 0.01
-    R2 = np.sqrt((X+0.7)**2 + Y**2) + 0.01
-    Z = D_e * (1 - np.exp(-a*(R1 - r_e)))**2 + D_e * (1 - np.exp(-a*(R2 - r_e)))**2
-    Z = Z - 2.5/np.sqrt((X-0.7)**2 + (Y)**2 + 0.5) - 2.5/np.sqrt((X+0.7)**2 + (Y)**2 + 0.5)
-    # Add random topological jitter (Level 10 dynamic requirement)
-    Z = Z + np.random.randn(res, res) * 0.015
-    Z = np.clip(Z, -3, 10)
-    Z_norm = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
-    grid = plt.cm.terrain(Z_norm)[:,:,:3]
+    if solver is None:
+        step = 0
+        if seed is not None: np.random.seed(seed + 777 + (step // 11))
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        Z = np.sin(X)*np.cos(Y)
+        Z_norm = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
+        grid = plt.cm.terrain(Z_norm)[:,:,:3]
+    else:
+        # --- REAL PHYSICS: POTENTIAL SURFACE MEAN FIELD ---
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        r_grid = torch.zeros((res*res, 1, 3), device=solver.device)
+        r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        
+        with torch.no_grad():
+            V = compute_potential_energy(r_grid, solver.system, solver.device)
+            V = V.reshape(res, res).cpu().numpy()
+            
+        V = np.clip(V, -10, 10)
+        norm_Z = (V - V.min()) / (V.max() - V.min() + 1e-8)
+        grid = plt.cm.terrain(norm_Z)[:,:,:3]
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3])
     ax.set_title("MOLECULAR PES LANDSCAPE", color='#66ff44', fontsize=10, family='monospace')
@@ -1172,20 +1309,44 @@ def plot_pes_landscape(_solver=None, seed=42):
 def plot_ssm_dataflow(_solver=None, seed=42):
     solver = _solver
     """Level 11: SSM-Backflow architecture — selective state space data flow."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 888 + (step // 8))
     res = 80
-    grid = np.zeros((res, res, 3))
-    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
-    X, Y = np.meshgrid(x, y)
-    phase = (step % 100) / 50.0 * np.pi
-    for k in range(5):
-        freq = 1.5 + k * 0.7
-        decay = 0.4 + k * 0.1
-        channel = np.exp(-decay * np.abs(X - Y + k*0.5)) * np.sin(freq*X + phase + k)
-        channel = (channel - channel.min()) / (channel.max() - channel.min() + 1e-8)
-        grid[:,:, k % 3] += channel * 0.4
-    grid = np.clip(grid, 0, 1)
+    if solver is None:
+        step = 0
+        if seed is not None: np.random.seed(seed + 888 + (step // 8))
+        grid = np.zeros((res, res, 3))
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        for k in range(3):
+            grid[:,:, k] = np.sin(X*2 + k)*np.cos(Y*2) * 0.5 + 0.5
+    else:
+        # --- REAL PHYSICS: BACKFLOW DISPLACEMENT FIELD ---
+        # Since SSM is deep in the determinant, we visualize the 'Backflow' g(r)
+        # as the manifest 'data flow' that modifies electron coordinates
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        r_grid = torch.zeros((res*res, 1, 3), device=solver.device)
+        r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        
+        if hasattr(solver.wavefunction, 'backflow'):
+            with torch.no_grad():
+                # Get the correction g(r)
+                # bf output is [Batch, N_e, 3]
+                bf = solver.wavefunction.backflow(r_grid, solver.wavefunction.r_nuclei, 
+                                                 solver.wavefunction.charges, solver.wavefunction.spin_mask_parallel)
+                g_mag = torch.norm(bf, dim=2).reshape(res, res).cpu().numpy()
+        else:
+            # Fallback to gradient of log_psi as the 'flow'
+            r_grid.requires_grad = True
+            log_psi, _ = solver.log_psi_func(r_grid)
+            grad = torch.autograd.grad(log_psi.sum(), r_grid)[0]
+            g_mag = torch.norm(grad, dim=2).reshape(res, res).cpu().numpy()
+            
+        from scipy.ndimage import gaussian_filter
+        g_mag = gaussian_filter(g_mag, sigma=1.0)
+        norm_G = (g_mag - g_mag.min()) / (g_mag.max() - g_mag.min() + 1e-8)
+        grid = plt.cm.cool(norm_G)[:,:,:3]
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3])
     ax.set_title("SSM-BACKFLOW DATA CHANNELS", color='#44aaff', fontsize=10, family='monospace')
@@ -1199,18 +1360,39 @@ def plot_ssm_dataflow(_solver=None, seed=42):
 def plot_flow_acceptance(_solver=None, seed=42):
     solver = _solver
     """Level 12: Flow-Accelerated VMC — normalizing flow acceptance field."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 999 + (step // 10))
     res = 90
-    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
-    X, Y = np.meshgrid(x, y)
-    phase = (step % 70) / 35.0 * np.pi
-    Z_source = np.exp(-(X**2 + Y**2) * 0.5)
-    Z_target = np.exp(-((X-1)**2 + Y**2)*0.8) + np.exp(-((X+1)**2 + Y**2)*0.8)
-    t = 0.5 + 0.5*np.sin(phase)
-    Z = (1-t)*Z_source + t*Z_target
-    Z_norm = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
-    grid = plt.cm.ocean(1 - Z_norm)[:,:,:3]
+    if solver is None:
+        step = 0
+        if seed is not None: np.random.seed(seed + 999 + (step // 10))
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        Z = np.exp(-(X**2 + Y**2))
+        Z_norm = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
+        grid = plt.cm.ocean(1 - Z_norm)[:,:,:3]
+    else:
+        # --- REAL PHYSICS: BIJECTIVE JACOBIAN MAP ---
+        # If the solver uses a normalizing flow, visualize the Jacobian log-det
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        r_grid = torch.zeros((res*res, 1, 3), device=solver.device)
+        r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        
+        # Estimate log_det implicitly via divergence of flow displacement if not using a flow model
+        # Or if we have a RealFlow model, use it.
+        if hasattr(solver, 'flow_model') and solver.flow_model is not None:
+            with torch.no_grad():
+                _, log_det = solver.flow_model.forward(r_grid)
+                Z = log_det.reshape(res, res).cpu().numpy()
+        else:
+            # Fallback: Probability density ratio or similar metric for 'acceptance'
+            with torch.no_grad():
+                log_psi, _ = solver.log_psi_func(r_grid)
+                Z = log_psi.reshape(res, res).cpu().numpy()
+                
+        norm_Z = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
+        grid = plt.cm.ocean(1 - norm_Z)[:,:,:3]
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3])
     ax.set_title("FLOW-VMC ACCEPTANCE FIELD", color='#00ccff', fontsize=10, family='monospace')
@@ -1224,23 +1406,38 @@ def plot_flow_acceptance(_solver=None, seed=42):
 def plot_tdvmc_dynamics(_solver=None, seed=42):
     solver = _solver
     """Level 15: Time-Dependent VMC — real-time quantum dynamics evolution."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 1515 + (step // 15))
     res = 80
-    x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
-    X, Y = np.meshgrid(x, y)
-    t_phase = (step % 120) / 60.0 * np.pi
-    Z_real = np.exp(-(X**2 + Y**2)*0.3) * np.cos(X*2 - t_phase) * np.cos(Y*1.5 + t_phase*0.5)
-    Z_imag = np.exp(-(X**2 + Y**2)*0.3) * np.sin(X*2 - t_phase) * np.sin(Y*1.5 + t_phase*0.5)
-    # Quantum fluctuations jitter
-    Z_real += np.random.randn(res, res) * 0.01
-    Z_imag += np.random.randn(res, res) * 0.01
-    amp = np.sqrt(Z_real**2 + Z_imag**2)
-    phase_field = np.arctan2(Z_imag, Z_real)
-    Z_norm = (amp - amp.min()) / (amp.max() - amp.min() + 1e-8)
-    grid = plt.cm.hsv((phase_field + np.pi) / (2*np.pi))[:,:,:3]
-    grid = grid * Z_norm[:,:,None] * 0.85 + 0.05
-    grid = np.clip(grid, 0, 1)
+    if solver is None:
+        step = 0
+        if seed is not None: np.random.seed(seed + 1515 + (step // 15))
+        x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
+        X, Y = np.meshgrid(x, y)
+        Z = np.exp(-(X**2 + Y**2)) * np.cos(X*2)
+        Z_norm = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
+        grid = plt.cm.hsv(Z_norm)[:,:,:3]
+    else:
+        # --- REAL PHYSICS: LIVE PHASE GRADIENT ---
+        x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
+        X, Y = np.meshgrid(x, y)
+        r_grid = torch.zeros((res*res, 1, 3), device=solver.device)
+        r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_grid.requires_grad = True
+        
+        # We need the complex phase. If real, we use the gradient as 'flow'
+        log_psi, _ = solver.log_psi_func(r_grid)
+        grad = torch.autograd.grad(log_psi.sum(), r_grid)[0]
+        grad_np = grad.detach().cpu().numpy().reshape(res, res, 3)
+        
+        # Phase field proxy: arctan2 of grad components or just the density modulation
+        density = torch.exp(2*log_psi).reshape(res, res).detach().cpu().numpy()
+        phase_proxy = np.arctan2(grad_np[:,:,1], grad_np[:,:,0])
+        
+        norm_D = (density - density.min()) / (density.max() - density.min() + 1e-8)
+        grid = plt.cm.hsv((phase_proxy + np.pi) / (2*np.pi))[:,:,:3]
+        grid = grid * norm_D[:,:,None] * 0.9 + 0.1 # Brightness modulation by density
+        grid = np.clip(grid, 0, 1)
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-4, 4, -4, 4])
     ax.set_title("TD-VMC QUANTUM DYNAMICS", color='#ff88cc', fontsize=10, family='monospace')
@@ -1254,21 +1451,32 @@ def plot_tdvmc_dynamics(_solver=None, seed=42):
 def plot_bloch_lattice(_solver=None, seed=42):
     solver = _solver
     """Level 16: Periodic Bloch lattice — crystal plane and band structure."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 1616 + (step // 10))
     res = 100
-    x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
-    X, Y = np.meshgrid(x, y)
-    phase = (step % 100) / 50.0 * np.pi
-    a = 2.0
-    V_lat = -(np.cos(2*np.pi*X/a) + np.cos(2*np.pi*Y/a))
-    k_twist = 0.3 + 0.2*np.sin(phase)
-    bloch = np.cos(k_twist*X)*np.cos(k_twist*Y) * np.exp(-0.02*(X**2+Y**2))
-    Z = V_lat * 0.5 + bloch * 0.8
-    # Crystal defect jitter
-    Z = Z + np.random.randn(res, res) * 0.02
-    Z_norm = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
-    grid = plt.cm.gnuplot2(Z_norm)[:,:,:3]
+    if solver is None:
+        step = 0
+        if seed is not None: np.random.seed(seed + 1616 + (step // 10))
+        x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
+        X, Y = np.meshgrid(x, y)
+        a = 2.0
+        V_lat = -(np.cos(2*np.pi*X/a) + np.cos(2*np.pi*Y/a))
+        Z_norm = (V_lat - V_lat.min()) / (V_lat.max() - V_lat.min() + 1e-8)
+        grid = plt.cm.gnuplot2(Z_norm)[:,:,:3]
+    else:
+        # --- REAL PHYSICS: PERIODIC POTENTIAL MAPPING ---
+        x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
+        X, Y = np.meshgrid(x, y)
+        r_grid = torch.zeros((res*res, 1, 3), device=solver.device)
+        r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        
+        with torch.no_grad():
+            V = compute_potential_energy(r_grid, solver.system, solver.device)
+            V = V.reshape(res, res).cpu().numpy()
+            
+        V = np.clip(V, -5, 5)
+        norm_Z = (V - V.min()) / (V.max() - V.min() + 1e-8)
+        grid = plt.cm.gnuplot2(norm_Z)[:,:,:3]
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-4, 4, -4, 4])
     ax.set_title("BLOCH PERIODIC LATTICE", color='#ffdd44', fontsize=10, family='monospace')
@@ -1282,25 +1490,47 @@ def plot_bloch_lattice(_solver=None, seed=42):
 def plot_spinorbit_split(_solver=None, seed=42):
     solver = _solver
     """Level 17: Spin-Orbit Coupling — relativistic fine-structure splitting."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 1717 + (step // 12))
     res = 100
-    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
-    X, Y = np.meshgrid(x, y)
-    R = np.sqrt(X**2 + Y**2) + 0.01
-    theta = np.arctan2(Y, X)
-    psi_up = np.exp(-R*1.2) * np.cos(theta) * (1 + 0.3*np.cos(2*theta))
-    psi_dn = np.exp(-R*1.2) * np.sin(theta) * (1 + 0.3*np.sin(2*theta))
-    # Relativistic jitter
-    psi_up += np.random.randn(res, res) * 0.005
-    psi_dn += np.random.randn(res, res) * 0.005
-    Z_up = (np.abs(psi_up) - np.abs(psi_up).min()) / (np.abs(psi_up).max() - np.abs(psi_up).min() + 1e-8)
-    Z_dn = (np.abs(psi_dn) - np.abs(psi_dn).min()) / (np.abs(psi_dn).max() - np.abs(psi_dn).min() + 1e-8)
-    grid = np.zeros((res, res, 3))
-    grid[:,:,0] = Z_up * 0.9
-    grid[:,:,2] = Z_dn * 0.9
-    grid[:,:,1] = Z_up * Z_dn * 2.0
-    grid = np.clip(grid, 0, 1)
+    if solver is None:
+        step = 0
+        if seed is not None: np.random.seed(seed + 1717 + (step // 12))
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        R = np.sqrt(X**2 + Y**2) + 0.01
+        theta = np.arctan2(Y, X)
+        psi_up = np.exp(-R*1.2) * np.cos(theta)
+        psi_dn = np.exp(-R*1.2) * np.sin(theta)
+        Z_up = (np.abs(psi_up) - np.abs(psi_up).min()) / (np.abs(psi_up).max() - np.abs(psi_up).min() + 1e-8)
+        Z_dn = (np.abs(psi_dn) - np.abs(psi_dn).min()) / (np.abs(psi_dn).max() - np.abs(psi_dn).min() + 1e-8)
+        grid = np.zeros((res, res, 3))
+        grid[:,:,0] = Z_up * 0.9; grid[:,:,2] = Z_dn * 0.9
+        grid = np.clip(grid, 0, 1)
+    else:
+        # --- REAL PHYSICS: SPIN-COMPONENT DENSITY MAP ---
+        # We separate the walkers into 'up' and 'down' sectors based on solver.system config
+        walkers = solver.sampler.walkers.detach().cpu().numpy()
+        n_up = solver.system.n_up
+        
+        # Project up-electron density (x-y slice)
+        up_pos = walkers[:, :n_up, :2].reshape(-1, 2)
+        dn_pos = walkers[:, n_up:, :2].reshape(-1, 2)
+        
+        H_up, _, _ = np.histogram2d(up_pos[:,0], up_pos[:,1], bins=res, range=[[-3,3],[-3,3]])
+        H_dn, _, _ = np.histogram2d(dn_pos[:,0], dn_pos[:,1], bins=res, range=[[-3,3],[-3,3]])
+        
+        from scipy.ndimage import gaussian_filter
+        H_up = gaussian_filter(H_up.T, sigma=1.2)
+        H_dn = gaussian_filter(H_dn.T, sigma=1.2)
+        
+        norm_up = (H_up - H_up.min()) / (H_up.max() - H_up.min() + 1e-8)
+        norm_dn = (H_dn - H_dn.min()) / (H_dn.max() - H_dn.min() + 1e-8)
+        
+        grid = np.zeros((res, res, 3))
+        grid[:,:,0] = norm_up * 0.95  # Red for Spin-Up
+        grid[:,:,2] = norm_dn * 0.95  # Blue for Spin-Down
+        grid[:,:,1] = (norm_up * norm_dn) * 0.5 # Overlap tint
+        grid = np.clip(grid, 0, 1)
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3])
     ax.set_title("SPIN-ORBIT FINE STRUCTURE", color='#ff44ff', fontsize=10, family='monospace')
@@ -3257,7 +3487,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         for i, col in enumerate(all_cols):
             with col:
                 seed = master_seed + i
-                fig = plot_stigmergy_map(solver=solver_ref, seed=seed)
+                fig = plot_stigmergy_map(_solver=solver_ref, seed=seed)
                 render_nqs_plot(fig, help_text=stig_desc[i % len(stig_desc)])
                 st.caption(f"Cluster Instance #{i+1} — Seed: {seed}")
 
@@ -3431,80 +3661,96 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         col_a1, col_a2, col_a3 = st.columns(3)
         with col_a1:
             fig_hw = plot_hamiltonian_well(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_hw, help_text="The direct representation of the external potential V(r). Visualizes the primary attractive wells formed by ionic charges and the repulsive ridges generated by mutual electronic interaction.")
-            st.caption("L1: 3D Coulomb Hamiltonian.")
+            render_nqs_plot(fig_hw, help_text="L1: 3D Coulomb Hamiltonian Well.")
+            st.caption("L1: Potential Well.")
         with col_a2:
             fig_mw = plot_mcmc_walker_field(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_mw, help_text="The steady-state probability distribution from the Metropolis-Hastings Markov Chain. This density field represents the sampling efficiency of the engine across the 3N-dimensional configuration space.")
-            st.caption("L2: Metropolis-Hastings walker topology.")
+            render_nqs_plot(fig_mw, help_text="L2: Metropolis-Hastings walker topology.")
+            st.caption("L2: Walker Density.")
         with col_a3:
             fig_ah = plot_autograd_hessian(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_ah, help_text="The trace of the second-order derivative tensor (Laplacian) computed via Hutchinson's estimator. This field maps the kinetic energy density and the local curvature of the log-wavefunction.")
-            st.caption("L3: Hutchinson Laplacian curvature.")
+            render_nqs_plot(fig_ah, help_text="L3: Hutchinson Laplacian curvature.")
+            st.caption("L3: Hessian Curvature.")
 
-        # --- Row 2: Levels 4-5, 6 ---
-        st.markdown("##### 🧬 Phase I — Architecture (Levels 4–6)")
+        # --- Row 2: Levels 4-5, 6, 7-8 ---
+        st.markdown("##### 🧬 Phase I — Architecture (Levels 4–8)")
         col_b1, col_b2, col_b3 = st.columns(3)
         with col_b1:
             fig_ld = plot_logdomain_landscape(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_ld, help_text="Visualizes the logarithmic magnitude and nodal surfaces of the Slater Determinant. The phase transitions (teal to crimson) denote the anti-symmetric sign flips required for fermionic statistics.")
-            st.caption("L4-5: Log|ψ| + Slater antisymmetry nodes.")
+            render_nqs_plot(fig_ld, help_text="L4-5: Log|ψ| + Slater antisymmetry nodes.")
+            st.caption("L4-5: Log-Domain Nodes.")
         with col_b2:
             fig_ce = plot_cusp_enforcement(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_ce, help_text="The enforcement of first-order continuity at electronic singularities. These sharp peaks represent the analytic requirements for the wavefunction as r -> 0 to cancel the infinite Coulomb potential.")
-            st.caption("L6: Kato cusp enforcement.")
+            render_nqs_plot(fig_ce, help_text="L6: Kato cusp enforcement.")
+            st.caption("L6: Cusp Singularity.")
         with col_b3:
             fig_fm2 = plot_fisher_manifold(_solver=solver_ref, seed=master_seed + 50)
-            render_nqs_plot(fig_fm2, help_text="Atlas view of the Hilbert space metric. This specific manifold slice highlights the 'Information Bottleneck' regions where neural parameters are most constrained by the local curvature.")
-            st.caption("L7-8: Fisher Manifold (Atlas view).")
+            render_nqs_plot(fig_fm2, help_text="L7-8: Fisher Manifold Hilbert metric.")
+            st.caption("L7-8: Fisher Metric.")
 
-        # --- Row 3: Levels 9, 10 ---
-        st.markdown("##### 🔬 Phase II — Chemical Accuracy (Levels 9–10)")
+        # --- Row 3: Levels 9, 10, 11 ---
+        st.markdown("##### 🔬 Phase II — Chemical Accuracy (Levels 9–11)")
         col_c1, col_c2, col_c3 = st.columns(3)
         with col_c1:
             fig_as = plot_atomic_shells(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_as, help_text="The radial and angular density distributions of electronic shells. Visualizes the hierarchical structure of quantum numbers (n, l, m) emerging from the converged neural parameters.")
-            st.caption("L9: Atomic shell structure (H→Ne).")
+            render_nqs_plot(fig_as, help_text="L9: Atomic shell structure (H→Ne).")
+            st.caption("L9: Radial Shells.")
         with col_c2:
             fig_pl = plot_pes_landscape(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_pl, help_text="The Potential Energy Surface (PES) manifold for polyatomic systems. This landscape maps the total energy as a function of nuclear geometry, showing the local minima (stable bonds) and saddle points (transition states).")
-            st.caption("L10: Molecular PES energy landscape.")
+            render_nqs_plot(fig_pl, help_text="L10: Molecular PES energy landscape.")
+            st.caption("L10: PES Manifold.")
         with col_c3:
             fig_sd = plot_ssm_dataflow(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_sd, help_text="A visualization of the Selective State Space (SSM) hidden state propagation. These channels represent the flow of contextual information through the neural architecture, replacing traditional recurrent bottlenecks.")
-            st.caption("L11: SSM-Backflow data channels.")
+            render_nqs_plot(fig_sd, help_text="L11: SSM-Backflow data channels.")
+            st.caption("L11: SSM Dataflow.")
 
-        # --- Row 4: Levels 12, 15, 16 ---
-        st.markdown("##### ♾️ Phase III & IV — Advanced Engines (Levels 12, 15, 16)")
+        # --- Row 4: Levels 12, 13, 14 ---
+        st.markdown("##### ♾️ Phase III — Advanced Solvers (Levels 12–14)")
         col_d1, col_d2, col_d3 = st.columns(3)
         with col_d1:
             fig_fa = plot_flow_acceptance(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_fa, help_text="The bijective mapping density between the base Gaussian distribution and the target quantum state. This field optimizes the MCMC acceptance ratio using normalizing flows to eliminate autocorrelation.")
-            st.caption("L12: Flow-VMC acceptance field.")
+            render_nqs_plot(fig_fa, help_text="L12: Flow-VMC acceptance field.")
+            st.caption("L12: Acceptance Map.")
         with col_d2:
-            fig_td = plot_tdvmc_dynamics(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_td, help_text="Real-time evolution of the probability amplitude and phase field. This encoding follows the time-dependent Schrödinger equation, mapping the evolution of wavepackets in an external field.")
-            st.caption("L15: TD-VMC quantum dynamics.")
+            fig_op = plot_orthonormal_pressure(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_op, help_text="L13: Excited-state orthogonality field.")
+            st.caption("L13: Orthogonal Pressure.")
         with col_d3:
-            fig_bl = plot_bloch_lattice(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_bl, help_text="The electronic band structure and lattice potential for crystals. This plot visualizes the implementation of periodic boundary conditions and the Bloch theorem for the Homogeneous Electron Gas.")
-            st.caption("L16: Bloch periodic lattice.")
+            fig_bf = plot_berry_flow(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_bf, help_text="L14: Topological phase streamlines.")
+            st.caption("L14: Berry Phase Flow.")
 
-        # --- Row 5: Levels 17, 18, 19 ---
-        st.markdown("##### ⚛️ Phase IV — Relativistic & Topological Frontiers (Levels 17–19)")
+        # --- Row 5: Levels 15, 16, 17 ---
+        st.markdown("##### ⚛️ Phase III/IV — Quantum Frontiers (Levels 15–17)")
         col_e1, col_e2, col_e3 = st.columns(3)
         with col_e1:
-            fig_so = plot_spinorbit_split(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_so, help_text="Visualizes relativistic splitting using 2-component spinors. Red and blue channels represent spin-up/spin-down densities split by the Breit-Pauli L-S coupling interaction.")
-            st.caption("L17: Spin-orbit fine structure.")
+            fig_td = plot_tdvmc_dynamics(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_td, help_text="L15: TD-VMC quantum dynamics.")
+            st.caption("L15: Phase Dynamics.")
         with col_e2:
-            fig_em2 = plot_entanglement_mesh(_solver=solver_ref, seed=master_seed + 50)
-            render_nqs_plot(fig_em2, help_text="Atlas fingerprint of the Rényi-2 entropy field. This variant visualization focuses on the 'Entanglement Phase' where electronic partitions exhibit maximum bipartite non-locality.")
-            st.caption("L18: Entanglement entropy (Atlas fingerprint).")
+            fig_bl = plot_bloch_lattice(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_bl, help_text="L16: Bloch periodic lattice.")
+            st.caption("L16: Crystal Lattice.")
         with col_e3:
+            fig_so = plot_spinorbit_split(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_so, help_text="L17: Spin-orbit fine structure.")
+            st.caption("L17: S-O Splitting.")
+
+        # --- Row 6: Levels 18, 19, 20 ---
+        st.markdown("##### 🌌 Phase IV — Final Horizons (Levels 18–20)")
+        col_f1, col_f2, col_f3 = st.columns(3)
+        with col_f1:
+            fig_em2 = plot_entanglement_mesh(_solver=solver_ref, seed=master_seed + 50)
+            render_nqs_plot(fig_em2, help_text="L18: Entanglement entropy (Atlas fingerprint).")
+            st.caption("L18: Entanglement Field.")
+        with col_f2:
             fig_nl2 = plot_noether_landscape(_solver=solver_ref, seed=master_seed + 50)
-            render_nqs_plot(fig_nl2, help_text="Atlas projection of the commutator density field. These deep valleys represent stable latent coordinates where the neural symmetries perfectly align with the Hamiltonian invariance.")
-            st.caption("L19: Noether Landscape (Atlas projection).")
+            render_nqs_plot(fig_nl2, help_text="L19: Noether Landscape (Atlas projection).")
+            st.caption("L19: Noether Commutator.")
+        with col_f3:
+            fig_stig = plot_stigmergy_map(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_stig, help_text="L20: Global Stigmergy (Collective Memory Map).")
+            st.caption("L20: Global Meme Grid.")
 
 
 # ============================================================
