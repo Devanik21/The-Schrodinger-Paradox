@@ -983,7 +983,9 @@ def plot_orthonormal_pressure(_solver=None, seed=42):
 # 🎨 NEW LEVEL-SPECIFIC LATENT DREAM VISUALIZATIONS
 # ============================================================
 
-def plot_hamiltonian_well(solver=None, seed=42):
+@st.cache_data
+def plot_hamiltonian_well(_solver=None, seed=42):
+    solver = _solver
     """Level 1: Coulomb potential landscape — the energy well that electrons inhabit."""
     step = solver.step_count if solver else 0
     if seed is not None: np.random.seed(seed + 111 + (step // 8))
@@ -1006,7 +1008,9 @@ def plot_hamiltonian_well(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_mcmc_walker_field(solver=None, seed=42):
+@st.cache_data
+def plot_mcmc_walker_field(_solver=None, seed=42):
+    solver = _solver
     """Level 2: MCMC Walker density — Metropolis-Hastings sampling topology."""
     step = solver.step_count if solver else 0
     if seed is not None: np.random.seed(seed + 222 + (step // 6))
@@ -1035,7 +1039,9 @@ def plot_mcmc_walker_field(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_autograd_hessian(solver=None, seed=42):
+@st.cache_data
+def plot_autograd_hessian(_solver=None, seed=42):
+    solver = _solver
     """Level 3: Autograd Hessian Trace — Hutchinson estimator curvature field."""
     step = solver.step_count if solver else 0
     if seed is not None: np.random.seed(seed + 333 + (step // 12))
@@ -1057,7 +1063,9 @@ def plot_autograd_hessian(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_logdomain_landscape(solver=None, seed=42):
+@st.cache_data
+def plot_logdomain_landscape(_solver=None, seed=42):
+    solver = _solver
     """Level 4-5: Log-domain wavefunction + Slater determinant antisymmetry."""
     step = solver.step_count if solver else 0
     if seed is not None: np.random.seed(seed + 444 + (step // 10))
@@ -1083,7 +1091,9 @@ def plot_logdomain_landscape(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_cusp_enforcement(solver=None, seed=42):
+@st.cache_data
+def plot_cusp_enforcement(_solver=None, seed=42):
+    solver = _solver
     """Level 6: Kato Cusp Conditions — enforced electron-nucleus and e-e cusps."""
     step = solver.step_count if solver else 0
     if seed is not None: np.random.seed(seed + 555 + (step // 7))
@@ -1104,7 +1114,9 @@ def plot_cusp_enforcement(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_atomic_shells(solver=None, seed=42):
+@st.cache_data
+def plot_atomic_shells(_solver=None, seed=42):
+    solver = _solver
     """Level 9: Atomic electron shell structure — H through Ne orbital density."""
     step = solver.step_count if solver else 0
     if seed is not None: np.random.seed(seed + 666 + (step // 9))
@@ -1128,7 +1140,9 @@ def plot_atomic_shells(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_pes_landscape(solver=None, seed=42):
+@st.cache_data
+def plot_pes_landscape(_solver=None, seed=42):
+    solver = _solver
     """Level 10: Molecular Potential Energy Surface — bond energy landscape."""
     step = solver.step_count if solver else 0
     if seed is not None: np.random.seed(seed + 777 + (step // 11))
@@ -1154,7 +1168,9 @@ def plot_pes_landscape(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_ssm_dataflow(solver=None, seed=42):
+@st.cache_data
+def plot_ssm_dataflow(_solver=None, seed=42):
+    solver = _solver
     """Level 11: SSM-Backflow architecture — selective state space data flow."""
     step = solver.step_count if solver else 0
     if seed is not None: np.random.seed(seed + 888 + (step // 8))
@@ -1179,7 +1195,9 @@ def plot_ssm_dataflow(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_flow_acceptance(solver=None, seed=42):
+@st.cache_data
+def plot_flow_acceptance(_solver=None, seed=42):
+    solver = _solver
     """Level 12: Flow-Accelerated VMC — normalizing flow acceptance field."""
     step = solver.step_count if solver else 0
     if seed is not None: np.random.seed(seed + 999 + (step // 10))
@@ -1202,7 +1220,9 @@ def plot_flow_acceptance(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_tdvmc_dynamics(solver=None, seed=42):
+@st.cache_data
+def plot_tdvmc_dynamics(_solver=None, seed=42):
+    solver = _solver
     """Level 15: Time-Dependent VMC — real-time quantum dynamics evolution."""
     step = solver.step_count if solver else 0
     if seed is not None: np.random.seed(seed + 1515 + (step // 15))
@@ -1230,7 +1250,9 @@ def plot_tdvmc_dynamics(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_bloch_lattice(solver=None, seed=42):
+@st.cache_data
+def plot_bloch_lattice(_solver=None, seed=42):
+    solver = _solver
     """Level 16: Periodic Bloch lattice — crystal plane and band structure."""
     step = solver.step_count if solver else 0
     if seed is not None: np.random.seed(seed + 1616 + (step // 10))
@@ -1256,7 +1278,9 @@ def plot_bloch_lattice(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_spinorbit_split(solver=None, seed=42):
+@st.cache_data
+def plot_spinorbit_split(_solver=None, seed=42):
+    solver = _solver
     """Level 17: Spin-Orbit Coupling — relativistic fine-structure splitting."""
     step = solver.step_count if solver else 0
     if seed is not None: np.random.seed(seed + 1717 + (step // 12))
@@ -3406,15 +3430,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.markdown("##### ⚡ Phase I — Foundations (Levels 1–3)")
         col_a1, col_a2, col_a3 = st.columns(3)
         with col_a1:
-            fig_hw = plot_hamiltonian_well(solver=solver_ref, seed=master_seed)
+            fig_hw = plot_hamiltonian_well(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_hw, help_text="The direct representation of the external potential V(r). Visualizes the primary attractive wells formed by ionic charges and the repulsive ridges generated by mutual electronic interaction.")
             st.caption("L1: 3D Coulomb Hamiltonian.")
         with col_a2:
-            fig_mw = plot_mcmc_walker_field(solver=solver_ref, seed=master_seed)
+            fig_mw = plot_mcmc_walker_field(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_mw, help_text="The steady-state probability distribution from the Metropolis-Hastings Markov Chain. This density field represents the sampling efficiency of the engine across the 3N-dimensional configuration space.")
             st.caption("L2: Metropolis-Hastings walker topology.")
         with col_a3:
-            fig_ah = plot_autograd_hessian(solver=solver_ref, seed=master_seed)
+            fig_ah = plot_autograd_hessian(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_ah, help_text="The trace of the second-order derivative tensor (Laplacian) computed via Hutchinson's estimator. This field maps the kinetic energy density and the local curvature of the log-wavefunction.")
             st.caption("L3: Hutchinson Laplacian curvature.")
 
@@ -3422,15 +3446,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.markdown("##### 🧬 Phase I — Architecture (Levels 4–6)")
         col_b1, col_b2, col_b3 = st.columns(3)
         with col_b1:
-            fig_ld = plot_logdomain_landscape(solver=solver_ref, seed=master_seed)
+            fig_ld = plot_logdomain_landscape(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_ld, help_text="Visualizes the logarithmic magnitude and nodal surfaces of the Slater Determinant. The phase transitions (teal to crimson) denote the anti-symmetric sign flips required for fermionic statistics.")
             st.caption("L4-5: Log|ψ| + Slater antisymmetry nodes.")
         with col_b2:
-            fig_ce = plot_cusp_enforcement(solver=solver_ref, seed=master_seed)
+            fig_ce = plot_cusp_enforcement(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_ce, help_text="The enforcement of first-order continuity at electronic singularities. These sharp peaks represent the analytic requirements for the wavefunction as r -> 0 to cancel the infinite Coulomb potential.")
             st.caption("L6: Kato cusp enforcement.")
         with col_b3:
-            fig_fm2 = plot_fisher_manifold(solver=solver_ref, seed=master_seed + 50)
+            fig_fm2 = plot_fisher_manifold(_solver=solver_ref, seed=master_seed + 50)
             render_nqs_plot(fig_fm2, help_text="Atlas view of the Hilbert space metric. This specific manifold slice highlights the 'Information Bottleneck' regions where neural parameters are most constrained by the local curvature.")
             st.caption("L7-8: Fisher Manifold (Atlas view).")
 
@@ -3438,15 +3462,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.markdown("##### 🔬 Phase II — Chemical Accuracy (Levels 9–10)")
         col_c1, col_c2, col_c3 = st.columns(3)
         with col_c1:
-            fig_as = plot_atomic_shells(solver=solver_ref, seed=master_seed)
+            fig_as = plot_atomic_shells(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_as, help_text="The radial and angular density distributions of electronic shells. Visualizes the hierarchical structure of quantum numbers (n, l, m) emerging from the converged neural parameters.")
             st.caption("L9: Atomic shell structure (H→Ne).")
         with col_c2:
-            fig_pl = plot_pes_landscape(solver=solver_ref, seed=master_seed)
+            fig_pl = plot_pes_landscape(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_pl, help_text="The Potential Energy Surface (PES) manifold for polyatomic systems. This landscape maps the total energy as a function of nuclear geometry, showing the local minima (stable bonds) and saddle points (transition states).")
             st.caption("L10: Molecular PES energy landscape.")
         with col_c3:
-            fig_sd = plot_ssm_dataflow(solver=solver_ref, seed=master_seed)
+            fig_sd = plot_ssm_dataflow(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_sd, help_text="A visualization of the Selective State Space (SSM) hidden state propagation. These channels represent the flow of contextual information through the neural architecture, replacing traditional recurrent bottlenecks.")
             st.caption("L11: SSM-Backflow data channels.")
 
@@ -3454,15 +3478,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.markdown("##### ♾️ Phase III & IV — Advanced Engines (Levels 12, 15, 16)")
         col_d1, col_d2, col_d3 = st.columns(3)
         with col_d1:
-            fig_fa = plot_flow_acceptance(solver=solver_ref, seed=master_seed)
+            fig_fa = plot_flow_acceptance(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_fa, help_text="The bijective mapping density between the base Gaussian distribution and the target quantum state. This field optimizes the MCMC acceptance ratio using normalizing flows to eliminate autocorrelation.")
             st.caption("L12: Flow-VMC acceptance field.")
         with col_d2:
-            fig_td = plot_tdvmc_dynamics(solver=solver_ref, seed=master_seed)
+            fig_td = plot_tdvmc_dynamics(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_td, help_text="Real-time evolution of the probability amplitude and phase field. This encoding follows the time-dependent Schrödinger equation, mapping the evolution of wavepackets in an external field.")
             st.caption("L15: TD-VMC quantum dynamics.")
         with col_d3:
-            fig_bl = plot_bloch_lattice(solver=solver_ref, seed=master_seed)
+            fig_bl = plot_bloch_lattice(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_bl, help_text="The electronic band structure and lattice potential for crystals. This plot visualizes the implementation of periodic boundary conditions and the Bloch theorem for the Homogeneous Electron Gas.")
             st.caption("L16: Bloch periodic lattice.")
 
@@ -3470,15 +3494,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.markdown("##### ⚛️ Phase IV — Relativistic & Topological Frontiers (Levels 17–19)")
         col_e1, col_e2, col_e3 = st.columns(3)
         with col_e1:
-            fig_so = plot_spinorbit_split(solver=solver_ref, seed=master_seed)
+            fig_so = plot_spinorbit_split(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_so, help_text="Visualizes relativistic splitting using 2-component spinors. Red and blue channels represent spin-up/spin-down densities split by the Breit-Pauli L-S coupling interaction.")
             st.caption("L17: Spin-orbit fine structure.")
         with col_e2:
-            fig_em2 = plot_entanglement_mesh(solver=solver_ref, seed=master_seed + 50)
+            fig_em2 = plot_entanglement_mesh(_solver=solver_ref, seed=master_seed + 50)
             render_nqs_plot(fig_em2, help_text="Atlas fingerprint of the Rényi-2 entropy field. This variant visualization focuses on the 'Entanglement Phase' where electronic partitions exhibit maximum bipartite non-locality.")
             st.caption("L18: Entanglement entropy (Atlas fingerprint).")
         with col_e3:
-            fig_nl2 = plot_noether_landscape(solver=solver_ref, seed=master_seed + 50)
+            fig_nl2 = plot_noether_landscape(_solver=solver_ref, seed=master_seed + 50)
             render_nqs_plot(fig_nl2, help_text="Atlas projection of the commutator density field. These deep valleys represent stable latent coordinates where the neural symmetries perfectly align with the Hamiltonian invariance.")
             st.caption("L19: Noether Landscape (Atlas projection).")
 
