@@ -1635,28 +1635,48 @@ def plot_flow_jacobian(_solver=None, seed=42):
     """
     Encyclopedia Entry #2: Hyper-Dimensional Jacobian Warp (Flow Topology).
     """
-    if solver is None or not getattr(solver, 'flow_sampler', None):
-        res = 64; grid = np.random.rand(res, res, 3) * 0.05
-    else:
-        # --- REAL DATA: Normalizing Flow Jacobian ---
-        # Evaluate flow log-det over a 2D slice
-        res = 80
-        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
-        X, Y = np.meshgrid(x, y)
-        
-        # Test points in configuration space
-        r_slice = torch.zeros(res*res, solver.system.n_electrons, 3, device=solver.device)
-        r_slice[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
-        r_slice[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
-        
-        with torch.no_grad():
-            # Invert to find z and log_det_J
+    # --- REAL DATA: Normalizing Flow Jacobian (Explicit or Implicit) ---
+    res = 80
+    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+    X, Y = np.meshgrid(x, y)
+    
+    # Test points in configuration space
+    # For simplicity, scan electron 0 in XY plane
+    r_slice = torch.zeros(res*res, solver.system.n_electrons, 3, device=solver.device)
+    r_slice[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+    r_slice[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+    
+    with torch.no_grad():
+        if getattr(solver, 'flow_sampler', None):
+            # Explicit Flow Model: Invert to find z and log_det_J
             # log q(r) = log p(z) - log|det J|
             _, log_det_J = solver.flow_sampler.flow.inverse(r_slice.reshape(res*res, -1))
             warp = log_det_J.reshape(res, res).cpu().numpy()
+        else:
+            # Implicit Flow: The "Warp" required to transform Gaussian -> Psi
+            # log_det_J ~ log(Gaussian(r)) - log(Psi^2(r))
+            # This visualizes the non-Gaussianity of the wavefunction topology
+            log_psi, _ = solver.log_psi_func(r_slice)
+            log_rho = 2 * log_psi
             
-        norm_warp = (warp - warp.min()) / (warp.max() - warp.min() + 1e-8)
-        grid = plt.cm.magma(norm_warp)[:,:,:3]
+            # Base measure (Gaussian prior)
+            r2 = (r_slice**2).sum(dim=(1,2))
+            log_prior = -0.5 * r2 
+            
+            # The Jacobian determinant of the hypothetical optimal transport map
+            # J = Prior - Target
+            warp = (log_prior - log_rho).reshape(res, res).cpu().numpy()
+            
+    # Visualize absolute magnitude of the warp
+    # Low values (black) = perfectly Gaussian (Identity Flow)
+    # High values (bright) = Highly warped / correlated regions
+    
+    # Center around mean to show positive/negative compression
+    norm_warp = (warp - np.percentile(warp, 5)) / (np.percentile(warp, 95) - np.percentile(warp, 5) + 1e-8)
+    norm_warp = np.clip(norm_warp, 0, 1)
+    
+    # Magma for heat/energy of the deformation
+    grid = plt.cm.magma(norm_warp)[:,:,:3]
         
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3])
