@@ -3700,7 +3700,8 @@ def plot_omega_singularity(_solver=None, seed=42):
         margin=dict(l=0, r=0, b=0, t=60),
         height=700 # Giant Plot
     )
-    return fig
+
+return fig
 
 
 # ============================================================
@@ -4068,6 +4069,7 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
+
 
 
 
