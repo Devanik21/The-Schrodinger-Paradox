@@ -1237,8 +1237,10 @@ def plot_kinetic_storm(solver=None, seed=42):
     Encyclopedia Entry #6: The Kinetic Storm (Energy Turbulence).
     Visualizes local kinetic energy fluctuations from Hutchinson.
     """
+    fig, ax = plt.subplots(figsize=(6, 6))
     if solver is None:
         res = 64; grid = np.random.rand(res, res, 3) * 0.05
+        ax.imshow(grid)
     else:
         # --- REAL DATA: Local Kinetic Energy ---
         res = 80
@@ -1253,15 +1255,13 @@ def plot_kinetic_storm(solver=None, seed=42):
         r_test[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         
         with torch.no_grad():
-            from quantum_physics import compute_local_energy
             E_L, E_kin, _ = compute_local_energy(solver.log_psi_func, r_test, solver.system, solver.device, n_hutchinson=1)
             storm = E_kin.reshape(res, res).cpu().numpy()
             
         norm_storm = np.clip((storm - np.percentile(storm, 5)) / (np.percentile(storm, 95) - np.percentile(storm, 5) + 1e-8), 0, 1)
         grid = plt.cm.inferno(norm_storm)[:,:,:3]
+        ax.imshow(grid, interpolation='nearest', extent=[-3, 3, -3, 3])
         
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(grid, interpolation='nearest', extent=[-3, 3, -3, 3])
     ax.set_title("LIVE KINETIC ENERGY STORM", color='#ffaa00', fontsize=10, family='monospace')
     ax.axis('off'); ax.set_facecolor('black'); fig.patch.set_facecolor('black')
     plt.tight_layout()
@@ -1274,8 +1274,10 @@ def plot_neural_time_dilation(solver=None, seed=42):
     Encyclopedia Entry #7: Neural Time Dilation (Gating Fields).
     Visualizes where the NQS slows down processing.
     """
+    fig, ax = plt.subplots(figsize=(6, 6))
     if solver is None:
         res = 64; grid = np.random.rand(res, res, 3) * 0.05
+        ax.imshow(grid)
     else:
         # --- REAL DATA: Jastrow Field Complexity ---
         res = 80
@@ -1295,9 +1297,8 @@ def plot_neural_time_dilation(solver=None, seed=42):
             
         norm_dil = (dilation - dilation.min()) / (dilation.max() - dilation.min() + 1e-8)
         grid = plt.cm.copper(norm_dil)[:,:,:3]
+        ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3])
         
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3])
     ax.set_title("LIVE NEURAL TIME DILATION", color='#ffaa88', fontsize=10, family='monospace')
     ax.axis('off'); ax.set_facecolor('#100500'); fig.patch.set_facecolor('#100500')
     plt.tight_layout()
@@ -1309,8 +1310,10 @@ def plot_backflow_displacement(solver=None, seed=42):
     Encyclopedia Entry #8: The Backflow Displacement (Quasiparticles).
     Vector field showing the real backflow g(r).
     """
+    fig, ax = plt.subplots(figsize=(6, 6))
     if solver is None:
         res = 20; grid = np.random.rand(res, res, 3) * 0.05
+        ax.imshow(grid)
     else:
         # --- REAL DATA: Backflow Displacement Field ---
         res = 30
@@ -1331,7 +1334,6 @@ def plot_backflow_displacement(solver=None, seed=42):
             U = h[:, 0, 0].reshape(res, res).cpu().numpy()
             V = h[:, 0, 1].reshape(res, res).cpu().numpy()
             
-        fig, ax = plt.subplots(figsize=(6, 6))
         ax.quiver(X, Y, U, V, np.sqrt(U**2 + V**2), cmap='cool', pivot='mid', width=0.005)
         
     ax.set_title("LIVE BACKFLOW DISPLACEMENT", color='#44ffff', fontsize=10, family='monospace')
@@ -1384,6 +1386,7 @@ def plot_ewald_ghosts(solver=None, seed=42):
     Encyclopedia Entry #10: Ewald's Infinite Ghosts (Lattice Echoes).
     Visualizes periodic image potentials.
     """
+    fig, ax = plt.subplots(figsize=(6, 6))
     if solver is None:
         res = 64; grid = np.random.rand(res, res, 3) * 0.05
     else:
@@ -1406,7 +1409,6 @@ def plot_ewald_ghosts(solver=None, seed=42):
         grid[:,:,0] = norm_pot * 0.5 # Magenta
         grid[:,:,2] = norm_pot * 0.8 # Blue
         
-    fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bicubic', extent=[-6, 6, -6, 6])
     ax.set_title("LIVE EWALD LATTICE GHOSTS", color='#8888ff', fontsize=10, family='monospace')
     ax.axis('off'); ax.set_facecolor('black'); fig.patch.set_facecolor('black')
@@ -1450,6 +1452,7 @@ def plot_quantum_classical_clash(solver=None, seed=42):
     """
     Encyclopedia Entry #12: The Quantum-Classical Clash (Potential Diff).
     """
+    fig, ax = plt.subplots(figsize=(6, 6))
     if solver is None:
         res = 64; grid = np.random.rand(res, res, 3) * 0.05
     else:
@@ -1464,7 +1467,6 @@ def plot_quantum_classical_clash(solver=None, seed=42):
         r_test[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         
         with torch.no_grad():
-            from quantum_physics import compute_potential_energy, compute_local_energy
             V = compute_potential_energy(r_test, solver.system, solver.device)
             E_L, _, _ = compute_local_energy(solver.log_psi_func, r_test, solver.system, solver.device)
             clash = (E_L - V).reshape(res, res).cpu().numpy()
@@ -1472,7 +1474,6 @@ def plot_quantum_classical_clash(solver=None, seed=42):
         norm_clash = np.clip((clash - np.mean(clash)) / (np.std(clash) + 1e-8), -2, 2)
         grid = plt.cm.seismic((norm_clash + 2) / 4.0)[:,:,:3]
         
-    fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3])
     ax.set_title("LIVE QUANTUM-CLASSICAL CLASH", color='#ffaaaa', fontsize=10, family='monospace')
     ax.axis('off'); ax.set_facecolor('black'); fig.patch.set_facecolor('black')
