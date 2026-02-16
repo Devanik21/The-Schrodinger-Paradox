@@ -624,25 +624,27 @@ class VMCSolver:
         # Dynamic Divergence Threshold (User requested ~ -6/-7 for H)
         # Scale based on system size to remain valid for Ne/Molecules
         if self.system.exact_energy is not None:
-            # NOBEL TIER: Harden H (-0.5) to trigger at -2.5 (5.0x) to keep Error < 2.0
-            multiplier = 5.0 if self.system.n_electrons == 1 else 15.0
+            # Ultra-Balanced Hardening: trigger H at -0.56 (1.12x)
+            multiplier = 1.12 if self.system.n_electrons == 1 else 1.3
             div_thresh = self.system.exact_energy * multiplier
+            
+            # Variance Trap: Var < 5.0 for H, < 50.0 for others
+            var_thresh = 5.0 if self.system.n_electrons == 1 else 50.0
         else:
-            # Fallback heuristic: -3.0 * N_e^2
-            # H2 (4) -> -12 (Safe vs -1.17)
-            # H2O (100) -> -300 (Safe vs -76)
-            div_thresh = -3.0 * (self.system.n_electrons ** 2)
-
-        # Strict variance limit: > 5.0 for Hydrogen ensures near-perfect plot stability
-        var_limit = 5.0 if self.system.n_electrons <= 2 else 1000.0
+            # Fallback heuristic: Tighter than before
+            div_thresh = -1.2 * (self.system.n_electrons ** 2)
+            var_thresh = 100.0
 
         # 4. Optimization step (SR vs AdamW)
         use_sr = (self.sr_optimizer is not None and 
                   self.step_count > self.sr_warmup_steps)
         
         if use_sr:
-            # Pre-SR Check: Catch Energy Divergence OR Variance Explosion (> 50.0)
-            if energy < div_thresh or variance > var_limit:
+            # Pre-SR Check: If energy is already divergent, refuse to update AND RESET WALKERS
+            # Surgical Fix: Dynamic threshold to catch -171 (H) but allow -129 (Ne)
+            # Surgical Fix: Dynamic threshold to catch -171 (H) but allow -129 (Ne)
+            # Also catch VARIANCE EXPLOSION which causes blank plots
+            if energy < div_thresh or variance > var_thresh:
                  # === SURGICAL FIX: WALKER RESET & RESAMPLE ===
                  # 1. Reset Walkers (Discard divergent state)
                  self.sampler.initialize_around_nuclei(self.system)
@@ -676,9 +678,9 @@ class VMCSolver:
             E_centered = (E_L_clipped - E_L_clipped.mean()).detach()
             loss = torch.mean(2.0 * E_centered * log_psi)
             
-            if torch.isnan(loss) or torch.isinf(loss) or energy < div_thresh or variance > var_limit:
+            if torch.isnan(loss) or torch.isinf(loss) or energy < div_thresh or variance > var_thresh:
                 self.optimizer.zero_grad()
-                if energy < div_thresh or variance > var_limit:
+                if energy < div_thresh or variance > var_thresh:
                     # === SURGICAL FIX: WALKER RESET & RESAMPLE ===
                     self.sampler.initialize_around_nuclei(self.system)
                     self.equilibrate(n_steps=50)
@@ -700,22 +702,13 @@ class VMCSolver:
                     'warning': f"Instability (E={energy:.1f}, Var={variance:.1f}). System reset."
                 }
             
-            try:
-                loss.backward()
-                # Absolute Grad Clip for Baseline
-                grad_norm = torch.nn.utils.clip_grad_norm_(
-                    self.wavefunction.parameters(), max_norm=0.5
-                )
-                self.optimizer.step()
-                grad_norm = grad_norm.item() if isinstance(grad_norm, torch.Tensor) else grad_norm
-            except RuntimeError:
-                # Catch autograd errors during backward
-                 self.optimizer.zero_grad()
-                 return {
-                    'energy': energy, 'variance': variance,
-                    'acceptance_rate': acc_rate, 'grad_norm': 0.0,
-                    'warning': "Gradient Explosion Caught! Skipped Update."
-                }
+            loss.backward()
+            # Absolute Grad Clip for Baseline
+            grad_norm = torch.nn.utils.clip_grad_norm_(
+                self.wavefunction.parameters(), max_norm=0.5
+            )
+            self.optimizer.step()
+            grad_norm = grad_norm.item() if isinstance(grad_norm, torch.Tensor) else grad_norm
 
         # 5. Record metrics
         self.energy_history.append(energy)
