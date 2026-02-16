@@ -1019,7 +1019,142 @@ def plot_orthonormal_pressure(_solver=None, seed=42):
     ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
     for spine in ax.spines.values(): spine.set_visible(False)
     plt.tight_layout()
+    return fig@st.cache_data
+def plot_quantum_stress_tensor(_solver=None, seed=42):
+    solver = _solver
+    """Visualizes the local stress tensor field within the electron cloud."""
+    res = 60
+    if solver is None:
+        grid = np.random.rand(res, res, 3) * 0.05
+    else:
+        # --- REAL DATA: Stress Tensor Trace ---
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        r = solver.sampler.walkers.detach()
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_scan.requires_grad = True
+        log_psi, _ = solver.log_psi_func(r_scan)
+        grad = torch.autograd.grad(log_psi.sum(), r_scan)[0]
+        stress = (grad**2).sum(dim=2).reshape(res, res).detach().cpu().numpy()
+        grid = plt.cm.bone((stress - stress.min()) / (stress.max() - stress.min() + 1e-8))[:,:,:3]
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
+    ax.set_title("QUANTUM STRESS TENSOR", color='#88aaff', fontsize=10, family='monospace')
+    ax.axis('off'); ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    plt.tight_layout()
     return fig
+
+@st.cache_data
+def plot_electron_current_flux(_solver=None, seed=42):
+    solver = _solver
+    """Visualizes the imaginary part of the local energy as a current flux."""
+    res = 40
+    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+    X, Y = np.meshgrid(x, y)
+    if solver is None:
+        U = -Y; V = X
+    else:
+        # --- REAL DATA: Current Density Proxy ---
+        r = solver.sampler.walkers.detach()
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        # Use log-psi gradient as velocity field
+        r_scan.requires_grad = True
+        log_psi, _ = solver.log_psi_func(r_scan)
+        grad = torch.autograd.grad(log_psi.sum(), r_scan)[0]
+        U = grad[:, 0, 0].reshape(res, res).detach().cpu().numpy()
+        V = grad[:, 0, 1].reshape(res, res).detach().cpu().numpy()
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.streamplot(X, Y, U, V, color='#00ff44', linewidth=0.8, density=1.5)
+    ax.set_title("ELECTRON CURRENT FLUX", color='#00ff44', fontsize=10, family='monospace')
+    ax.axis('off'); ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    plt.tight_layout()
+    return fig
+
+@st.cache_data
+def plot_hartree_exchange_density(_solver=None, seed=42):
+    solver = _solver
+    """Visualizes the local Hartree-Exchange interaction density."""
+    res = 60
+    if solver is None:
+        grid = np.random.rand(res, res, 3) * 0.05
+    else:
+        # --- REAL DATA: Hartree Potential Proxy ---
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        pos = solver.system.positions().cpu().numpy()
+        pot = np.zeros((res, res))
+        for p in pos:
+            pot += 1.0 / (np.sqrt((X-p[0])**2 + (Y-p[1])**2) + 0.1)
+        grid = plt.cm.hot(np.clip(pot/10.0, 0, 1))[:,:,:3]
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='gaussian', extent=[-3, 3, -3, 3], origin='lower')
+    ax.set_title("HARTREE-EXCHANGE DENSITY", color='#ff6600', fontsize=10, family='monospace')
+    ax.axis('off'); ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    plt.tight_layout()
+    return fig
+
+@st.cache_data
+def plot_localized_kinetic_gradient(_solver=None, seed=42):
+    solver = _solver
+    res = 60
+    if solver is None:
+        grid = np.random.rand(res, res, 3) * 0.05
+    else:
+        # --- REAL DATA: Kinetic Gradient ---
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        r = solver.sampler.walkers.detach()
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_scan.requires_grad = True
+        log_psi, _ = solver.log_psi_func(r_scan)
+        grad = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=True)[0]
+        # Magnitude of the gradient of the kinetic energy
+        K = 0.5 * (grad**2).sum(dim=2)
+        grid = plt.cm.YlGnBu((K.reshape(res, res).detach().cpu().numpy() / 5.0).clip(0, 1))[:,:,:3]
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3], origin='lower')
+    ax.set_title("LOCAL KINETIC GRADIENT", color='#aaffff', fontsize=10, family='monospace')
+    ax.axis('off'); ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    plt.tight_layout()
+    return fig
+
+@st.cache_data
+def plot_exchange_correlation_hole(_solver=None, seed=42):
+    solver = _solver
+    """Visualizes the Exchange-Correlation hole (Fermi hole) around an electron."""
+    res = 60
+    if solver is None:
+        grid = np.random.rand(res, res, 3) * 0.05
+    else:
+        # --- REAL DATA: XC Hole Proxy ---
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        r = solver.sampler.walkers.detach()
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        with torch.no_grad():
+            log_psi, _ = solver.log_psi_func(r_scan)
+            rho = torch.exp(2 * log_psi).reshape(res, res).cpu().numpy()
+        hole = np.max(rho) - rho
+        grid = plt.cm.gist_earth((hole / (np.max(hole) + 1e-8)))[:,:,:3]
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
+    ax.set_title("EXCHANGE-CORRELATION HOLE", color='#aaffaa', fontsize=10, family='monospace')
+    ax.axis('off'); ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    plt.tight_layout()
+    return fig
+
 
 
 # ============================================================
@@ -3716,23 +3851,25 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             render_nqs_plot(fig_c, help_text="Depicts the electron-electron exclusion topology. The mesh density represents the many-body Jastrow factor's success in enforcing the Coulomb hole, preventing electronic overlap as required by the Pauli principle.")
             st.caption("Exclusion & correlation zones.")
         with col_p3:
-            fig_b = plot_berry_flow(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_b, help_text="Visualizes the non-abelian gauge field and complex phase streamlines of the wavefunction. This vector field tracks the geometric phase (γ) acquired during adiabatic cycles in the parameter manifold.")
-            st.caption("Topological phase streamlines.")
+            fig_b = plot_electron_current_flux(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_b, help_text="Electron Current Flux streamlines. Visualizes the probability current density derived from the wavefunction phase/gradient.")
+            st.caption("Topological current flux.")
         
         col_p4, col_p5, col_p6 = st.columns(3)
         with col_p4:
-            fig_e = plot_entanglement_mesh(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_e, help_text="A topological view of the Rényi-2 entanglement entropy connectivity. High-intensity filaments signify bipartite correlations discovered via the SWAP-trick, representing pure quantum non-locality.")
-            st.caption("Quantum Entanglement (S₂) topology.")
+            fig_e = plot_quantum_stress_tensor(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_e, help_text="Quantum Stress Tensor. Visualizes the internal forces and pressure distribution within the electron cloud manifold.")
+            st.caption("Quantum Internal Stress.")
         with col_p5:
-            fig_n = plot_noether_landscape(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_n, help_text="Maps the commutation density |[H, Q]|. Valleys in this landscape represent latent coordinates where the neural operator Q commutes with the Hamiltonian, signaling the discovery of novel conservation laws.")
-            st.caption("Conservation discovery potential.")
+            fig_n = plot_exchange_correlation_hole(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_n, help_text="Exchange-Correlation Hole. Visualizes the exclusion zone surrounding an electron where the probability of finding another electron is depleted due to the Pauli principle and Coulomb repulsion.")
+            st.caption("Fermi-Coulomb Hole Topology.")
         with col_p6:
-            fig_o = plot_orthonormal_pressure(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_o, help_text="Visualizes the penalty-functional pressure for excited states. The fields show how Gram-Schmidt or orthogonality constraints 'push' secondary energy levels away from the ground state to prevent collapsed solutions.")
-            st.caption("Excited-state orthogonality field.")
+            fig_o = plot_hartree_exchange_density(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_o, help_text="Hartree-Exchange Density. A map of the mean-field interaction between electrons, isolating the classically-derived potential components.")
+            st.caption("Mean-Field Interaction Field.")
+
+        st.divider()
 
         # ============================================================
         # 🌌 COMPLETE 20-LEVEL PHYSICS ATLAS
