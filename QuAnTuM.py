@@ -1217,6 +1217,38 @@ def plot_jastrow_curvature(_solver=None, seed=42):
     return fig
 
 
+@st.cache_data
+def plot_kinetic_energy_density(_solver=None, seed=42):
+    solver = _solver
+    """Visualizes the positive-definite Kinetic Energy Density (τ). High-fidelity map of the internal electronic heat."""
+    res = 60
+    if solver is None:
+        grid = np.random.rand(res, res, 3) * 0.05
+    else:
+        # --- REAL DATA: Grad Psi Squared ---
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        r = solver.sampler.walkers.detach()
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_scan.requires_grad = True
+        log_psi, _ = solver.log_psi_func(r_scan)
+        grad = torch.autograd.grad(log_psi.sum(), r_scan)[0]
+        # τ = 1/2 |∇ψ|^2 = 1/2 ψ^2 |∇logψ|^2
+        rho = torch.exp(2 * log_psi)
+        tau = 0.5 * rho * torch.norm(grad, dim=2)**2
+        tau = tau.reshape(res, res).detach().cpu().numpy()
+        grid = plt.cm.inferno( (tau - tau.min()) / (tau.max() - tau.min() + 1e-8) )[:,:,:3]
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
+    ax.set_title("KINETIC ENERGY DENSITY (τ)", color='#ff8800', fontsize=10, family='monospace')
+    ax.axis('off'); ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    plt.tight_layout()
+    return fig
+
+
 # ============================================================
 # 🎨 NEW LEVEL-SPECIFIC LATENT DREAM VISUALIZATIONS
 # ============================================================
@@ -3768,7 +3800,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
     st.title("🎨 Latent Dream Memory 🖼️")
     st.markdown("""
     **Multimodal Latent Neural Quantum State (NQS) Topology:**  
-    This atlas synthesizes 60 high-dimensional latent projections from the neural wavefunction manifold ($ \Psi_{\theta} $). By mapping the internal activations of the SSM-Backflow architecture across 20 tiers of physical complexity—ranging from first-principles Coulombic potentials to relativistic Breit-Pauli fine-structure splitting—we visualize the 'Singularity' of agent-based memory convergence. These fields utilize stochastic stigmergy and geometric deep learning to discover autonomous conservation laws and topological phase invariants ($ \gamma_n $). RGB encoding represents the convergence of danger/resource/sacred latent sectors as agents navigate the multi-electron Hamiltonian landscape.
+    This atlas synthesizes 61 high-dimensional latent projections from the neural wavefunction manifold ($ \Psi_{\theta} $). By mapping the internal activations of the SSM-Backflow architecture across 20 tiers of physical complexity—ranging from first-principles Coulombic potentials to relativistic Breit-Pauli fine-structure splitting—we visualize the 'Singularity' of agent-based memory convergence. These fields utilize stochastic stigmergy and geometric deep learning to discover autonomous conservation laws and topological phase invariants ($ \gamma_n $). RGB encoding represents the convergence of danger/resource/sacred latent sectors as agents navigate the multi-electron Hamiltonian landscape.
     """)
     
     # --- Lazy Load Gate ---
@@ -3779,7 +3811,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.markdown("---")
         st.markdown("""
         <div style='text-align: center; padding: 60px 20px;'>
-            <p style='font-size: 1.5em; color: #888;'>🎨 60 Latent Dream Visualizations await...</p>
+            <p style='font-size: 1.5em; color: #888;'>🎨 61 Latent Dream Visualizations await...</p>
             <p style='color: #555;'>Press the button below to render all 20-level latent field maps.</p>
         </div>
         """, unsafe_allow_html=True)
@@ -4003,11 +4035,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             fig_jw = plot_jastrow_curvature(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_jw, help_text="Jastrow Curvature. Isolates the purely many-body correlation component of the wavefunction, revealing the complex dance of electrons avoiding one another.")
             st.caption("Pure Many-Body Curvature.")
+        with col_px3:
+            fig_ke = plot_kinetic_energy_density(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_ke, help_text="Kinetic Energy Density (τ). A high-fidelity map of the positive-definite kinetic energy distribution, revealing regions of high electronic 'heat' and momentum.")
+            st.caption("Electronic Heat Density (τ).")
 
         st.divider()
         st.subheader("🔱 The Omega Singularity — Grand Unified Trace")
         st.markdown("""
-        **The 60th Dimension:** This is the terminal state of the 'Latent Dream'. It synthesizes 
+        **The 61st Dimension:** This is the terminal state of the 'Latent Dream'. It synthesizes 
         all 20 tiers of physics into a single, high-fidelity 3D manifold. It visualizes the 
         exact point where the neural parameters ($\theta$) become indistinguishable from 
         the physical ground state ($\Psi_0$).
