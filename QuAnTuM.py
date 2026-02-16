@@ -1218,14 +1218,14 @@ def plot_jastrow_curvature(_solver=None, seed=42):
 
 
 @st.cache_data
-def plot_kinetic_energy_density(_solver=None, seed=42):
+def plot_backflow_vorticity_map(_solver=None, seed=42):
     solver = _solver
-    """Visualizes the positive-definite Kinetic Energy Density (τ). High-fidelity map of the internal electronic heat."""
+    """Explores the rotational 'twist' or vorticity of the neural backflow transformation field."""
     res = 60
     if solver is None:
         grid = np.random.rand(res, res, 3) * 0.05
     else:
-        # --- REAL DATA: Grad Psi Squared ---
+        # --- REAL DATA: Curl of Backflow Displacement ---
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
         r = solver.sampler.walkers.detach()
@@ -1234,19 +1234,28 @@ def plot_kinetic_energy_density(_solver=None, seed=42):
         r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_scan.requires_grad = True
-        log_psi, _ = solver.log_psi_func(r_scan)
-        grad = torch.autograd.grad(log_psi.sum(), r_scan)[0]
-        # τ = 1/2 |∇ψ|^2 = 1/2 ψ^2 |∇logψ|^2
-        rho = torch.exp(2 * log_psi)
-        tau = 0.5 * rho * torch.norm(grad, dim=2)**2
-        tau = tau.reshape(res, res).detach().cpu().numpy()
-        grid = plt.cm.inferno( (tau - tau.min()) / (tau.max() - tau.min() + 1e-8) )[:,:,:3]
+        
+        # Compute backflow displacement field
+        with torch.enable_grad():
+            r_back, _ = solver.wavefunction.backflow(r_scan)
+            disp = (r_back - r_scan)[:, 0, :2] # Displacement in XY
+            # Compute partials for Curl: d_v/dx - d_u/dy
+            u = disp[:, 0]
+            v = disp[:, 1]
+            du_dr = torch.autograd.grad(u.sum(), r_scan, create_graph=True)[0][:, 0, :2]
+            dv_dr = torch.autograd.grad(v.sum(), r_scan, create_graph=True)[0][:, 0, :2]
+            # Curl is dv/dx - du/dy
+            vorticity = (dv_dr[:, 0] - du_dr[:, 1]).reshape(res, res).detach().cpu().numpy()
+            
+        grid = plt.cm.twilight_shifted( (vorticity - vorticity.min()) / (vorticity.max() - vorticity.min() + 1e-8) )[:,:,:3]
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
-    ax.set_title("KINETIC ENERGY DENSITY (τ)", color='#ff8800', fontsize=10, family='monospace')
+    ax.set_title("BACKFLOW VORTICITY FIELD", color='#ff88ff', fontsize=10, family='monospace')
     ax.axis('off'); ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
     plt.tight_layout()
     return fig
+
+
 
 
 # ============================================================
@@ -3811,7 +3820,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.markdown("---")
         st.markdown("""
         <div style='text-align: center; padding: 60px 20px;'>
-            <p style='font-size: 1.5em; color: #888;'>🎨 61 Latent Dream Visualizations await...</p>
+            <p style='font-size: 1.5em; color: #888;'>🎨 60 Latent Dream Visualizations await...</p>
             <p style='color: #555;'>Press the button below to render all 20-level latent field maps.</p>
         </div>
         """, unsafe_allow_html=True)
@@ -4036,14 +4045,14 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             render_nqs_plot(fig_jw, help_text="Jastrow Curvature. Isolates the purely many-body correlation component of the wavefunction, revealing the complex dance of electrons avoiding one another.")
             st.caption("Pure Many-Body Curvature.")
         with col_px3:
-            fig_ke = plot_kinetic_energy_density(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_ke, help_text="Kinetic Energy Density (τ). A high-fidelity map of the positive-definite kinetic energy distribution, revealing regions of high electronic 'heat' and momentum.")
-            st.caption("Electronic Heat Density (τ).")
+            fig_bv = plot_backflow_vorticity_map(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_bv, help_text="Backflow Vorticity Field. Visualizes the rotational 'twist' or eddy-currents that the neural network applies to the electron coordinates to minimize energy. A high-fidelity map of the non-local correlation topology.")
+            st.caption("Neural Flow Vorticity.")
 
         st.divider()
         st.subheader("🔱 The Omega Singularity — Grand Unified Trace")
         st.markdown("""
-        **The 61st Dimension:** This is the terminal state of the 'Latent Dream'. It synthesizes 
+        **The 60th Dimension:** This is the terminal state of the 'Latent Dream'. It synthesizes 
         all 20 tiers of physics into a single, high-fidelity 3D manifold. It visualizes the 
         exact point where the neural parameters ($\theta$) become indistinguishable from 
         the physical ground state ($\Psi_0$).
