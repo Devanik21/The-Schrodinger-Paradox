@@ -269,7 +269,7 @@ else:
 st.sidebar.divider()
 st.sidebar.subheader("Training")
 
-n_steps_per_click = st.sidebar.slider("Steps per click", 1, 100, 50)
+n_steps_per_click = st.sidebar.slider("Steps per click", 1, 500, 100)
 
 col_train1, col_train2 = st.sidebar.columns(2)
 train_btn = col_train1.button("▶️ Train", width='stretch')
@@ -4423,6 +4423,7 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
+
 
 
 
