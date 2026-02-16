@@ -597,10 +597,10 @@ class VMCSolver:
         log_psi = torch.cat(log_psi_list)  
         
         # Stability Surgery: Protection (Phase 4 Robustness)
-        # 1. Absolute Floor: Widen to -10,000 to prevent Zero Variance Deadlock.
-        # This allows the Rejection Watchdog (at -1000) to trigger properly.
-        E_L = torch.clamp(E_L, min=-10000.0, max=10000.0)
-        E_L = torch.nan_to_num(E_L, nan=0.0, posinf=10000.0, neginf=-10000.0)
+        # 1. Absolute Floor: Widen to -5000 to prevent Zero Variance Deadlock.
+        # This allows the Rejection Watchdog (at -200) to trigger properly.
+        E_L = torch.clamp(E_L, min=-5000.0, max=5000.0)
+        E_L = torch.nan_to_num(E_L, nan=0.0, posinf=5000.0, neginf=-5000.0)
         
         # 2. Adaptive Guardrail: Clamp based on MAD from median
         E_median = torch.median(E_L)
@@ -626,12 +626,18 @@ class VMCSolver:
                   self.step_count > self.sr_warmup_steps)
         
         if use_sr:
-            # Pre-SR Check: If energy is already divergent, refuse to update
-            if energy < -1000.0:
+            # Pre-SR Check: If energy is already divergent, refuse to update AND RESET WALKERS
+            # Surgical Fix: -200.0 is the new strict limit (H-Ne ground states are > -130)
+            if energy < -200.0:
+                 # === SURGICAL FIX: WALKER RESET ===
+                 # Break the livelock by force-respawning the electrons
+                 self.sampler.initialize_around_nuclei(self.system)
+                 self.equilibrate(n_steps=50) 
+                 # ==================================
                  return {
                     'energy': energy, 'variance': variance,
                     'acceptance_rate': acc_rate, 'grad_norm': 0.0,
-                    'warning': "Energy Divergence Detected: Rejecting Update"
+                    'warning': "Energy Divergence Detected: Walkers Reset & Re-Equilibrated"
                 }
 
             grad_norm = self.sr_optimizer.compute_update(
@@ -642,11 +648,17 @@ class VMCSolver:
             E_centered = (E_L_clipped - E_L_clipped.mean()).detach()
             loss = torch.mean(2.0 * E_centered * log_psi)
             
-            if torch.isnan(loss) or torch.isinf(loss) or energy < -1000.0:
+            if torch.isnan(loss) or torch.isinf(loss) or energy < -200.0:
                 self.optimizer.zero_grad()
+                # === SURGICAL FIX: WALKER RESET ===
+                if energy < -200.0:
+                    self.sampler.initialize_around_nuclei(self.system)
+                    self.equilibrate(n_steps=50)
+                # ==================================
                 return {
                     'energy': energy, 'variance': variance,
-                    'acceptance_rate': acc_rate, 'grad_norm': 0.0
+                    'acceptance_rate': acc_rate, 'grad_norm': 0.0,
+                    'warning': "Energy Divergence/NaN Detected: Walkers Reset"
                 }
             
             loss.backward()
