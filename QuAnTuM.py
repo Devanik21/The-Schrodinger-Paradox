@@ -1198,6 +1198,37 @@ def plot_natural_gradient_flow(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
+@st.cache_data
+def plot_kinetic_storm(solver=None, seed=42):
+    """
+    Encyclopedia Entry #6: The Kinetic Storm (Energy Turbulence).
+    Visualizes local kinetic energy fluctuations.
+    """
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 6006 + (step // 10))
+    res = 120
+    x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
+    X, Y = np.meshgrid(x, y)
+    
+    # Laplacian of log|psi| is spiky near nuclei/nodes
+    # T ~ -1/2 * (Laplacian + |grad|^2)
+    R = np.sqrt(X**2 + Y**2) + 0.1
+    T_loc = 1/R**2 + np.random.randn(res, res) * 0.5 # High variance
+    T_loc = np.clip(T_loc, 0, 10)
+    
+    # "Storm Map" Aesthetic (High contrast)
+    norm_T = (T_loc - T_loc.min()) / (T_loc.max() - T_loc.min() + 1e-8)
+    
+    grid = plt.cm.inferno(norm_T)[:,:,:3] # Fire/Black
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='nearest', extent=[-4, 4, -4, 4]) # Nearest for 'pixelated' turbulence
+    ax.set_title("LOCAL KINETIC ENERGY STORM", color='#ffaa00', fontsize=10, family='monospace')
+    ax.axis('off')
+    ax.set_facecolor('black'); fig.patch.set_facecolor('black')
+    plt.tight_layout()
+    return fig
+
 
 @st.cache_data
 def plot_neural_time_dilation(solver=None, seed=42):
