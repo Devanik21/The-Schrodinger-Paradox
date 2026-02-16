@@ -1235,19 +1235,31 @@ def plot_backflow_vorticity_map(_solver=None, seed=42):
         r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_scan.requires_grad = True
         
-        # Compute backflow displacement field
+        # Compute backflow feature field
         with torch.enable_grad():
-            r_back, _ = solver.wavefunction.backflow(r_scan)
-            disp = (r_back - r_scan)[:, 0, :2] # Displacement in XY
-            # Compute partials for Curl: d_v/dx - d_u/dy
-            u = disp[:, 0]
-            v = disp[:, 1]
-            du_dr = torch.autograd.grad(u.sum(), r_scan, create_graph=True)[0][:, 0, :2]
-            dv_dr = torch.autograd.grad(v.sum(), r_scan, create_graph=True)[0][:, 0, :2]
-            # Curl is dv/dx - du/dy
-            vorticity = (dv_dr[:, 0] - du_dr[:, 1]).reshape(res, res).detach().cpu().numpy()
+            # DeepBackflowNet.forward requires: r_electrons, r_nuclei, charges, spin_mask_parallel
+            h = solver.wavefunction.backflow(
+                r_scan, 
+                solver.wavefunction.r_nuclei, 
+                solver.wavefunction.charges, 
+                solver.wavefunction.spin_mask_parallel
+            ) # [N_w, N_e, d_model]
             
-        grid = plt.cm.twilight_shifted( (vorticity - vorticity.min()) / (vorticity.max() - vorticity.min() + 1e-8) )[:,:,:3]
+            # To compute a meaningful 'vorticity', we look at the non-conservative 
+            # mixing of the first two latent features across the XY plane.
+            # Vorticity ω = ∂h₁/∂x - ∂h₀/∂y
+            h0 = h[:, 0, 0]
+            h1 = h[:, 0, 1]
+            dh1_dr = torch.autograd.grad(h1.sum(), r_scan, create_graph=True)[0][:, 0, :2]
+            dh0_dr = torch.autograd.grad(h0.sum(), r_scan, create_graph=True)[0][:, 0, :2]
+            
+            # ω = dh1/dx - dh0/dy
+            vorticity = (dh1_dr[:, 0] - dh0_dr[:, 1]).reshape(res, res).detach().cpu().numpy()
+            
+        # Normalize and apply a beautiful divergent colormap
+        v_min, v_max = np.percentile(vorticity, [1, 99])
+        v_norm = np.clip((vorticity - v_min) / (v_max - v_min + 1e-8), 0, 1)
+        grid = plt.cm.twilight_shifted(v_norm)[:,:,:3]
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
     ax.set_title("BACKFLOW VORTICITY FIELD", color='#ff88ff', fontsize=10, family='monospace')
