@@ -1268,6 +1268,117 @@ def plot_backflow_vorticity_map(_solver=None, seed=42):
     return fig
 
 
+@st.cache_data
+def plot_omega_singularity(_solver=None, seed=42):
+    solver = _solver
+    """
+    The 60th Plot: The Omega Singularity.
+    Grand Unified Trace: 3D Quantum Force Topology & Nodal Manifold.
+    Visualizes the 'Bohmian' velocity field v = ∇S/m (Quantum Force) driving the 
+    probability flow, superimposed on the electron density isosurfaces.
+    """
+    res = 20
+    
+    if solver is None:
+        # Placeholder
+        if seed is not None: np.random.seed(seed)
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res); z = np.linspace(-3, 3, res)
+        X, Y, Z = np.meshgrid(x, y, z)
+        R = np.sqrt(X**2 + Y**2 + Z**2)
+        grid = np.sin(R*3) + np.random.rand(res, res, res)*0.5
+        fig = go.Figure(data=go.Isosurface(
+            x=X.flatten(), y=Y.flatten(), z=Z.flatten(),
+            value=grid.flatten(), isomin=0.5, isomax=1.5,
+            surface_count=3, colorscale='Blackbody'
+        ))
+        fig.update_layout(title="SINGULARITY OFFLINE", paper_bgcolor='black')
+        return fig
+    
+    else:
+        # --- REAL PHYSICS: 3D Quantum Force Field ---
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res); z = np.linspace(-3, 3, res)
+        X, Y, Z = np.meshgrid(x, y, z)
+        
+        # Probe Electron Strategy: Fix others, scan one
+        r = solver.sampler.walkers.detach()
+        r_single = r[0:1].clone() # [1, N_e, 3]
+        
+        N_pts = res**3
+        r_scan = r_single.repeat(N_pts, 1, 1) # [N_pts, N_e, 3]
+        
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_scan[:, 0, 2] = torch.from_numpy(Z.flatten()).float().to(solver.device)
+        r_scan.requires_grad = True
+        
+        # Forward pass with gradient tracking
+        log_psi, sign_psi = solver.log_psi_func(r_scan)
+        
+        # 1. Quantum Force Calculation: F = 2 * ∇(log|ψ|)
+        grad_log = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=False)[0]
+        force = 2.0 * grad_log[:, 0, :].detach().cpu().numpy() # [N_pts, 3]
+        
+        # 2. Probability Density
+        rho = torch.exp(2 * log_psi).detach().cpu().numpy() # [N_pts]
+        rho = (rho - rho.min()) / (rho.max() - rho.min() + 1e-12)
+        
+        # --- VISUALIZATION ---
+        fig = go.Figure()
+        
+        # A. Neural Phase Isosurface
+        fig.add_trace(go.Isosurface(
+            x=X.flatten(), y=Y.flatten(), z=Z.flatten(),
+            value=rho.flatten(),
+            isomin=0.2, isomax=0.8,
+            surface_count=4,
+            colorscale='Deep', 
+            opacity=0.3,
+            caps=dict(x_show=False, y_show=False, z_show=False),
+            showlegend=False
+        ))
+        
+        # B. Quantum Force Field (Cones)
+        mask = (rho.flatten() > 0.05) & (rho.flatten() < 0.6) 
+        indices = np.where(mask)[0]
+        if len(indices) > 300:
+            indices = np.random.choice(indices, 300, replace=False)
+            
+        fig.add_trace(go.Cone(
+            x=X.flatten()[indices], y=Y.flatten()[indices], z=Z.flatten()[indices],
+            u=force[indices, 0], v=force[indices, 1], w=force[indices, 2],
+            colorscale='Rainbow', 
+            sizemode='scaled', 
+            sizeref=2.5,
+            showscale=False,
+            opacity=0.9
+        ))
+
+        # C. The Singularity Core
+        core_idx = np.where(rho.flatten() > 0.95)[0]
+        if len(core_idx) > 0:
+             if len(core_idx) > 200: core_idx = np.random.choice(core_idx, 200, replace=False)
+             fig.add_trace(go.Scatter3d(
+                 x=X.flatten()[core_idx], y=Y.flatten()[core_idx], z=Z.flatten()[core_idx],
+                 mode='markers',
+                 marker=dict(size=4, color='#ffffff', symbol='diamond', opacity=0.9),
+                 name='Core'
+             ))
+
+        fig.update_layout(
+            title="🔱 THE OMEGA SINGULARITY (Quantum Force Topology)",
+            title_font=dict(size=20, color="#00ffcc", family="monospace"),
+            scene=dict(
+                xaxis=dict(visible=False), yaxis=dict(visible=False), zaxis=dict(visible=False),
+                bgcolor='black',
+                camera=dict(eye=dict(x=1.3, y=1.3, z=1.3))
+            ),
+            paper_bgcolor='black',
+            margin=dict(l=0, r=0, b=0, t=40),
+            height=600
+        )
+        return fig
+
+
 
 
 # ============================================================
@@ -1854,7 +1965,7 @@ def render_nqs_plot(fig, help_text):
 
 def render_nqs_plotly(fig, help_text):
     """Utility to render a plotly figure with a robust hover tooltip."""
-    st.plotly_chart(fig, width="stretch")
+    st.plotly_chart(fig, use_container_width=True)
     tooltip_html = f'''
     <div style="text-align: center; margin-top: -15px; margin-bottom: 25px; font-family: monospace;">
         <details style="color: #00ff88; cursor: pointer;">
@@ -4193,7 +4304,6 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
-
 
 
 
