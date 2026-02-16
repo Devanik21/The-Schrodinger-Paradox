@@ -1258,9 +1258,9 @@ def plot_kinetic_storm(_solver=None, seed=42):
         # Evaluate Hutchinson Laplacian at first electron
         repeat_cnt = (res*res // r.shape[0]) + 1
         r_test = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
-        r_test.requires_grad = True
         r_test[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_test[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_test.requires_grad = True
         
         E_L, E_kin, _ = compute_local_energy(solver.log_psi_func, r_test, solver.system, solver.device, n_hutchinson=1)
         storm = E_kin.reshape(res, res).detach().cpu().numpy()
@@ -1479,9 +1479,9 @@ def plot_quantum_classical_clash(_solver=None, seed=42):
         r = solver.sampler.walkers.detach()
         repeat_cnt = (res*res // r.shape[0]) + 1
         r_test = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
-        r_test.requires_grad = True
         r_test[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_test[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_test.requires_grad = True
         
         V = compute_potential_energy(r_test, solver.system, solver.device)
         E_L, _, _ = compute_local_energy(solver.log_psi_func, r_test, solver.system, solver.device)
