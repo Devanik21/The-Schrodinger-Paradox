@@ -194,8 +194,8 @@ if mode == "3D Atomic VMC":
     # Hyperparameters
     # Hyperparameters
     with st.sidebar.expander("🧬 Architecture", expanded=is_big_atom):
-        d_model = st.slider("Feature Dimension", 16, 256, 128, 16, help="Higher = More detailed spectral features in Latent Blooms.")
-        n_layers = st.slider("Backflow Layers", 1, 12, 10, help="Higher = More complex vorticity and topological twists.")
+        d_model = st.slider("Feature Dimension", 16, 512, 256, 16, help="Higher = More detailed spectral features in Latent Blooms.")
+        n_layers = st.slider("Backflow Layers", 1, 12, 8, help="Higher = More complex vorticity and topological twists.")
         n_dets = st.slider("Slater Determinants", 1, 64, 32, help="Higher = More complex nodal surfaces (Fermi Voids).")
         n_walkers = st.slider("MCMC Walkers", 128, 8192, 1024, 128, help="Higher = Smoother density clouds / 0% graininess.")
         lr = st.select_slider("Learning Rate", [1e-4, 3e-4, 1e-3, 3e-3, 1e-2], value=1e-3)
@@ -4028,8 +4028,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.stop()
 
     st.title("🎨 Latent Dream Memory 🖼️")
-    st.markdown("""
-    **Multimodal Latent Neural Quantum State (NQS) Topology:** This atlas synthesizes **68** high-dimensional latent projections from the neural wavefunction manifold ($ \Psi_{\theta} $). By mapping the internal activations of the SSM-Backflow architecture across 20 tiers of physical complexity—ranging from first-principles Coulombic potentials to relativistic Breit-Pauli fine-structure splitting—we visualize the 'Singularity' of agent-based memory convergence. These fields utilize stochastic stigmergy and geometric deep learning to discover autonomous conservation laws and topological phase invariants ($ \gamma_n $). RGB encoding represents the convergence of danger/resource/sacred latent sectors as agents navigate the multi-electron Hamiltonian landscape.
+    st.markdown(""" **Multimodal Latent Neural Quantum State (NQS) Topology:** This atlas synthesizes **68** high-dimensional latent projections from the neural wavefunction manifold ($ \Psi_{\theta} $). By mapping the internal activations of the SSM-Backflow architecture across 20 tiers of physical complexity—ranging from first-principles Coulombic potentials to relativistic Breit-Pauli fine-structure splitting—we visualize the 'Singularity' of agent-based memory convergence. These fields utilize stochastic stigmergy and geometric deep learning to discover autonomous conservation laws and topological phase invariants ($ \gamma_n $). RGB encoding represents the convergence of danger/resource/sacred latent sectors as agents navigate the multi-electron Hamiltonian landscape.
     """)
     
     # --- Lazy Load Gate ---
@@ -4424,6 +4423,7 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
+
 
 
 
