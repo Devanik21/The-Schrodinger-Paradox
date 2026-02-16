@@ -3479,9 +3479,9 @@ elif page == "🎨 Latent Dream Memory 🖼️":
                 st.session_state.latent_dream_loaded = False
                 st.rerun()
     
-        st.subheader("🏺 Global Memory Grids (8 Replicate Clusters)")
+        st.subheader("🏺 Global Memory Grids (12 Replicate Clusters)")
         
-        # Unique technical descriptions for the 8 stigmergy clusters
+        # Unique technical descriptions for the 12 stigmergy clusters
         stig_desc = [
             "Cluster 1: Focuses on Monte Carlo sampling efficiency and the stochastic exploration of the NQS manifold.",
             "Cluster 2: Details the Gradient descent trajectory of agents as they converge towards global electronic minima.",
@@ -3490,16 +3490,19 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             "Cluster 5: Highlights Emergent patterns from collective agent interaction within the Coulomb potential.",
             "Cluster 6: Visualizes the Potential surface mapping obtained through distributed path-integration.",
             "Cluster 7: Details the Agent-based path integration and its role in smoothing the wavefunction manifold.",
-            "Cluster 8: Focuses on Pheromone-weighted energy gradients where agents mark successful lower-energy configurations."
+            "Cluster 8: Focuses on Pheromone-weighted energy gradients where agents mark successful lower-energy configurations.",
+            "Cluster 9: Tracks the Kinetic Energy density flux, highlighting regions of high electronic momentum transfer.",
+            "Cluster 10: Visualizes the Exchange-Correlation hole, mapping the exclusion zones enforced by Pauli statistics.",
+            "Cluster 11: Maps the nodal surface topology where the wavefunction changes sign, acting as a barrier to diffusion.",
+            "Cluster 12: Represents the long-range Jastrow factor correlations capturing van der Waals forces in the latent space."
         ]
         
-        # 2x4 Grid layout
-        row1 = st.columns(2)
-        row2 = st.columns(2)
-        row3 = st.columns(2)
-        row4 = st.columns(2)
+        # 3x4 Grid layout (12 items)
+        row1 = st.columns(4)
+        row2 = st.columns(4)
+        row3 = st.columns(4)
         
-        all_cols = row1 + row2 + row3 + row4
+        all_cols = row1 + row2 + row3
         
         # Render loops with solver access for dynamic evolution
         solver_ref = st.session_state.solver_3d if st.session_state.solver_3d else None
