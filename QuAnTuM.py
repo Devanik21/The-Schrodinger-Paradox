@@ -192,6 +192,7 @@ if mode == "3D Atomic VMC":
         st.sidebar.warning(f"⚠️ {system_key} is a large system. Lowering walker/determinant counts to prevent OOM.")
     
     # Hyperparameters
+    # Hyperparameters
     with st.sidebar.expander("🧬 Architecture", expanded=is_big_atom):
         d_model = st.slider("Feature Dimension", 16, 256, 128, 16, help="Higher = More detailed spectral features in Latent Blooms.")
         n_layers = st.slider("Backflow Layers", 1, 12, 10, help="Higher = More complex vorticity and topological twists.")
@@ -200,6 +201,7 @@ if mode == "3D Atomic VMC":
         lr = st.select_slider("Learning Rate", [1e-4, 3e-4, 1e-3, 3e-3, 1e-2], value=1e-3)
         use_ssm = st.checkbox("Enable SSM-Backflow (Level 11)", value=True,
                               help="Uses State Space Models (Mamba) for O(N log N) electron correlation.")
+    
     
     # Level 8: Optimizer selection
     with st.sidebar.expander("🧮 Optimizer (Level 8)", expanded=False):
@@ -353,13 +355,12 @@ def plot_stigmergy_map(_solver=None, seed=None):
             grid = (grid + np.roll(grid, 1, axis=0)*0.15 + np.roll(grid, 1, axis=1)*0.15) / 1.3
             
     # --- NOBEL-TIER RENDERING ---
-    v_min, v_max = np.percentile(grid, [0.5, 99.5])
-    grid = (grid - v_min) / (v_max - v_min + 1e-8)
-    grid = np.clip(grid * 1.8, 0, 1)
-    grid = grid ** 1.1 # Contrast boost
+    grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
+    grid = np.clip(grid * 1.6, 0, 1)
+    grid = grid ** 1.2 # Contrast boost
     
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(grid, origin='upper', interpolation='bicubic') # Smooth texture
+    ax.imshow(grid, origin='upper', interpolation='nearest') # 'Crunchy' texture
     
     # Lab HUD Labels
     ax.text(0.5, -1.8, f"Live Projection Cluster (Seed:{seed})", color='#00ff88', 
@@ -388,7 +389,7 @@ def plot_latent_bloom(_solver=None, seed=None, step=0, bloom_id=0):
     Level 20: 'The Stigmergy Painting' — Real-time High-Dimensional Projection.
     Projects the 3N-dimensional wavefunction into a random 2D latent slice.
     """
-    res = 128
+    res = 80
     
     if solver is None or not hasattr(solver, 'sampler') or solver.sampler.walkers is None:
         # --- OFFLINE PROCEDURAL FALLBACK (Artistic Mode) ---
@@ -466,12 +467,11 @@ def plot_latent_bloom(_solver=None, seed=None, step=0, bloom_id=0):
         for c in range(3):
             grid[:,:,c] = gaussian_filter(grid[:,:,c], sigma=sigma)
             
-        # Normalize and enhance contrast with robustness to Step 50 noise
-        v_min, v_max = np.percentile(grid, [1.0, 99.0])
-        grid = (grid - v_min) / (v_max - v_min + 1e-8)
-        grid = grid * 2.8 # Higher Gain
+        # Normalize and enhance contrast
+        grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
+        grid = grid * 2.5 # Gain
         grid = np.clip(grid, 0, 1)
-        grid = grid ** 0.7 # Darker gamma for nebula glow
+        grid = grid ** 0.8 # Gamma
     
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, origin='upper', interpolation='bicubic')
@@ -581,14 +581,10 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
             grid[:,:,ch] = channel_grid / c_max
             
         # 3. Master Polish: Composite the RGB channels
-        # Boost contrast significantly using percentiles for Step 50 stability
-        for ch in range(3):
-            v_low, v_high = np.percentile(grid[:,:,ch], [0.5, 99.5])
-            grid[:,:,ch] = (grid[:,:,ch] - v_low) / (v_high - v_low + 1e-8)
-            
-        grid = grid * 3.5 
+        # Boost contrast significantly to look like "Nebula"
+        grid = grid * 3.0 
         grid = np.clip(grid, 0, 1)
-        grid = grid ** 0.6 # Gamma for intense glowing core
+        grid = grid ** 0.7 # Gamma for glowing core
         
         # Add slight white noise for "Quantum Grain"
         noise = rng.randn(res, res, 3) * 0.05
@@ -816,7 +812,7 @@ def plot_correlation_mesh(_solver=None, seed=42):
 def plot_berry_flow(_solver=None, seed=42):
     solver = _solver
     """Visualizes the complex phase and topological Berry flow."""
-    res = 80
+    res = 40
     
     if solver is None:
         step = solver.step_count if solver else 0
@@ -876,7 +872,7 @@ def plot_berry_flow(_solver=None, seed=42):
 def plot_entanglement_mesh(_solver=None, seed=42):
     solver = _solver
     """Visualizes the Rényi-2 Entanglement Entropy connectivity (Level 18)."""
-    res = 120
+    res = 60
     if solver is None:
         step = solver.step_count if solver else 0
         if seed is not None: np.random.seed(seed + 404 + (step // 15))
@@ -911,8 +907,7 @@ def plot_entanglement_mesh(_solver=None, seed=42):
             
         from scipy.ndimage import gaussian_filter
         grid = gaussian_filter(grid, sigma=1.0)
-        v_min, v_max = np.percentile(grid, [2, 98])
-        norm_Z = np.clip((grid - v_min) / (v_max - v_min + 1e-8), 0, 1)
+        norm_Z = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
         grid = plt.cm.inferno(norm_Z)[:,:,:3]
 
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -965,8 +960,7 @@ def plot_noether_landscape(_solver=None, seed=42):
         
         # Invert: We want Conservation (Low Variance) to be Bright
         Z = -variance_map
-        v_min, v_max = np.percentile(Z, [5, 95])
-        norm_Z = np.clip((Z - v_min) / (v_max - v_min + 1e-8), 0, 1)
+        norm_Z = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
         grid = plt.cm.plasma(norm_Z)[:,:,:3]
 
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -982,7 +976,7 @@ def plot_noether_landscape(_solver=None, seed=42):
 def plot_orthonormal_pressure(_solver=None, seed=42):
     solver = _solver
     """Visualizes the orthogonality constraints for Excited States (Level 13)."""
-    res = 128
+    res = 60
     if solver is None:
         step = solver.step_count if solver else 0
         if seed is not None: np.random.seed(seed + 606 + (step // 5))
@@ -1015,12 +1009,11 @@ def plot_orthonormal_pressure(_solver=None, seed=42):
         from scipy.ndimage import gaussian_filter
         H = gaussian_filter(H, sigma=1.5)
         
-        v_min, v_max = np.percentile(H, [1, 99])
-        norm_Z = np.clip((H - v_min) / (v_max - v_min + 1e-8), 0, 1)
+        norm_Z = (H - H.min()) / (H.max() - H.min() + 1e-8)
         grid = plt.cm.cool(norm_Z)[:,:,:3]
 
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3], origin='lower')
+    ax.imshow(grid, interpolation='antialiased', extent=[-3, 3, -3, 3], origin='lower')
     ax.set_title("ORTHOGONAL PRESSURE FIELD", color='#00aaff', fontsize=10, family='monospace')
     ax.set_xticks([]); ax.set_yticks([])
     ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
@@ -1033,7 +1026,7 @@ def plot_orthonormal_pressure(_solver=None, seed=42):
 def plot_quantum_stress_tensor(_solver=None, seed=42):
     solver = _solver
     """Visualizes the local stress tensor field within the electron cloud."""
-    res = 128
+    res = 60
     if solver is None:
         grid = np.random.rand(res, res, 3) * 0.05
     else:
@@ -1049,8 +1042,7 @@ def plot_quantum_stress_tensor(_solver=None, seed=42):
         log_psi, _ = solver.log_psi_func(r_scan)
         grad = torch.autograd.grad(log_psi.sum(), r_scan)[0]
         stress = (grad**2).sum(dim=2).reshape(res, res).detach().cpu().numpy()
-        v_min, v_max = np.percentile(stress, [2, 98])
-        grid = plt.cm.bone(np.clip((stress - v_min) / (v_max - v_min + 1e-8), 0, 1))[:,:,:3]
+        grid = plt.cm.bone((stress - stress.min()) / (stress.max() - stress.min() + 1e-8))[:,:,:3]
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
     ax.set_title("QUANTUM STRESS TENSOR", color='#88aaff', fontsize=10, family='monospace')
@@ -1062,7 +1054,7 @@ def plot_quantum_stress_tensor(_solver=None, seed=42):
 def plot_electron_current_flux(_solver=None, seed=42):
     solver = _solver
     """Visualizes the imaginary part of the local energy as a current flux."""
-    res = 80
+    res = 40
     x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
     X, Y = np.meshgrid(x, y)
     if solver is None:
@@ -1102,10 +1094,9 @@ def plot_hartree_exchange_density(_solver=None, seed=42):
         pot = np.zeros((res, res))
         for p in pos:
             pot += 1.0 / (np.sqrt((X-p[0])**2 + (Y-p[1])**2) + 0.1)
-        v_min, v_max = np.percentile(pot, [1, 99])
-        grid = plt.cm.hot(np.clip((pot - v_min) / (v_max - v_min + 1e-8), 0, 1))[:,:,:3]
+        grid = plt.cm.hot(np.clip(pot/10.0, 0, 1))[:,:,:3]
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3], origin='lower')
+    ax.imshow(grid, interpolation='gaussian', extent=[-3, 3, -3, 3], origin='lower')
     ax.set_title("HARTREE-EXCHANGE DENSITY", color='#ff6600', fontsize=10, family='monospace')
     ax.axis('off'); ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
     plt.tight_layout()
@@ -1131,9 +1122,7 @@ def plot_localized_kinetic_gradient(_solver=None, seed=42):
         grad = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=True)[0]
         # Magnitude of the gradient of the kinetic energy
         K = 0.5 * (grad**2).sum(dim=2)
-        v_min, v_max = np.percentile(K, [2, 98])
-        K_np = K.reshape(res, res).detach().cpu().numpy()
-        grid = plt.cm.YlGnBu(np.clip((K_np - v_min.item()) / (v_max.item() - v_min.item() + 1e-8), 0, 1))[:,:,:3]
+        grid = plt.cm.YlGnBu((K.reshape(res, res).detach().cpu().numpy() / 5.0).clip(0, 1))[:,:,:3]
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3], origin='lower')
     ax.set_title("LOCAL KINETIC GRADIENT", color='#aaffff', fontsize=10, family='monospace')
@@ -1161,8 +1150,7 @@ def plot_exchange_correlation_hole(_solver=None, seed=42):
             log_psi, _ = solver.log_psi_func(r_scan)
             rho = torch.exp(2 * log_psi).reshape(res, res).cpu().numpy()
         hole = np.max(rho) - rho
-        v_min, v_max = np.percentile(hole, [1, 99])
-        grid = plt.cm.gist_earth(np.clip((hole - v_min) / (v_max - v_min + 1e-8), 0, 1))[:,:,:3]
+        grid = plt.cm.gist_earth((hole / (np.max(hole) + 1e-8)))[:,:,:3]
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
     ax.set_title("EXCHANGE-CORRELATION HOLE", color='#aaffaa', fontsize=10, family='monospace')
@@ -1191,8 +1179,7 @@ def plot_feynman_hellmann_force(_solver=None, seed=42):
         V = compute_potential_energy(r_scan, solver.system, solver.device)
         grad_V = torch.autograd.grad(V.sum(), r_scan)[0]
         force = torch.norm(grad_V, dim=2).reshape(res, res).detach().cpu().numpy()
-        v_min, v_max = np.percentile(force, [5, 95])
-        grid = plt.cm.plasma( np.clip((force - v_min) / (v_max - v_min + 1e-8), 0, 1) )[:,:,:3]
+        grid = plt.cm.plasma( (force - force.min()) / (force.max() - force.min() + 1e-8) )[:,:,:3]
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
     ax.set_title("FEYNMAN-HELLMANN FORCE", color='#ff44ff', fontsize=10, family='monospace')
@@ -1223,8 +1210,7 @@ def plot_jastrow_curvature(_solver=None, seed=42):
                                             solver.wavefunction.charges, solver.wavefunction.spin_mask_parallel)
             grad = torch.autograd.grad(j.sum(), r_scan, create_graph=True)[0]
             laplacian = torch.norm(grad, dim=2).reshape(res, res).detach().cpu().numpy()
-        v_min, v_max = np.percentile(laplacian, [2, 98])
-        grid = plt.cm.ocean( np.clip((laplacian - v_min) / (v_max - v_min + 1e-8), 0, 1) )[:,:,:3]
+        grid = plt.cm.ocean( (laplacian - laplacian.min()) / (laplacian.max() - laplacian.min() + 1e-8) )[:,:,:3]
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
     ax.set_title("JASTROW CORRELATION CURVATURE", color='#aaffff', fontsize=10, family='monospace')
@@ -1319,8 +1305,7 @@ def plot_local_energy_variance(_solver=None, seed=42):
         
         # Variance is high where kinetic density is rough
         local_var = np.abs(kin_density - np.mean(kin_density))
-        v_min, v_max = np.percentile(local_var, [2, 98])
-        grid = plt.cm.magma(np.clip((local_var - v_min) / (v_max - v_min + 1e-8), 0, 1))[:,:,:3]
+        grid = plt.cm.magma( (local_var - local_var.min()) / (local_var.max() - local_var.min() + 1e-8) )[:,:,:3]
         
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
@@ -1487,9 +1472,8 @@ def plot_mcmc_walker_field(_solver=None, seed=42):
         density = H.T
         
         from scipy.ndimage import gaussian_filter
-        density = gaussian_filter(density, sigma=1.5)
-        v_min, v_max = np.percentile(density, [1, 99])
-        norm_D = np.clip((density - v_min) / (v_max - v_min + 1e-8), 0, 1)
+        density = gaussian_filter(density, sigma=1.2)
+        norm_D = (density - density.min()) / (density.max() - density.min() + 1e-8)
         grid = plt.cm.YlOrBr(norm_D)[:,:,:3]
 
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -1539,7 +1523,7 @@ def plot_autograd_hessian(_solver=None, seed=42):
             
         L = laplacian.detach().cpu().numpy().reshape(res, res)
         L = np.clip(L, np.percentile(L, 5), np.percentile(L, 95)) # outlier rejection
-        L_norm = np.clip((L - np.percentile(L, 2)) / (np.percentile(L, 98) - np.percentile(L, 2) + 1e-8), 0, 1)
+        L_norm = (L - L.min()) / (L.max() - L.min() + 1e-8)
         grid = plt.cm.twilight_shifted(L_norm)[:,:,:3]
 
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -1582,8 +1566,7 @@ def plot_logdomain_landscape(_solver=None, seed=42):
         lp = log_psi.cpu().numpy().reshape(res, res)
         # Sign estimate (using phase if complex, or just parity)
         # For FermiNet, log_psi is often real, so we visualize the density and nodal regions
-        v_min, v_max = np.percentile(lp, [5, 95])
-        Z_norm = np.clip((lp - v_min) / (v_max - v_min + 1e-8), 0, 1)
+        Z_norm = (lp - lp.min()) / (lp.max() - lp.min() + 1e-8)
         
         # Dual color channel for nodal crossing (antisymmetry)
         grid = np.zeros((res, res, 3))
@@ -1645,8 +1628,7 @@ def plot_cusp_enforcement(_solver=None, seed=42):
         # Cusp regions are where KE is extremely high/variable
         Z = np.abs(K_L)
         Z = np.clip(Z, 0, np.percentile(Z, 98))
-        v_min, v_max = np.percentile(Z, [2, 98])
-        norm_Z = np.clip((Z - v_min) / (v_max - v_min + 1e-8), 0, 1)
+        norm_Z = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
         grid = plt.cm.hot(norm_Z)[:,:,:3]
 
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -1730,8 +1712,7 @@ def plot_pes_landscape(_solver=None, seed=42):
             V = V.reshape(res, res).cpu().numpy()
             
         V = np.clip(V, -10, 10)
-        v_min, v_max = np.percentile(V, [1, 99])
-        norm_Z = np.clip((V - v_min) / (v_max - v_min + 1e-8), 0, 1)
+        norm_Z = (V - V.min()) / (V.max() - V.min() + 1e-8)
         grid = plt.cm.terrain(norm_Z)[:,:,:3]
 
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -1782,8 +1763,7 @@ def plot_ssm_dataflow(_solver=None, seed=42):
             
         from scipy.ndimage import gaussian_filter
         g_mag = gaussian_filter(g_mag, sigma=1.0)
-        v_min, v_max = np.percentile(g_mag, [2, 98])
-        norm_G = np.clip((g_mag - v_min) / (v_max - v_min + 1e-8), 0, 1)
+        norm_G = (g_mag - g_mag.min()) / (g_mag.max() - g_mag.min() + 1e-8)
         grid = plt.cm.cool(norm_G)[:,:,:3]
 
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -1829,8 +1809,7 @@ def plot_flow_acceptance(_solver=None, seed=42):
                 log_psi, _ = solver.log_psi_func(r_grid)
                 Z = log_psi.reshape(res, res).cpu().numpy()
                 
-        v_min, v_max = np.percentile(Z, [1, 99])
-        norm_Z = np.clip((Z - v_min) / (v_max - v_min + 1e-8), 0, 1)
+        norm_Z = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
         grid = plt.cm.ocean(1 - norm_Z)[:,:,:3]
 
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -1873,8 +1852,7 @@ def plot_tdvmc_dynamics(_solver=None, seed=42):
         density = torch.exp(2*log_psi).reshape(res, res).detach().cpu().numpy()
         phase_proxy = np.arctan2(grad_np[:,:,1], grad_np[:,:,0])
         
-        v_min, v_max = np.percentile(density, [1, 99])
-        norm_D = np.clip((density - v_min) / (v_max - v_min + 1e-8), 0, 1)
+        norm_D = (density - density.min()) / (density.max() - density.min() + 1e-8)
         grid = plt.cm.hsv((phase_proxy + np.pi) / (2*np.pi))[:,:,:3]
         grid = grid * norm_D[:,:,None] * 0.9 + 0.1 # Brightness modulation by density
         grid = np.clip(grid, 0, 1)
@@ -2063,7 +2041,7 @@ def plot_ssm_memory_horizon(_solver=None, seed=42):
 
     grid = np.clip(grid * 1.5, 0, 1)
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(grid, origin='lower', interpolation='bicubic', aspect='auto')
+    ax.imshow(grid, origin='lower', interpolation='nearest', aspect='auto')
     ax.set_title("LIVE SSM MEMORY HORIZON (A_log)", color='#00ff88', fontsize=10, family='monospace')
     ax.axis('off')
     ax.set_facecolor('black'); fig.patch.set_facecolor('black')
@@ -2077,7 +2055,7 @@ def plot_flow_jacobian(_solver=None, seed=42):
     Encyclopedia Entry #2: Hyper-Dimensional Jacobian Warp (Flow Topology).
     """
     # --- REAL DATA: Normalizing Flow Jacobian (Explicit or Implicit) ---
-    res = 120
+    res = 80
     x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
     X, Y = np.meshgrid(x, y)
     
@@ -2113,8 +2091,8 @@ def plot_flow_jacobian(_solver=None, seed=42):
     # High values (bright) = Highly warped / correlated regions
     
     # Center around mean to show positive/negative compression
-    v_low, v_high = np.percentile(warp, [1, 99])
-    norm_warp = np.clip((warp - v_low) / (v_high - v_low + 1e-8), 0, 1)
+    norm_warp = (warp - np.percentile(warp, 5)) / (np.percentile(warp, 95) - np.percentile(warp, 5) + 1e-8)
+    norm_warp = np.clip(norm_warp, 0, 1)
     
     # Magma for heat/energy of the deformation
     grid = plt.cm.magma(norm_warp)[:,:,:3]
@@ -2138,7 +2116,7 @@ def plot_swap_density(_solver=None, seed=42):
         res = 64; grid = np.random.rand(res, res, 3) * 0.05
     else:
         # --- REAL DATA: Local Wavefunction Overlap ---
-        res = 100
+        res = 80
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
         
@@ -2155,12 +2133,11 @@ def plot_swap_density(_solver=None, seed=42):
             log_psi, _ = solver.wavefunction(r_test)
             density = torch.exp(2 * log_psi).reshape(res, res).cpu().numpy()
             
-        v_min, v_max = np.percentile(density, [2, 98])
-        norm_density = np.clip((density - v_min) / (v_max - v_min + 1e-8), 0, 1)
+        norm_density = (density - density.min()) / (density.max() - density.min() + 1e-8)
         grid = plt.cm.GnBu(norm_density)[:,:,:3]
         
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3])
+    ax.imshow(grid, interpolation='gaussian', extent=[-3, 3, -3, 3])
     ax.set_title("LIVE ENTANGLEMENT SWAP GHOSTS", color='#00ffff', fontsize=10, family='monospace')
     ax.axis('off')
     ax.set_facecolor('#00050a'); fig.patch.set_facecolor('#00050a')
@@ -2222,7 +2199,7 @@ def plot_natural_gradient_flow(_solver=None, seed=42):
         ax.imshow(grid)
     else:
         # --- REAL DATA: Fisher Information Metric Diagonal ---
-        res = 50
+        res = 40
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
         
@@ -2253,7 +2230,7 @@ def plot_natural_gradient_flow(_solver=None, seed=42):
         V_rot = U * np.sin(twist) + V * np.cos(twist)
         
         fig, ax = plt.subplots(figsize=(6, 6))
-        ax.streamplot(X, Y, U_rot, V_rot, color='#d4af37', linewidth=1.0, density=1.5)
+        ax.streamplot(X, Y, U_rot, V_rot, color='#d4af37', linewidth=0.8, density=1.2)
         
     ax.set_title("LIVE NATURAL GRADIENT GEODESICS", color='#d4af37', fontsize=10, family='monospace')
     ax.axis('off'); ax.set_facecolor('#050505'); fig.patch.set_facecolor('#050505')
@@ -2273,7 +2250,7 @@ def plot_kinetic_storm(_solver=None, seed=42):
         ax.imshow(grid)
     else:
         # --- REAL DATA: Local Kinetic Energy ---
-        res = 120
+        res = 80
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
         
@@ -2291,7 +2268,7 @@ def plot_kinetic_storm(_solver=None, seed=42):
             
         norm_storm = np.clip((storm - np.percentile(storm, 5)) / (np.percentile(storm, 95) - np.percentile(storm, 5) + 1e-8), 0, 1)
         grid = plt.cm.inferno(norm_storm)[:,:,:3]
-        ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3])
+        ax.imshow(grid, interpolation='nearest', extent=[-3, 3, -3, 3])
         
     ax.set_title("LIVE KINETIC ENERGY STORM", color='#ffaa00', fontsize=10, family='monospace')
     ax.axis('off'); ax.set_facecolor('black'); fig.patch.set_facecolor('black')
@@ -2312,7 +2289,7 @@ def plot_neural_time_dilation(_solver=None, seed=42):
         ax.imshow(grid)
     else:
         # --- REAL DATA: Jastrow Field Complexity ---
-        res = 120
+        res = 80
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
         
@@ -2350,7 +2327,7 @@ def plot_backflow_displacement(_solver=None, seed=42):
         ax.imshow(grid)
     else:
         # --- REAL DATA: Backflow Displacement Field ---
-        res = 40
+        res = 30
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
         
@@ -2432,7 +2409,7 @@ def plot_ewald_ghosts(_solver=None, seed=42):
         res = 64; grid = np.random.rand(res, res, 3) * 0.05
     else:
         # --- REAL DATA: Multi-Image Potential Map ---
-        res = 128
+        res = 100
         x = np.linspace(-6, 6, res); y = np.linspace(-6, 6, res)
         X, Y = np.meshgrid(x, y)
         
@@ -2506,7 +2483,7 @@ def plot_quantum_classical_clash(_solver=None, seed=42):
         res = 64; grid = np.random.rand(res, res, 3) * 0.05
     else:
         # --- REAL DATA: Local Energy vs Potential ---
-        res = 120
+        res = 80
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
         
@@ -4447,6 +4424,9 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
+
+
+
 
 
 
