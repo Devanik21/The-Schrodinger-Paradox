@@ -987,6 +987,23 @@ def render_nqs_plot(fig, help_text):
     st.markdown(tooltip_html, unsafe_allow_html=True)
     plt.close(fig)
 
+def render_nqs_plotly(fig, help_text):
+    """Utility to render a plotly figure with a robust hover tooltip."""
+    st.plotly_chart(fig, use_container_width=True)
+    tooltip_html = f'''
+    <div style="text-align: center; margin-top: -15px; margin-bottom: 25px; font-family: monospace;">
+        <details style="color: #00ff88; cursor: pointer;">
+            <summary style="list-style: none; font-size: 1.2em; filter: drop-shadow(0 0 5px #00ff88); opacity: 0.8; outline: none;">
+                ℹ️
+            </summary>
+            <div style="font-size: 0.85em; color: #e0e0e0; padding: 10px; line-height: 1.4; border: 1px solid rgba(0, 255, 136, 0.2); border-radius: 8px; margin-top: 10px; background: rgba(0,0,0,0.2);">
+                {help_text}
+            </div>
+        </details>
+    </div>
+    '''
+    st.markdown(tooltip_html, unsafe_allow_html=True)
+
 
 
 # ============================================================
@@ -1028,7 +1045,7 @@ def plot_ssm_memory_horizon(solver=None, seed=42):
             
     grid = np.clip(grid, 0, 1)
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(grid, origin='lower', interpolation='bicubic', extent=[-4, 0.5, 0, 1])
+    ax.imshow(grid, origin='lower', interpolation='bicubic', extent=[-4, 0.5, 0, 1], aspect='auto')
     ax.set_title("EVENT HORIZON OF MEMORY (SSM)", color='#555555', fontsize=10, family='monospace')
     ax.axis('off')
     ax.set_facecolor('black'); fig.patch.set_facecolor('black')
@@ -2959,11 +2976,11 @@ elif page == "🎨 Latent Dream Memory 🖼️":
              st.caption("Entanglement Swap Ghosts")
         with col_t5:
              fig_spin = plot_spinor_phase_3d_L24(solver=solver_ref, seed=master_seed)
-             st.plotly_chart(fig_spin, use_container_width=True) # Plotly 3D
+             render_nqs_plotly(fig_spin, help_text="Topological Phase Singularities. 3D visualization of the phase vortices emerging in the relativistic spinor field (Level 17).")
              st.caption("Spinor Phase Singularities (3D)")
         with col_t6:
              fig_void = plot_fermi_void_3d_L24(solver=solver_ref, seed=master_seed)
-             st.plotly_chart(fig_void, use_container_width=True) # Plotly 3D
+             render_nqs_plotly(fig_void, help_text="The Fermi Void. Interactive 3D visualization of the nodal surfaces where the multi-electron wavefunction vanishes due to antisymmetry.")
              st.caption("The Fermi Void (Nodal Surfaces)")
 
         # --- Row 3: Optimization & Forces ---
@@ -2991,7 +3008,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
              st.caption("Ewald Lattice Echoes")
         with col_t11:
              fig_traj = plot_optimization_trajectory(solver=solver_ref, seed=master_seed)
-             st.plotly_chart(fig_traj, use_container_width=True) # Plotly 3D
+             render_nqs_plotly(fig_traj, help_text="The Mind Trace. A 3D path through parameter space showing how the AI model converged to the physical ground state over training epochs.")
              st.caption("The Optimization Trajectory (3D)")
         with col_t12:
              fig_clash = plot_quantum_classical_clash(solver=solver_ref, seed=master_seed)
