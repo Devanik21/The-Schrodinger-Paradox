@@ -1157,6 +1157,65 @@ def plot_exchange_correlation_hole(_solver=None, seed=42):
     return fig
 
 
+@st.cache_data
+def plot_feynman_hellmann_force(_solver=None, seed=42):
+    solver = _solver
+    """Visualizes the Feynman-Hellmann force field acting on the electronic cloud."""
+    res = 60
+    if solver is None:
+        grid = np.random.rand(res, res, 3) * 0.05
+    else:
+        # --- REAL DATA: Potential Gradient ---
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        r = solver.sampler.walkers.detach()
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_scan.requires_grad = True
+        V = compute_potential_energy(r_scan, solver.system, solver.device)
+        grad_V = torch.autograd.grad(V.sum(), r_scan)[0]
+        force = torch.norm(grad_V, dim=2).reshape(res, res).detach().cpu().numpy()
+        grid = plt.cm.plasma( (force - force.min()) / (force.max() - force.min() + 1e-8) )[:,:,:3]
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
+    ax.set_title("FEYNMAN-HELLMANN FORCE", color='#ff44ff', fontsize=10, family='monospace')
+    ax.axis('off'); ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    plt.tight_layout()
+    return fig
+
+
+@st.cache_data
+def plot_jastrow_curvature(_solver=None, seed=42):
+    solver = _solver
+    """Visualizes the pure many-body correlation curvature from the Jastrow factor."""
+    res = 60
+    if solver is None:
+        grid = np.random.rand(res, res, 3) * 0.05
+    else:
+        # --- REAL DATA: Jastrow Laplacian ---
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        r = solver.sampler.walkers.detach()
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_scan.requires_grad = True
+        with torch.enable_grad():
+            j = solver.wavefunction.jastrow(r_scan, solver.wavefunction.r_nuclei, 
+                                            solver.wavefunction.charges, solver.wavefunction.spin_mask_parallel)
+            grad = torch.autograd.grad(j.sum(), r_scan, create_graph=True)[0]
+            laplacian = torch.norm(grad, dim=2).reshape(res, res).detach().cpu().numpy()
+        grid = plt.cm.ocean( (laplacian - laplacian.min()) / (laplacian.max() - laplacian.min() + 1e-8) )[:,:,:3]
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
+    ax.set_title("JASTROW CORRELATION CURVATURE", color='#aaffff', fontsize=10, family='monospace')
+    ax.axis('off'); ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    plt.tight_layout()
+    return fig
+
 
 # ============================================================
 # 🎨 NEW LEVEL-SPECIFIC LATENT DREAM VISUALIZATIONS
@@ -3709,7 +3768,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
     st.title("🎨 Latent Dream Memory 🖼️")
     st.markdown("""
     **Multimodal Latent Neural Quantum State (NQS) Topology:**  
-    This atlas synthesizes 38 high-dimensional latent projections from the neural wavefunction manifold ($ \Psi_{\theta} $). By mapping the internal activations of the SSM-Backflow architecture across 20 tiers of physical complexity—ranging from first-principles Coulombic potentials to relativistic Breit-Pauli fine-structure splitting—we visualize the 'Singularity' of agent-based memory convergence. These fields utilize stochastic stigmergy and geometric deep learning to discover autonomous conservation laws and topological phase invariants ($ \gamma_n $). RGB encoding represents the convergence of danger/resource/sacred latent sectors as agents navigate the multi-electron Hamiltonian landscape.
+    This atlas synthesizes 60 high-dimensional latent projections from the neural wavefunction manifold ($ \Psi_{\theta} $). By mapping the internal activations of the SSM-Backflow architecture across 20 tiers of physical complexity—ranging from first-principles Coulombic potentials to relativistic Breit-Pauli fine-structure splitting—we visualize the 'Singularity' of agent-based memory convergence. These fields utilize stochastic stigmergy and geometric deep learning to discover autonomous conservation laws and topological phase invariants ($ \gamma_n $). RGB encoding represents the convergence of danger/resource/sacred latent sectors as agents navigate the multi-electron Hamiltonian landscape.
     """)
     
     # --- Lazy Load Gate ---
@@ -3934,6 +3993,16 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             fig_o = plot_hartree_exchange_density(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_o, help_text="Hartree-Exchange Density. A map of the mean-field interaction between electrons, isolating the classically-derived potential components.")
             st.caption("Mean-Field Interaction Field.")
+        
+        col_p7, col_p8, col_px3 = st.columns(3)
+        with col_p7:
+            fig_fh = plot_feynman_hellmann_force(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_fh, help_text="Feynman-Hellmann Force Field. Maps the gradient of the potential energy with respect to electronic coordinates, indicating where nuclei exert the strongest tug.")
+            st.caption("Electrostatic Force Topology.")
+        with col_p8:
+            fig_jw = plot_jastrow_curvature(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_jw, help_text="Jastrow Curvature. Isolates the purely many-body correlation component of the wavefunction, revealing the complex dance of electrons avoiding one another.")
+            st.caption("Pure Many-Body Curvature.")
 
         st.divider()
         st.subheader("🔱 The Omega Singularity — Grand Unified Trace")
