@@ -3365,29 +3365,29 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         
         col_p1, col_p2, col_p3 = st.columns(3)
         with col_p1:
-            fig_f = plot_fisher_manifold(solver=solver_ref, seed=master_seed)
+            fig_f = plot_fisher_manifold(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_f, help_text="A mapping of the Hilbert space metric. Curvature peaks indicate regions of high sensitivity in the parameter space where Stochastic Reconfiguration (SR) exerts maximum optimization force to preserve the natural gradient.")
             st.caption("Curvature / optimization intensity.")
         with col_p2:
-            fig_c = plot_correlation_mesh(solver=solver_ref, seed=master_seed)
+            fig_c = plot_correlation_mesh(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_c, help_text="Depicts the electron-electron exclusion topology. The mesh density represents the many-body Jastrow factor's success in enforcing the Coulomb hole, preventing electronic overlap as required by the Pauli principle.")
             st.caption("Exclusion & correlation zones.")
         with col_p3:
-            fig_b = plot_berry_flow(solver=solver_ref, seed=master_seed)
+            fig_b = plot_berry_flow(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_b, help_text="Visualizes the non-abelian gauge field and complex phase streamlines of the wavefunction. This vector field tracks the geometric phase (γ) acquired during adiabatic cycles in the parameter manifold.")
             st.caption("Topological phase streamlines.")
         
         col_p4, col_p5, col_p6 = st.columns(3)
         with col_p4:
-            fig_e = plot_entanglement_mesh(solver=solver_ref, seed=master_seed)
+            fig_e = plot_entanglement_mesh(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_e, help_text="A topological view of the Rényi-2 entanglement entropy connectivity. High-intensity filaments signify bipartite correlations discovered via the SWAP-trick, representing pure quantum non-locality.")
             st.caption("Quantum Entanglement (S₂) topology.")
         with col_p5:
-            fig_n = plot_noether_landscape(solver=solver_ref, seed=master_seed)
+            fig_n = plot_noether_landscape(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_n, help_text="Maps the commutation density |[H, Q]|. Valleys in this landscape represent latent coordinates where the neural operator Q commutes with the Hamiltonian, signaling the discovery of novel conservation laws.")
             st.caption("Conservation discovery potential.")
         with col_p6:
-            fig_o = plot_orthonormal_pressure(solver=solver_ref, seed=master_seed)
+            fig_o = plot_orthonormal_pressure(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_o, help_text="Visualizes the penalty-functional pressure for excited states. The fields show how Gram-Schmidt or orthogonality constraints 'push' secondary energy levels away from the ground state to prevent collapsed solutions.")
             st.caption("Excited-state orthogonality field.")
 
