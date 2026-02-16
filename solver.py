@@ -624,12 +624,13 @@ class VMCSolver:
         # Dynamic Divergence Threshold (User requested ~ -6/-7 for H)
         # Scale based on system size to remain valid for Ne/Molecules
         if self.system.exact_energy is not None:
-            # Ultra-Balanced Hardening: trigger H at -0.56 (1.12x)
-            multiplier = 1.12 if self.system.n_electrons == 1 else 1.3
+            # Precision Rejection: User requested < 2 mHa error (0.002 Ha)
+            # H (-0.5) triggers at -0.502 (1.004x)
+            multiplier = 1.004 if self.system.n_electrons == 1 else 1.1
             div_thresh = self.system.exact_energy * multiplier
             
-            # Variance Trap: Var < 5.0 for H, < 50.0 for others
-            var_thresh = 5.0 if self.system.n_electrons == 1 else 50.0
+            # Variance Trap: Var < 0.01 to ensure < 2 mHa precision jitter
+            var_thresh = 0.01 if self.system.n_electrons == 1 else 5.0
         else:
             # Fallback heuristic: Tighter than before
             div_thresh = -1.2 * (self.system.n_electrons ** 2)
