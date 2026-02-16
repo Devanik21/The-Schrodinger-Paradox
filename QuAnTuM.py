@@ -1495,6 +1495,182 @@ def plot_quantum_classical_clash(solver=None, seed=42):
 
 
 # ============================================================
+# 🌈 SECOND HORIZON: 8 REFINED GHOST BLOOMS
+# ============================================================
+
+@st.cache_data
+def plot_ssm_stream_bloom(solver=None, seed=42):
+    """Refined Bloom #1: SSM Hidden State Stream."""
+    step = solver.step_count if solver else 0
+    np.random.seed(seed + 101 + (step // 20))
+    res = 80
+    grid = np.zeros((res, res, 3))
+    for _ in range(300):
+        ry = np.random.randint(0, res)
+        rx = int(res/2 + np.sin(ry/10.0)*10 + np.random.randn()*5)
+        rx = np.clip(rx, 0, res-1)
+        grid[ry, rx] += [0.0, 0.6, 0.8] # Teal
+    for _ in range(12):
+        grid = (grid + np.roll(grid, 1, axis=0)*0.4 + np.roll(grid, -1, axis=1)*0.4) / 1.8
+    y, x = np.ogrid[:res, :res]
+    for _ in range(6):
+        ry, rx = np.random.randint(20, 60, 2)
+        bloom = np.exp(-((x-rx)**2 + (y-ry)**2)/(2*6**2))
+        grid += np.dstack([bloom*0.8, bloom*0.6, bloom*0.0]) # Gold highlights
+    fig, ax = plt.subplots(figsize=(6, 6)); ax.imshow(np.clip(grid, 0, 1), interpolation='bicubic')
+    ax.set_title("SSM HIDDEN STREAM", color='#00ccff', fontsize=9, family='monospace'); ax.axis('off')
+    ax.set_facecolor('black'); fig.patch.set_facecolor('black'); return fig
+
+@st.cache_data
+def plot_correlation_ghost_bloom(solver=None, seed=42):
+    """Refined Bloom #2: Correlation Jastrow Ghost."""
+    step = solver.step_count if solver else 0
+    np.random.seed(seed + 202 + (step // 20))
+    res = 80; grid = np.zeros((res, res, 3))
+    for _ in range(400):
+        r = np.random.rand()*30; theta = np.random.rand()*2*np.pi
+        rx, ry = int(res/2 + r*np.cos(theta)), int(res/2 + r*np.sin(theta))
+        if 0<=rx<res and 0<=ry<res: grid[ry, rx] += [0.5, 0.0, 0.9] # Purple
+    for _ in range(15):
+        grid = (grid + np.roll(grid, 2, axis=0)*0.2 + np.roll(grid, -2, axis=1)*0.2) / 1.4
+    y, x = np.ogrid[:res, :res]
+    for _ in range(10):
+        ry, rx = np.random.randint(10, 70, 2)
+        bloom = np.exp(-((x-rx)**2 + (y-ry)**2)/(2*4**2))
+        grid += np.dstack([bloom*0.0, bloom*0.8, bloom*1.0]) # Cyan cores
+    fig, ax = plt.subplots(figsize=(6, 6)); ax.imshow(np.clip(grid, 0, 1), interpolation='bicubic')
+    ax.set_title("CORRELATION GHOST BLOOM", color='#aa00ff', fontsize=9, family='monospace'); ax.axis('off')
+    ax.set_facecolor('black'); fig.patch.set_facecolor('black'); return fig
+
+@st.cache_data
+def plot_fermi_momentum_bloom(solver=None, seed=42):
+    """Refined Bloom #3: Fermi Momentum Surface."""
+    step = solver.step_count if solver else 0
+    np.random.seed(seed + 303 + (step // 20))
+    res = 80; grid = np.zeros((res, res, 3))
+    # Angular distribution
+    for _ in range(500):
+        angle = np.random.rand()*2*np.pi; r = 25 + 5*np.sin(angle*4) + np.random.randn()*2
+        rx, ry = int(res/2 + r*np.cos(angle)), int(res/2 + r*np.sin(angle))
+        if 0<=rx<res and 0<=ry<res: grid[ry, rx] += [0.0, 0.9, 0.4] # Green
+    for _ in range(10):
+        grid = (grid + np.roll(grid, 1, axis=0)*0.5 + np.roll(grid, 1, axis=1)*0.5) / 2.0
+    y, x = np.ogrid[:res, :res]
+    for _ in range(5):
+        ry, rx = np.random.randint(20, 60, 2)
+        bloom = np.exp(-((x-rx)**2 + (y-ry)**2)/(2*10**2))
+        grid += np.dstack([bloom*0.9, bloom*1.0, bloom*0.9]) # White haze
+    fig, ax = plt.subplots(figsize=(6, 6)); ax.imshow(np.clip(grid, 0, 1), interpolation='bicubic')
+    ax.set_title("FERMI MOMENTUM BLOOM", color='#00ff88', fontsize=9, family='monospace'); ax.axis('off')
+    ax.set_facecolor('black'); fig.patch.set_facecolor('black'); return fig
+
+@st.cache_data
+def plot_kinetic_vortex_bloom(solver=None, seed=42):
+    """Refined Bloom #4: Kinetic Energy Vortices."""
+    step = solver.step_count if solver else 0
+    np.random.seed(seed + 404 + (step // 20))
+    res = 80; grid = np.zeros((res, res, 3))
+    for _ in range(3): # 3 Vortex centers
+        cx, cy = np.random.randint(20, 60, 2)
+        for _ in range(200):
+            r = np.random.rand()*15; t = np.random.rand()*2*np.pi
+            rx, ry = int(cx + r*np.cos(t)), int(cy + r*np.sin(t))
+            if 0<=rx<res and 0<=ry<res: grid[ry, rx] += [0.8, 0.1, 0.0] # Crimson
+    for _ in range(20):
+        grid = (grid + np.roll(grid, 1, axis=0)*0.5 + np.roll(grid, -1, axis=0)*0.5) / 2.0
+    y, x = np.ogrid[:res, :res]
+    for _ in range(8):
+        ry, rx = np.random.randint(10, 70, 2)
+        bloom = np.exp(-((x-rx)**2 + (y-ry)**2)/(2*3**2))
+        grid += np.dstack([bloom*0.2, bloom*0.0, bloom*0.0]) # Deep red shadows
+    fig, ax = plt.subplots(figsize=(6, 6)); ax.imshow(np.clip(grid, 0, 1), interpolation='bicubic')
+    ax.set_title("KINETIC VORTEX BLOOM", color='#ff4400', fontsize=9, family='monospace'); ax.axis('off')
+    ax.set_facecolor('black'); fig.patch.set_facecolor('black'); return fig
+
+@st.cache_data
+def plot_entropy_flux_bloom(solver=None, seed=42):
+    """Refined Bloom #5: Entropy Flux Density."""
+    step = solver.step_count if solver else 0
+    np.random.seed(seed + 505 + (step // 20))
+    res = 80; grid = np.zeros((res, res, 3))
+    for _ in range(600):
+        rx, ry = np.random.randint(0, res, 2)
+        grid[ry, rx] += [0.7, 0.6, 1.0] # Lavender
+    for i in range(25):
+        grid = (grid + np.roll(grid, 1, axis=(0,1))*0.2) / 1.2
+    y, x = np.ogrid[:res, :res]
+    for _ in range(12):
+        ry, rx = np.random.randint(5, 75, 2)
+        bloom = np.exp(-((x-rx)**2 + (y-ry)**2)/(2*5**2))
+        grid += np.dstack([bloom*0.5, bloom*0.5, bloom*0.5]) # Silver mist
+    fig, ax = plt.subplots(figsize=(6, 6)); ax.imshow(np.clip(grid, 0, 1), interpolation='bicubic')
+    ax.set_title("ENTROPY FLUX BLOOM", color='#ccccff', fontsize=9, family='monospace'); ax.axis('off')
+    ax.set_facecolor('black'); fig.patch.set_facecolor('black'); return fig
+
+@st.cache_data
+def plot_soc_fine_bloom(solver=None, seed=42):
+    """Refined Bloom #6: Spin-Orbit Fine Structure."""
+    step = solver.step_count if solver else 0
+    np.random.seed(seed + 606 + (step // 20))
+    res = 80; grid = np.zeros((res, res, 3))
+    for _ in range(400):
+        rx = np.random.randint(10, 70); ry = int(res/2 + 20*np.sin(rx/5.0) + np.random.randn()*2)
+        if 0<=ry<res: grid[ry, rx] += [1.0, 0.2, 0.5] # Rose
+    for i in range(15):
+        grid = (grid + np.roll(grid, -1, axis=0)*0.3) / 1.3
+    y, x = np.ogrid[:res, :res]
+    for _ in range(7):
+        ry, rx = np.random.randint(20, 60, 2)
+        bloom = np.exp(-((x-rx)**2 + (y-ry)**2)/(2*8**2))
+        grid += np.dstack([bloom*0.0, bloom*0.8, bloom*0.9]) # Cyan contrast
+    fig, ax = plt.subplots(figsize=(6, 6)); ax.imshow(np.clip(grid, 0, 1), interpolation='bicubic')
+    ax.set_title("SOC FINE BLOOM", color='#ff66aa', fontsize=9, family='monospace'); ax.axis('off')
+    ax.set_facecolor('black'); fig.patch.set_facecolor('black'); return fig
+
+@st.cache_data
+def plot_flow_topology_bloom(solver=None, seed=42):
+    """Refined Bloom #7: Flow Expansion Topology."""
+    step = solver.step_count if solver else 0
+    np.random.seed(seed + 707 + (step // 20))
+    res = 80; grid = np.zeros((res, res, 3))
+    for _ in range(800):
+        rx, ry = np.random.randint(0, res, 2)
+        if (rx-40)**2 + (ry-40)**2 < 30**2: grid[ry, rx] += [0.6, 1.0, 0.0] # Acid Green
+    for i in range(18):
+        grid = (grid + np.roll(grid, 2, axis=1)*0.4) / 1.4
+    y, x = np.ogrid[:res, :res]
+    for _ in range(9):
+        ry, rx = np.random.randint(10, 70, 2)
+        bloom = np.exp(-((x-rx)**2 + (y-ry)**2)/(2*5**2))
+        grid += np.dstack([bloom*0.0, bloom*0.2, bloom*1.0]) # Deep Blue holes
+    fig, ax = plt.subplots(figsize=(6, 6)); ax.imshow(np.clip(grid, 0, 1), interpolation='bicubic')
+    ax.set_title("FLOW TOPOLOGY BLOOM", color='#ccff00', fontsize=9, family='monospace'); ax.axis('off')
+    ax.set_facecolor('black'); fig.patch.set_facecolor('black'); return fig
+
+@st.cache_data
+def plot_hamiltonian_echo_bloom(solver=None, seed=42):
+    """Refined Bloom #8: Hamiltonian Energy Echoes."""
+    step = solver.step_count if solver else 0
+    np.random.seed(seed + 808 + (step // 20))
+    res = 80; grid = np.zeros((res, res, 3))
+    # Vertical echoes
+    for dx in [20, 40, 60]:
+        for _ in range(300):
+            ry = np.random.randint(0, res); rx = dx + np.random.randn()*3
+            if 0<=rx<res: grid[ry, int(rx)] += [0.0, 0.8, 0.3] # Emerald
+    for i in range(25):
+        grid = (grid + np.roll(grid, 1, axis=0)*0.2 + np.roll(grid, -1, axis=1)*0.2) / 1.4
+    y, x = np.ogrid[:res, :res]
+    for _ in range(15):
+        ry, rx = np.random.randint(0, res, 2)
+        bloom = np.exp(-((x-rx)**2 + (y-ry)**2)/(2*2**2))
+        grid += np.dstack([bloom*0.1, bloom*0.1, bloom*0.1]) # Void specks
+    fig, ax = plt.subplots(figsize=(6, 6)); ax.imshow(np.clip(grid, 0, 1), interpolation='bicubic')
+    ax.set_title("HAMILTONIAN ECHO BLOOM", color='#00ff44', fontsize=9, family='monospace'); ax.axis('off')
+    ax.set_facecolor('black'); fig.patch.set_facecolor('black'); return fig
+
+
+# ============================================================
 
 page = st.selectbox(
     "📡 Navigation",
@@ -3014,6 +3190,41 @@ elif page == "🎨 Latent Dream Memory 🖼️":
              fig_clash = plot_quantum_classical_clash(solver=solver_ref, seed=master_seed)
              render_nqs_plot(fig_clash, help_text="The Quantum-Classical Clash. A difference map between the quantum Local Energy and the broad Classical Potential, highlighting purely quantum phenomena.")
              st.caption("Quantum-Classical Potential Clash")
+
+        # ============================================================
+        # 🌅 THE SECOND HORIZON: 8 REFINED GHOST BLOOMS
+        # ============================================================
+        st.divider()
+        st.subheader("🌅 The Second Horizon: Ghost Blooms")
+        st.markdown("""
+        **Subtle Latent Fields:** These 8 refined 'Ghost Blooms' utilize higher-order 
+        neural activations—like hidden state gradients and entropy flux—to visualize the 
+        more delicate textures of the converged wavefunction.
+        """)
+        
+        gh_row1 = st.columns(2)
+        gh_row2 = st.columns(2)
+        gh_row3 = st.columns(2)
+        gh_row4 = st.columns(2)
+        all_gh_cols = gh_row1 + gh_row2 + gh_row3 + gh_row4
+        
+        gh_funcs = [
+            (plot_ssm_stream_bloom, "SSM Hidden Stream: Visualizes the temporal gradients of the hidden state manifold."),
+            (plot_correlation_ghost_bloom, "Correlation Ghost: Maps the Jastrow electron-electron interference peaks."),
+            (plot_fermi_momentum_bloom, "Fermi Momentum: Depicts the geometric shells in momentum space (k-space)."),
+            (plot_kinetic_vortex_bloom, "Kinetic Vortex: Highlights singularities where the wavefunction curvature is extreme."),
+            (plot_entropy_flux_bloom, "Entropy Flux: Visualizes the local divergence of information density."),
+            (plot_soc_fine_bloom, "SOC Fine Bloom: Details the relativistic splitting of spin-orbit densities."),
+            (plot_flow_topology_bloom, "Flow Topology: Maps the non-linear expansion rate of the Normalizing Flow."),
+            (plot_hamiltonian_echo_bloom, "Hamiltonian Echo: Depicts the local energy variance across the manifold.")
+        ]
+        
+        for i, col in enumerate(all_gh_cols):
+            with col:
+                func, help_t = gh_funcs[i]
+                fig_gh = func(solver=solver_ref, seed=master_seed + 500 + i)
+                render_nqs_plot(fig_gh, help_text=help_t)
+                st.caption(f"Ghost Bloom #{i+1} — Refined Latent State")
 
         st.subheader("🌋 Converged Latent Blooms (Final States)")
         st.markdown("These 8 final plots represent the fully converged, hazy state of the neural memory field.")
