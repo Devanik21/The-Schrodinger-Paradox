@@ -649,9 +649,9 @@ class VMCSolver:
                  self.equilibrate(n_steps=50) 
                  
                  # 3. NOBEL TIER FIX: Re-calculate physics on the NEW valid state.
-                 # We do not report the 'crashed' energy (-6.0) because it was invalid/discarded.
-                 # We report the energy of the *actual* system state we are proceeding with.
-                 with torch.no_grad():
+                 # We do not report the 'crashed' energy because it was invalid.
+                 # Local energy calculation REQUIRES grad for the kinetic Laplacian.
+                 with torch.enable_grad():
                      new_E_L, _, _ = compute_local_energy(
                          self.log_psi_func, self.sampler.walkers, 
                          self.system, self.device, n_hutchinson=1
@@ -682,7 +682,8 @@ class VMCSolver:
                     self.sampler.initialize_around_nuclei(self.system)
                     self.equilibrate(n_steps=50)
                     # Re-calculate energy on valid state
-                    with torch.no_grad():
+                    # Local energy calculation REQUIRES grad for the kinetic Laplacian.
+                    with torch.enable_grad():
                         new_E_L, _, _ = compute_local_energy(
                             self.log_psi_func, self.sampler.walkers, 
                             self.system, self.device, n_hutchinson=1
