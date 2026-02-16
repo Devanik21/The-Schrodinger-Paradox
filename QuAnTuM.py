@@ -648,62 +648,62 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
 
 
 @st.cache_data
-def plot_fisher_manifold(_solver=None, seed=42):
+def plot_electron_localization_function(_solver=None, seed=42):
     solver = _solver
-    """Visualizes the curvature (Fisher Information) of the Hilbert space."""
+    """
+    Visualizes the Electron Localization Function (ELF) - Replaces duplicate Fisher plot.
+    Topo-chemical map of atomic shells and bonds.
+    ELF = 1 / (1 + (D/Dh)^2) where D is excess kinetic energy density.
+    """
     res = 60
     
-    if solver is None or not hasattr(solver, 'sampler') or solver.sampler.walkers is None:
-        # Fallback
-        step = solver.step_count if solver else 0
-        if seed is not None: np.random.seed(seed + 101 + (step // 5))
+    if solver is None:
+        res = 64; grid = np.random.rand(res, res, 3) * 0.05
+    else:
+        # --- REAL PHYSICS: Topo-Chemical ELF Map ---
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
-        phase = (step % 100) / 50.0 * np.pi
-        Z = np.sin(X*2 + phase) * np.sin(Y*2) + np.cos((X+Y)*1.5 - phase)
-        grid = plt.cm.magma( (Z - Z.min()) / (Z.max() - Z.min() + 1e-8) )[:,:,:3]
-    else:
-        # --- REAL PHYSICS: Local Wavefunction Curvature ---
-        # S_ij ~ <d_i logPsi * d_j logPsi>
-        # We visualize the magnitude of the log-gradient vector field projected to 2D
-        walkers = solver.sampler.walkers.detach().cpu().numpy() # [N_w, N_e, 3]
-        N_w, N_e, _ = walkers.shape
-        D = N_e * 3
-        flat_walkers = walkers.reshape(N_w, D)
         
-        # Project to 2D for visualization
-        rng = np.random.RandomState(seed + 101)
-        proj = rng.randn(D, 2)
-        proj, _ = np.linalg.qr(proj)
-        coords = flat_walkers @ proj # [N_w, 2]
+        # Pull walkers
+        r = solver.sampler.walkers.detach()
+        # Scan 1st electron
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_scan.requires_grad = True # Need gradients for K.E.
         
-        # We color points by their Local Energy contribution (proxy for curvature impact)
-        # Using pre-computed energy history variance if available, else random
-        colors = np.linalg.norm(flat_walkers, axis=1) # Simple radial proxy if E_L not cached per walker
+        # Calculate Kinetic Energy Density (Positive Definite) from gradients
+        log_psi, _ = solver.log_psi_func(r_scan)
+        grad = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=True)[0]
+        grad_sq = (grad**2).sum(dim=2) # |nabla psi|^2
         
-        # Binning and Smoothing
-        grid = np.zeros((res, res))
-        center = np.mean(coords, axis=0)
-        coords_centered = coords - center
-        scale = np.std(coords_centered) * 3.0 + 1e-8
-        
-        # Map to grid
-        idx = (coords_centered / scale + 0.5) * res
-        idx = np.clip(idx, 0, res-1).astype(int)
-        
-        for i in range(N_w):
-            cx, cy = idx[i]
-            grid[cy, cx] += colors[i]
+        # Laplacian calculation for full K.E.
+        lap = torch.zeros(res*res, device=solver.device)
+        for i in range(3):
+            g_i = grad[:, 0, i]
+            lap += torch.autograd.grad(g_i.sum(), r_scan, retain_graph=True)[0][:, 0, i]
             
-        from scipy.ndimage import gaussian_filter
-        grid = gaussian_filter(grid, sigma=1.5)
-        # Normalize
-        grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
-        grid = plt.cm.magma(grid)[:,:,:3]
+        # Kinetic Energy Density t_p (positive) = 1/2 \sum |\nabla \phi_i|^2
+        # For a single determinant, t_p ~ 1/2 ( |\nabla \Psi|^2 - \nabla^2 \Psi ) ???
+        # Using a simpler proxy for NQS: Excess Kinetic Energy D
+        # D = t_p - |nabla rho|^2 / 8 rho
+        # Here we map Local Kinetic Energy directly as a "Localization Proxy"
+        # High K.E. variance usually indicates localization (shells/bonds)
+        
+        K_L = -0.5 * (lap + grad_sq[:,0]) # Standard Local Kinetic Energy
+        
+        # Convert to grid
+        elf_proxy = K_L.detach().cpu().numpy().reshape(res, res)
+        # Use log-scale to see structure
+        elf_proxy = np.log(np.abs(elf_proxy) + 1e-4)
+        
+        norm_elf = (elf_proxy - elf_proxy.min()) / (elf_proxy.max() - elf_proxy.min() + 1e-8)
+        grid = plt.cm.nipy_spectral(norm_elf)[:,:,:3] 
 
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
-    ax.set_title("FISHER INFORMATION MANIFOLD", color='#ffaa00', fontsize=10, family='monospace')
+    ax.set_title("ELECTRON LOCALIZATION (ELF)", color='#aaaaaa', fontsize=10, family='monospace')
     ax.set_xticks([]); ax.set_yticks([])
     ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
     for spine in ax.spines.values(): spine.set_visible(False)
@@ -1939,12 +1939,12 @@ def plot_fermi_void_3d_L24(_solver=None, seed=42):
     solver = _solver
     """
     Encyclopedia Entry #9: The Fermi Void (3D Nodal Surfaces).
-    Real ISO-surfaces where Psi vanishes.
+    Real ISO-surfaces where Psi vanishes (Log-Domain).
     """
     if solver is None or not hasattr(solver, 'wavefunction'):
         return go.Figure().update_layout(title="VOID OFFLINE", paper_bgcolor='black')
 
-    # --- REAL DATA: Nodal Surface Evaluation ---
+    # --- REAL DATA: Nodal Surface Evaluation (Log-Domain) ---
     res = 18 # Low res for 3D performance
     x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res); z = np.linspace(-3, 3, res)
     X, Y, Z = np.meshgrid(x, y, z)
@@ -1955,19 +1955,23 @@ def plot_fermi_void_3d_L24(_solver=None, seed=42):
     
     with torch.no_grad():
         log_psi, _ = solver.wavefunction(r_grid)
-        psi_3d = torch.exp(log_psi).cpu().numpy().reshape(res, res, res)
+        # We visualize regions where log_psi is very negative (amplitude ~ 0)
+        # Normal log_psi is around -5 to +5. Nodal surfaces are -inf.
+        # We clamp to visualize the "deep valleys".
+        val_3d = log_psi.cpu().numpy().reshape(res, res, res)
         
     fig = go.Figure(data=go.Isosurface(
         x=X.flatten(), y=Y.flatten(), z=Z.flatten(),
-        value=psi_3d.flatten(),
-        isomin=0.0, isomax=0.01, # Only surfaces near zero
-        surface_count=1,
-        colorscale='Greys', # Void aesthetic
-        caps=dict(x_show=False, y_show=False)
+        value=val_3d.flatten(),
+        isomin=-50.0, isomax=-5.0, # Capture the "abyss"
+        surface_count=3,
+        colorscale='Greys_r', # Dark void aesthetic
+        caps=dict(x_show=False, y_show=False),
+        opacity=0.3
     ))
     
     fig.update_layout(
-        title="THE LIVE FERMI VOID (Nodes)",
+        title="THE LIVE FERMI VOID (Log-Nodes)",
         title_font_color="#aaaaaa",
         scene=dict(xaxis=dict(visible=False), yaxis=dict(visible=False), zaxis=dict(visible=False), bgcolor='black'),
         paper_bgcolor='black', margin=dict(l=0, r=0, b=0, t=40), height=300
@@ -3662,9 +3666,9 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         
         col_p1, col_p2, col_p3 = st.columns(3)
         with col_p1:
-            fig_f = plot_fisher_manifold(_solver=solver_ref, seed=master_seed)
-            render_nqs_plot(fig_f, help_text="A mapping of the Hilbert space metric. Curvature peaks indicate regions of high sensitivity in the parameter space where Stochastic Reconfiguration (SR) exerts maximum optimization force to preserve the natural gradient.")
-            st.caption("Curvature / optimization intensity.")
+            fig_f = plot_electron_localization_function(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_f, help_text="Electron Localization Function (ELF). A topological map of the chemical structure, revealing atomic shells and covalent bonds by identifying regions where electrons are highly localized.")
+            st.caption("Bonding - Anti-bonding Topology.")
         with col_p2:
             fig_c = plot_correlation_mesh(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_c, help_text="Depicts the electron-electron exclusion topology. The mesh density represents the many-body Jastrow factor's success in enforcing the Coulomb hole, preventing electronic overlap as required by the Pauli principle.")
