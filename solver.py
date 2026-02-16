@@ -642,15 +642,29 @@ class VMCSolver:
             # Pre-SR Check: If energy is already divergent, refuse to update AND RESET WALKERS
             # Surgical Fix: Dynamic threshold to catch -171 (H) but allow -129 (Ne)
             if energy < div_thresh:
-                 # === SURGICAL FIX: WALKER RESET ===
-                 # Break the livelock by force-respawning the electrons
+                 # === SURGICAL FIX: WALKER RESET & RESAMPLE ===
+                 # 1. Reset Walkers (Discard divergent state)
                  self.sampler.initialize_around_nuclei(self.system)
+                 # 2. Re-equilibrate (Burn-in)
                  self.equilibrate(n_steps=50) 
-                 # ==================================
+                 
+                 # 3. NOBEL TIER FIX: Re-calculate physics on the NEW valid state.
+                 # We do not report the 'crashed' energy (-6.0) because it was invalid/discarded.
+                 # We report the energy of the *actual* system state we are proceeding with.
+                 with torch.no_grad():
+                     new_E_L, _, _ = compute_local_energy(
+                         self.log_psi_func, self.sampler.walkers, 
+                         self.system, self.device, n_hutchinson=1
+                     )
+                     # Apply same clipping for consistency
+                     new_E_L = torch.clamp(new_E_L, min=-5000.0, max=5000.0)
+                     new_energy = new_E_L.mean().item()
+                     new_variance = new_E_L.var().item()
+                 
                  return {
-                    'energy': energy, 'variance': variance,
+                    'energy': new_energy, 'variance': new_variance, 
                     'acceptance_rate': acc_rate, 'grad_norm': 0.0,
-                    'warning': f"Divergence ({energy:.1f} < {div_thresh:.1f}): Resetting Walkers"
+                    'warning': f"Divergence detected (was {energy:.2f}). System reset & resampled."
                 }
 
             grad_norm = self.sr_optimizer.compute_update(
@@ -661,17 +675,26 @@ class VMCSolver:
             E_centered = (E_L_clipped - E_L_clipped.mean()).detach()
             loss = torch.mean(2.0 * E_centered * log_psi)
             
-            if torch.isnan(loss) or torch.isinf(loss) or energy < div_thresh:
                 self.optimizer.zero_grad()
-                # === SURGICAL FIX: WALKER RESET ===
                 if energy < div_thresh:
+                    # === SURGICAL FIX: WALKER RESET & RESAMPLE ===
                     self.sampler.initialize_around_nuclei(self.system)
                     self.equilibrate(n_steps=50)
+                    # Re-calculate energy on valid state
+                    with torch.no_grad():
+                        new_E_L, _, _ = compute_local_energy(
+                            self.log_psi_func, self.sampler.walkers, 
+                            self.system, self.device, n_hutchinson=1
+                        )
+                        new_E_L = torch.clamp(new_E_L, min=-5000.0, max=5000.0)
+                        energy = new_E_L.mean().item() # Update local var
+                        variance = new_E_L.var().item()
                 # ==================================
+                
                 return {
                     'energy': energy, 'variance': variance,
                     'acceptance_rate': acc_rate, 'grad_norm': 0.0,
-                    'warning': f"Divergence/NaN ({energy:.1f}): Resetting Walkers"
+                    'warning': f"Divergence detected. System reset & resampled."
                 }
             
             loss.backward()
