@@ -290,67 +290,94 @@ if st.session_state.show_plots:
 # ============================================================
 def plot_stigmergy_map(solver=None, seed=None):
     """
-    Level 20: The Final Meme Grid — Evolving with training steps.
+    Level 20: Real-Time Global Knowledge Map (Meme Grid).
+    Now tied to live MCMC walker positions.
+    Projects the 3N-dimensional electron manifold into 2D visual clusters.
     """
-    if seed is not None:
-        # Mix master seed with step count for 'slow evolution'
-        step = solver.step_count if solver else 0
-        np.random.seed(seed + (step // 5)) 
-    
-    size = 40
-    # 1. Base 'Latent Dust' (Very faint multi-colored noise)
-    grid = np.random.rand(size, size, 3) * 0.01
-    
-    # 2. High-Density Seeding (250+ points for that 'packed' look)
-    num_seeds = 400
-    for _ in range(num_seeds):
-        ry, rx = np.random.randint(0, size, 2)
-        # Random vibrant color with maxed saturation
-        color = np.random.rand(3)
-        color = color / (np.max(color) + 1e-8)
+    if solver is None or not hasattr(solver, 'sampler') or solver.sampler.walkers is None:
+        # Fallback Mock (Nobel-Tier Aesthetics)
+        if seed is not None: np.random.seed(seed)
+        size = 40
+        grid = np.random.rand(size, size, 3) * 0.05
+        for _ in range(200):
+            ry, rx = np.random.randint(0, size, 2)
+            color = np.random.rand(3)
+            grid[ry, rx] = np.clip(grid[ry, rx] + color * 0.5, 0, 1)
+    else:
+        # --- EXCLUSIVE REAL-TIME DATA EXTRACTION ---
+        walkers = solver.sampler.walkers.detach().cpu().numpy() # [N_w, N_e, 3]
+        N_w, N_e, _ = walkers.shape
         
-        strength = 0.3 + np.random.rand() * 0.7
-        grid[ry, rx] = np.clip(grid[ry, rx] + color * strength, 0, 1)
-
-    # 3. Micro-Diffusion (Creates 2x2 and 3x3 mini-clusters)
-    for _ in range(2):
-        # Very localized smear
-        grid = (grid + np.roll(grid, 1, axis=1) * 0.2 + np.roll(grid, 1, axis=0) * 0.2) / 1
-
-    # 4. 'Stigmergy Streaks' (Horizontal artifacts from the original)
-    for _ in range(15):
-        ry = np.random.randint(0, size)
-        rx = np.random.randint(0, size-5)
-        color = np.random.rand(3) * 0.5
-        grid[ry, rx:rx+np.random.randint(2, 6)] += color
-
-    # 5. Final Aesthetic Polish
+        # 1. Latent Projection (3N -> 2D)
+        # Create a unique projection matrix for this cluster perspective
+        state = np.random.RandomState(seed)
+        proj = state.randn(N_e * 3, 2)
+        proj /= (np.linalg.norm(proj, axis=0) + 1e-8)
+        
+        # Flatten walkers to [N_w, 3*N_e] and project to 2D [N_w, 2]
+        w_flat = walkers.reshape(N_w, -1)
+        pos_2d = w_flat @ proj
+        
+        # 2. Binning into Grid
+        size = 40
+        center = np.mean(pos_2d, axis=0)
+        pos_centered = pos_2d - center
+        std = np.std(pos_centered) + 1e-8
+        
+        # Map to grid coordinates [0, size-1]
+        # Use 3-sigma clip for the 'zoom' level
+        grid_coords = (pos_centered / (3.0 * std)) * (size / 2) + (size / 2)
+        grid_coords = np.clip(grid_coords, 0, size - 1).astype(int)
+        
+        # 3. Probabilistic Rendering
+        grid = np.zeros((size, size, 3))
+        
+        # Background: Gating Noise (proportional to solver variance)
+        var = solver.variance_history[-1] if solver.variance_history else 1.0
+        haze = min(0.08, 0.01 * var)
+        grid += state.rand(size, size, 3) * haze
+        
+        # Plot electrons (Probability density accumulation)
+        tint = state.rand(3) # Unique color for this cluster
+        tint = tint / (np.max(tint) + 1e-8)
+        
+        for i in range(N_w):
+            y, x = grid_coords[i]
+            # Accumulate color at walker position
+            grid[y, x] = np.clip(grid[y, x] + tint * 0.45, 0, 1)
+            
+        # 4. Neural Diffusion (Stigmergy Smear)
+        # More smeared when variance is high (unconverged)
+        diff_steps = max(1, min(3, int(var * 2)))
+        for _ in range(diff_steps):
+            grid = (grid + np.roll(grid, 1, axis=0)*0.15 + np.roll(grid, 1, axis=1)*0.15) / 1.3
+            
+    # --- NOBEL-TIER RENDERING ---
     grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
-    grid = np.clip(grid * 1.2, 0, 1)
-    grid = grid ** 1.1 # Rich contrast
+    grid = np.clip(grid * 1.6, 0, 1)
+    grid = grid ** 1.2 # Contrast boost
     
     fig, ax = plt.subplots(figsize=(6, 6))
-    # 'Nearest' is the key to the original 'crunchy' texture
-    ax.imshow(grid, origin='upper', interpolation='nearest')
+    ax.imshow(grid, origin='upper', interpolation='nearest') # 'Crunchy' texture
     
-    # Matching the original title and placement exactly
-    ax.text(0, -1.5, "Global Knowledge (Meme Grid)", color='white', 
-            fontsize=12, fontweight='bold', ha='left')
+    # Lab HUD Labels
+    ax.text(0.5, -1.8, f"Live Projection Cluster (Seed:{seed})", color='#00ff88', 
+            fontsize=10, family='monospace', fontweight='bold', ha='left')
     
     ax.set_facecolor('#0e1117')
     fig.patch.set_facecolor('#0e1117') 
     
-    # Tick marks matching the reference
-    ax.set_xticks([0, 10, 20, 30])
-    ax.set_yticks([0, 5, 10, 15, 20, 25, 30, 35])
-    ax.tick_params(colors='#666666', which='both', labelsize=8)
+    # Minimalist Tickmarks
+    ax.set_xticks([0, 20, 39]); ax.set_xticklabels(['-L', '0', '+L'])
+    ax.set_yticks([0, 20, 39]); ax.set_yticklabels(['-L', '0', '+L'])
+    ax.tick_params(colors='#444444', labelsize=6, length=2)
     
-    # Remove axis border for the 'floating' feel
     for spine in ax.spines.values():
         spine.set_visible(False)
-    
+        
     plt.tight_layout()
     return fig
+
 
 
 def plot_latent_bloom(solver=None, seed=None):
@@ -3192,7 +3219,6 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
-
 
 
 
