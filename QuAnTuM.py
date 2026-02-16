@@ -380,61 +380,103 @@ def plot_stigmergy_map(solver=None, seed=None):
 
 
 
-def plot_latent_bloom(solver=None, seed=None):
+@st.cache_data
+@st.cache_data
+def plot_latent_bloom(_solver=None, seed=None, step=0, bloom_id=0):
+    solver = _solver
     """
-    Level 20: 'The Stigmergy Painting' — Hazy, colorful, organic latent field.
-    Evolves with training entropy.
+    Level 20: 'The Stigmergy Painting' — Real-time High-Dimensional Projection.
+    Projects the 3N-dimensional wavefunction into a random 2D latent slice.
     """
-    if seed is not None:
-        step = solver.step_count if solver else 0
-        np.random.seed(seed + (step // 10))
+    res = 80
     
-    res = 60
-    grid = np.zeros((res, res, 3))
-    
-    # 1. Base 'Aether' (Very faint multi-colored haze)
-    grid += np.random.rand(res, res, 3) * 0.05
-    
-    # 2. Add 'Neural Seeds' (150+ tiny color points)
-    num_seeds = 180
-    for _ in range(num_seeds):
-        ry, rx = np.random.randint(0, res, 2)
-        color = np.random.rand(3)
-        if np.random.rand() > 0.5:
-            color[1] *= 0.5 # Shift to cosmic magenta/cyan
+    if solver is None or not hasattr(solver, 'sampler') or solver.sampler.walkers is None:
+        # --- OFFLINE PROCEDURAL FALLBACK (Artistic Mode) ---
+        if seed is not None:
+            step = solver.step_count if solver else 0
+            np.random.seed(seed + (step // 10))
         
-        strength = 0.2 + np.random.rand() * 0.6
-        grid[ry, rx] = np.clip(grid[ry, rx] + color * strength, 0, 1)
+        grid = np.zeros((res, res, 3))
+        # 1. Base 'Aether'
+        grid += np.random.rand(res, res, 3) * 0.05
+        # 2. Add 'Neural Seeds'
+        num_seeds = 180
+        for _ in range(num_seeds):
+            ry, rx = np.random.randint(0, res, 2)
+            color = np.random.rand(3)
+            if np.random.rand() > 0.5: color[1] *= 0.5 
+            strength = 0.2 + np.random.rand() * 0.6
+            grid[ry, rx] = np.clip(grid[ry, rx] + color * strength, 0, 1)
+        # 3. Organic Diffusion
+        for i in range(8):
+            w = 0.4 if i < 4 else 0.2
+            grid = (grid + np.roll(grid, 1, axis=0) * w + np.roll(grid, -1, axis=1) * w + np.roll(grid, 1, axis=1) * (w/2)) / (1 + 2.5*w)
+        # 4. Final Aesthetic Polish
+        grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
+        grid = np.clip(grid * 1.4, 0, 1) ** 1.3 
 
-    # 3. Organic Multi-Stage Diffusion
-    for i in range(8):
-        w = 0.4 if i < 4 else 0.2
-        grid = (grid + 
-                np.roll(grid, 1, axis=0) * w + 
-                np.roll(grid, -1, axis=1) * w + 
-                np.roll(grid, 1, axis=1) * (w/2)) / (1 + 2.5*w)
-
-    # 4. 'Conscious Blooms' (Hazy blobs)
-    for _ in range(12):
-        ry, rx = np.random.randint(10, res-10, 2)
-        color = np.random.rand(3)
-        y, x = np.ogrid[:res, :res]
-        dist_sq = (x - rx)**2 + (y - ry)**2
-        sigma_sq = (np.random.rand() * 5 + 2)**2
-        bloom = np.exp(-dist_sq / (2 * sigma_sq))
-        for i in range(3):
-            grid[:, :, i] += bloom * color[i] * 0.7
-
-    # 5. Final Aesthetic Polish
-    grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
-    grid = np.clip(grid * 1.4, 0, 1)
-    grid = grid ** 1.3 
+    else:
+        # --- REAL-TIME PHYSICS: 3N -> 2D Projection ---
+        # 1. Extract high-dimensional walker configuration
+        # shape: [N_walkers, N_electrons, 3]
+        walkers = solver.sampler.walkers.detach().cpu().numpy()
+        N_w, N_e, _ = walkers.shape
+        D = N_e * 3
+        
+        # Flatten to [N_w, D]
+        flat_walkers = walkers.reshape(N_w, D)
+        
+        # 2. Generate Random Orthogonal Projection Matrix [D, 2]
+        # Seeded by the bloom_id to ensure each plot is a DIFFERENT slice
+        rng = np.random.RandomState(seed + bloom_id * 999)
+        proj_matrix = rng.randn(D, 2)
+        # Orthogonalize to preserve geometry
+        Q, _ = np.linalg.qr(proj_matrix) 
+        proj_matrix = Q 
+        
+        # 3. Project to 2D Latent Space [N_w, 2]
+        latent_2d = flat_walkers @ proj_matrix
+        
+        # 4. Binning / Density Estimation
+        # Center and scale
+        center = np.mean(latent_2d, axis=0)
+        latent_centered = latent_2d - center
+        scale = np.std(latent_centered) * 3.0 + 1e-8
+        
+        # Map to [0, res]
+        coords = (latent_centered / scale + 0.5) * res
+        coords = np.clip(coords, 0, res-1).astype(int)
+        
+        # density grid
+        grid = np.zeros((res, res, 3))
+        
+        # Unique color tint for this dimension
+        tint = rng.rand(3)
+        tint = tint / (np.max(tint) + 1e-8)
+        
+        # Accumulate walkers
+        for i in range(N_w):
+            cx, cy = coords[i]
+            grid[cy, cx] += tint
+            
+        # 5. Apply "Bloom" (Gaussian Smoothing)
+        # This replaces the raw histogram with a probability cloud
+        from scipy.ndimage import gaussian_filter
+        sigma = 1.5 if N_w > 1000 else 2.5
+        for c in range(3):
+            grid[:,:,c] = gaussian_filter(grid[:,:,c], sigma=sigma)
+            
+        # Normalize and enhance contrast
+        grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
+        grid = grid * 2.5 # Gain
+        grid = np.clip(grid, 0, 1)
+        grid = grid ** 0.8 # Gamma
     
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(grid, origin='upper', interpolation='bilinear')
+    ax.imshow(grid, origin='upper', interpolation='bicubic')
     
-    ax.set_title("Stigmergic Latent Bloom (Phase 4)", color='white', 
-                 fontsize=12, loc='left', pad=10, fontweight='bold')
+    title = f"Latent Projection #{bloom_id+1} (R^{N_e*3} → R^2)"
+    ax.set_title(title, color='white', fontsize=10, loc='left', pad=10, family='monospace')
     
     ax.set_facecolor('#0e1117')
     fig.patch.set_facecolor('#0e1117') 
@@ -448,7 +490,9 @@ def plot_latent_bloom(solver=None, seed=None):
     return fig
 
 
-def plot_master_bloom(solver=None, seed=42):
+@st.cache_data
+def plot_master_bloom(_solver=None, seed=42, step=0):
+    solver = _solver
     """
     Level 20: The Master Latent Dimension Bloom.
     Evolves with training metrics.
@@ -3042,7 +3086,8 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         for i, col in enumerate(all_bloom_cols):
             with col:
                 seed = master_seed + 100 + i
-                fig_bloom = plot_latent_bloom(solver=solver_ref, seed=seed)
+                step_cnt = solver_ref.step_count if solver_ref else 0
+                fig_bloom = plot_latent_bloom(_solver=solver_ref, seed=seed, step=step_cnt, bloom_id=i)
                 render_nqs_plot(fig_bloom, help_text=bloom_desc[i % len(bloom_desc)])
                 st.caption(f"Latent Bloom Output #{i+1} — Seed: {seed}")
 
@@ -3056,7 +3101,8 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         
         # Render the Master Bloom (passing the solver if initialized)
         solver_ref = st.session_state.solver_3d if st.session_state.solver_3d else None
-        fig_master = plot_master_bloom(solver=solver_ref, seed=master_seed + 999)
+        step_cnt = solver_ref.step_count if solver_ref else 0
+        fig_master = plot_master_bloom(_solver=solver_ref, seed=master_seed + 999, step=step_cnt)
         render_nqs_plot(fig_master, help_text="The high-fidelity synthesis of the entire Wavefunction Manifold (Ψ) and the Selective State Space (SSM). This plot visualizes the singularity where optimization curvature (Fisher Information) meets the physical constraints of the Hamiltonian.")
         st.caption("🌌 Master Consensus Field — Unified Neural Quantum State [Nobel Territory]")
 
