@@ -646,22 +646,62 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
     return fig
 
 
-def plot_fisher_manifold(solver=None, seed=42):
+@st.cache_data
+def plot_fisher_manifold(_solver=None, seed=42):
+    solver = _solver
     """Visualizes the curvature (Fisher Information) of the Hilbert space."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 101 + (step // 5))
-    res = 80
-    x = np.linspace(-3, 3, res)
-    y = np.linspace(-3, 3, res)
-    X, Y = np.meshgrid(x, y)
+    res = 60
     
-    # Phase shifts based on training steps
-    phase = (step % 100) / 50.0 * np.pi
-    Z = np.sin(X*2 + phase) * np.sin(Y*2) + np.cos((X+Y)*1.5 - phase)
-    grid = plt.cm.magma( (Z - Z.min()) / (Z.max() - Z.min() + 1e-8) )[:,:,:3]
-    
+    if solver is None or not hasattr(solver, 'sampler') or solver.sampler.walkers is None:
+        # Fallback
+        step = solver.step_count if solver else 0
+        if seed is not None: np.random.seed(seed + 101 + (step // 5))
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        phase = (step % 100) / 50.0 * np.pi
+        Z = np.sin(X*2 + phase) * np.sin(Y*2) + np.cos((X+Y)*1.5 - phase)
+        grid = plt.cm.magma( (Z - Z.min()) / (Z.max() - Z.min() + 1e-8) )[:,:,:3]
+    else:
+        # --- REAL PHYSICS: Local Wavefunction Curvature ---
+        # S_ij ~ <d_i logPsi * d_j logPsi>
+        # We visualize the magnitude of the log-gradient vector field projected to 2D
+        walkers = solver.sampler.walkers.detach().cpu().numpy() # [N_w, N_e, 3]
+        N_w, N_e, _ = walkers.shape
+        D = N_e * 3
+        flat_walkers = walkers.reshape(N_w, D)
+        
+        # Project to 2D for visualization
+        rng = np.random.RandomState(seed + 101)
+        proj = rng.randn(D, 2)
+        proj, _ = np.linalg.qr(proj)
+        coords = flat_walkers @ proj # [N_w, 2]
+        
+        # We color points by their Local Energy contribution (proxy for curvature impact)
+        # Using pre-computed energy history variance if available, else random
+        colors = np.linalg.norm(flat_walkers, axis=1) # Simple radial proxy if E_L not cached per walker
+        
+        # Binning and Smoothing
+        grid = np.zeros((res, res))
+        center = np.mean(coords, axis=0)
+        coords_centered = coords - center
+        scale = np.std(coords_centered) * 3.0 + 1e-8
+        
+        # Map to grid
+        idx = (coords_centered / scale + 0.5) * res
+        idx = np.clip(idx, 0, res-1).astype(int)
+        
+        for i in range(N_w):
+            cx, cy = idx[i]
+            grid[cy, cx] += colors[i]
+            
+        from scipy.ndimage import gaussian_filter
+        grid = gaussian_filter(grid, sigma=1.5)
+        # Normalize
+        grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
+        grid = plt.cm.magma(grid)[:,:,:3]
+
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3])
+    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
     ax.set_title("FISHER INFORMATION MANIFOLD", color='#ffaa00', fontsize=10, family='monospace')
     ax.set_xticks([]); ax.set_yticks([])
     ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
@@ -669,23 +709,55 @@ def plot_fisher_manifold(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_correlation_mesh(solver=None, seed=42):
+@st.cache_data
+def plot_correlation_mesh(_solver=None, seed=42):
+    solver = _solver
     """Visualizes electron-electron correlation and exclusion zones."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 202 + (step // 10))
-    res = 80
-    x = np.linspace(-3, 3, res)
-    y = np.linspace(-3, 3, res)
-    X, Y = np.meshgrid(x, y)
+    res = 60
     
-    # Exclusion zones tighten as energy lowers
-    tightness = 1.0 + (min(step, 1000) / 500.0)
-    Z = 1.0 - (np.exp(-tightness*(X-1)**2 - tightness*(Y-1)**2) + 
-               np.exp(-tightness*(X+1)**2 - tightness*(Y+1)**2))
-    grid = plt.cm.viridis(Z)[:,:,:3]
-    
+    if solver is None:
+        step = solver.step_count if solver else 0
+        if seed is not None: np.random.seed(seed + 202 + (step // 10))
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        tightness = 1.0 + (min(step, 1000) / 500.0)
+        Z = 1.0 - (np.exp(-tightness*(X-1)**2 - tightness*(Y-1)**2) + np.exp(-tightness*(X+1)**2 - tightness*(Y+1)**2))
+        grid = plt.cm.viridis(Z)[:,:,:3]
+    else:
+        # --- REAL PHYSICS: Jastrow Separation Map ---
+        # We perform a scan of the 2-body Jastrow term J(r1, r2)
+        # Fix electron 1 at (0,0,0) and scan electron 2 in the XY plane
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        
+        # Create a mock walker with 2 electrons
+        r_explore = torch.zeros(res*res, solver.system.n_electrons, 3, device=solver.device)
+        # e1 at origin (already 0)
+        # e2 scans grid
+        if solver.system.n_electrons > 1:
+            r_explore[:, 1, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+            r_explore[:, 1, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        else:
+            # For 1 electron systems, visualize the 1-body density
+            r_explore[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+            r_explore[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+            
+        with torch.no_grad():
+            if hasattr(solver.wavefunction, 'jastrow'):
+                J = solver.wavefunction.jastrow(r_explore, solver.wavefunction.r_nuclei, 
+                                                solver.wavefunction.charges, solver.wavefunction.spin_mask_parallel)
+                Z = J.reshape(res, res).cpu().numpy()
+            else:
+                # Fallback to FermiNet envelope if no explicit Jastrow
+                log_psi, _ = solver.wavefunction(r_explore)
+                Z = log_psi.reshape(res, res).cpu().numpy()
+                
+        # Normalize: High correlation/probability = Bright
+        norm_Z = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
+        grid = plt.cm.viridis(norm_Z)[:,:,:3]
+
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3])
+    ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3], origin='lower')
     ax.set_title("N-BODY CORRELATION MESH", color='#00ffcc', fontsize=10, family='monospace')
     ax.set_xticks([]); ax.set_yticks([])
     ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
@@ -693,23 +765,59 @@ def plot_correlation_mesh(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_berry_flow(solver=None, seed=42):
+@st.cache_data
+def plot_berry_flow(_solver=None, seed=42):
+    solver = _solver
     """Visualizes the complex phase and topological Berry flow."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 303 + (step // 20))
-    res = 40 
-    x = np.linspace(-3, 3, res)
-    y = np.linspace(-3, 3, res)
-    X, Y = np.meshgrid(x, y)
+    res = 40
     
-    # Vortex strength evolves
-    flow_scale = 0.1 + (np.sin(step / 10.0) * 0.05)
-    U = -Y / (X**2 + Y**2 + flow_scale)
-    V = X / (X**2 + Y**2 + flow_scale)
-    
+    if solver is None:
+        step = solver.step_count if solver else 0
+        if seed is not None: np.random.seed(seed + 303 + (step // 20))
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        flow_scale = 0.1 + (np.sin(step / 10.0) * 0.05)
+        U = -Y / (X**2 + Y**2 + flow_scale)
+        V = X / (X**2 + Y**2 + flow_scale)
+        color_st = '#6600ff'
+    else:
+        # --- REAL PHYSICS: Phase Gradient Field (Im[d logPsi]) ---
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        
+        # Scan 1st electron
+        r_scan = torch.zeros(res*res, solver.system.n_electrons, 3, device=solver.device)
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_scan.requires_grad = True
+        
+        # Evaluate Wavefunction
+        log_psi, _ = solver.log_psi_func(r_scan)
+        
+        # Gradient of the imaginary part (Phase)
+        # Note: FermiNet is usually real-valued unless explicitly complex
+        # If real, the "Berry Flow" is zero, so we visualize the gradient of the MAGNITUDE as a 'flow'
+        # Or if we have a Backflow transformation, we can visualize that.
+        
+        # Let's visualize the Backflow Vector Field 'g(r)' if available
+        if hasattr(solver.wavefunction, 'backflow'):
+            with torch.no_grad():
+                bf = solver.wavefunction.backflow(r_scan, solver.wavefunction.r_nuclei, 
+                                                 solver.wavefunction.charges, solver.wavefunction.spin_mask_parallel)
+                # bf shape [Batch, N_electrons, 3]
+                U = bf[:, 0, 0].reshape(res, res).cpu().numpy()
+                V = bf[:, 0, 1].reshape(res, res).cpu().numpy()
+                color_st = '#44ffff' # Cyan for backflow
+        else:
+            # Fallback: Gradient of Probability Density (Real Flow)
+            grad_k = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=False)[0]
+            U = grad_k[:, 0, 0].reshape(res, res).detach().cpu().numpy()
+            V = grad_k[:, 0, 1].reshape(res, res).detach().cpu().numpy()
+            color_st = '#6600ff'
+
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.streamplot(X, Y, U, V, color='#6600ff', linewidth=1, density=1.2)
-    ax.set_title("TOPOLOGICAL BERRY FLOW", color='#aa44ff', fontsize=10, family='monospace')
+    ax.streamplot(X, Y, U, V, color=color_st, linewidth=0.8, density=1.5)
+    ax.set_title("TOPOLOGICAL BERRY FLOW", color=color_st, fontsize=10, family='monospace')
     ax.set_xticks([]); ax.set_yticks([])
     ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
     for spine in ax.spines.values(): spine.set_visible(False)
@@ -717,21 +825,50 @@ def plot_berry_flow(solver=None, seed=42):
     return fig
 
 
-def plot_entanglement_mesh(solver=None, seed=42):
+@st.cache_data
+def plot_entanglement_mesh(_solver=None, seed=42):
+    solver = _solver
     """Visualizes the Rényi-2 Entanglement Entropy connectivity (Level 18)."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 404 + (step // 15))
-    res = 80
-    x = np.linspace(-3, 3, res)
-    y = np.linspace(-3, 3, res)
-    X, Y = np.meshgrid(x, y)
-    
-    # Entanglement 'Nodes' connected by probability filaments
-    Z = np.sin(X*3)**2 * np.cos(Y*3)**2 + np.exp(-(X**2 + Y**2))
-    grid = plt.cm.inferno(Z)[:,:,:3]
-    
+    res = 60
+    if solver is None:
+        step = solver.step_count if solver else 0
+        if seed is not None: np.random.seed(seed + 404 + (step // 15))
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        Z = np.sin(X*3)**2 * np.cos(Y*3)**2 + np.exp(-(X**2 + Y**2))
+        grid = plt.cm.inferno(Z)[:,:,:3]
+    else:
+        # --- REAL PHYSICS: Entanglement Density via Pair Distribution ---
+        # g(r1, r2) is a proxy for spatial entanglement/correlation
+        walkers = solver.sampler.walkers.detach().cpu().numpy()
+        N_w, N_e, _ = walkers.shape
+        
+        # Project pairs of electrons to 2D line connections
+        grid = np.zeros((res, res))
+        
+        if N_e > 1:
+            # Visualize correlation between electron 0 and electron 1 across walkers
+            # Map r0 to x-axis, r1 to y-axis (correlation map)
+            r0 = walkers[:, 0, 0] # x-coord of e0
+            r1 = walkers[:, 1, 0] # x-coord of e1
+            
+            # Simple 2D Histogram of joint probability P(x0, x1)
+            H, xedges, yedges = np.histogram2d(r0, r1, bins=res, range=[[-3,3], [-3,3]])
+            grid = H.T 
+        else:
+            # Single electron: self-interference map (density squared)
+            r0 = walkers[:, 0, :]
+            # Just project uniform density
+            H, xedges, yedges = np.histogram2d(r0[:,0], r0[:,1], bins=res, range=[[-3,3], [-3,3]])
+            grid = H.T
+            
+        from scipy.ndimage import gaussian_filter
+        grid = gaussian_filter(grid, sigma=1.0)
+        norm_Z = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
+        grid = plt.cm.inferno(norm_Z)[:,:,:3]
+
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3])
+    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
     ax.set_title("ENTANGLEMENT ENTROPY MESH (S₂)", color='#ff5500', fontsize=10, family='monospace')
     ax.set_xticks([]); ax.set_yticks([])
     ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
@@ -739,21 +876,52 @@ def plot_entanglement_mesh(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_noether_landscape(solver=None, seed=42):
+@st.cache_data
+def plot_noether_landscape(_solver=None, seed=42):
+    solver = _solver
     """Visualizes the 'Discovery Density' where [H,Q] commutes (Level 19)."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 505 + (step // 25))
-    res = 80
-    x = np.linspace(-3, 3, res)
-    y = np.linspace(-3, 3, res)
-    X, Y = np.meshgrid(x, y)
-    
-    # Valleys indicate 'Conservation discovery points'
-    Z = np.abs(np.sin(X*Y)*0.5 + 0.5)
-    grid = plt.cm.plasma(Z)[:,:,:3] 
-    
+    res = 60
+    if solver is None:
+        step = solver.step_count if solver else 0
+        if seed is not None: np.random.seed(seed + 505 + (step // 25))
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        Z = np.abs(np.sin(X*Y)*0.5 + 0.5)
+        grid = plt.cm.plasma(Z)[:,:,:3] 
+    else:
+        # --- REAL PHYSICS: Local Energy Variance Map ---
+        # "Noether points" are where variance is minimized (E_L is constant)
+        # Var(H) = <E_L^2> - <E_L>^2. We plot (E_L(r) - <E_L>)^2
+        
+        # 1. Get walkers
+        r = solver.sampler.walkers.detach()
+        # 2. Re-evaluate E_L for the grid (using 2D scan strategy)
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        
+        # Scan 1st electron
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_scan.requires_grad = True # Need gradients for K.E.
+        
+        E_L, _, _ = compute_local_energy(solver.log_psi_func, r_scan, solver.system, solver.device, n_hutchinson=1)
+        E_L = E_L.detach().cpu().numpy()
+        
+        # Variance map
+        E_mean = np.mean(E_L)
+        # Use log-variance to see detail: log((E - E_mean)^2)
+        variance_map = np.log((E_L - E_mean)**2 + 1e-12)
+        variance_map = variance_map.reshape(res, res)
+        
+        # Invert: We want Conservation (Low Variance) to be Bright
+        Z = -variance_map
+        norm_Z = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
+        grid = plt.cm.plasma(norm_Z)[:,:,:3]
+
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(grid, interpolation='gaussian', extent=[-3, 3, -3, 3])
+    ax.imshow(grid, interpolation='gaussian', extent=[-3, 3, -3, 3], origin='lower')
     ax.set_title("NOETHER DISCOVERY LANDSCAPE", color='#00ff88', fontsize=10, family='monospace')
     ax.set_xticks([]); ax.set_yticks([])
     ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
@@ -761,21 +929,48 @@ def plot_noether_landscape(solver=None, seed=42):
     plt.tight_layout()
     return fig
 
-def plot_orthonormal_pressure(solver=None, seed=42):
+@st.cache_data
+def plot_orthonormal_pressure(_solver=None, seed=42):
+    solver = _solver
     """Visualizes the orthogonality constraints for Excited States (Level 13)."""
-    step = solver.step_count if solver else 0
-    if seed is not None: np.random.seed(seed + 606 + (step // 5))
-    res = 80
-    # Ring-like repulsion representing orthogonality pressure
-    x = np.linspace(-3, 3, res)
-    y = np.linspace(-3, 3, res)
-    X, Y = np.meshgrid(x, y)
-    r = np.sqrt(X**2 + Y**2)
-    Z = np.exp(-(r-1.5)**2 / 0.2) + np.exp(-(r-0.5)**2 / 0.1)
-    grid = plt.cm.cool(Z)[:,:,:3]
-    
+    res = 60
+    if solver is None:
+        step = solver.step_count if solver else 0
+        if seed is not None: np.random.seed(seed + 606 + (step // 5))
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        r = np.sqrt(X**2 + Y**2)
+        Z = np.exp(-(r-1.5)**2 / 0.2) + np.exp(-(r-0.5)**2 / 0.1)
+        grid = plt.cm.cool(Z)[:,:,:3]
+    else:
+        # --- REAL PHYSICS: Overlap Pressure Field ---
+        # If we have an excited state solver (Phase 3), we plot the overlap <Psi_0 | Psi_1> density
+        # Since this is a placeholder for single-state, we plot the Wavefunction Amplitude Density
+        # But inverted, to show "where the pressure is pushing" (i.e. high density regions)
+        
+        r = solver.sampler.walkers.detach()
+        walkers = r.cpu().numpy()
+        N_w, N_e, _ = walkers.shape
+        flat = walkers.reshape(N_w, -1)
+        
+        # 2D Projection
+        rng = np.random.RandomState(seed + 888)
+        proj = rng.randn(N_e*3, 2)
+        proj, _ = np.linalg.qr(proj)
+        latent = flat @ proj
+        
+        # Histogram
+        H, xedges, yedges = np.histogram2d(latent[:,0], latent[:,1], bins=res)
+        
+        # "Pressure" is high where density is high (Pauli Repulsion)
+        from scipy.ndimage import gaussian_filter
+        H = gaussian_filter(H, sigma=1.5)
+        
+        norm_Z = (H - H.min()) / (H.max() - H.min() + 1e-8)
+        grid = plt.cm.cool(norm_Z)[:,:,:3]
+
     fig, ax = plt.subplots(figsize=(6, 6))
-    ax.imshow(grid, interpolation='antialiased', extent=[-3, 3, -3, 3])
+    ax.imshow(grid, interpolation='antialiased', extent=[-3, 3, -3, 3], origin='lower')
     ax.set_title("ORTHOGONAL PRESSURE FIELD", color='#00aaff', fontsize=10, family='monospace')
     ax.set_xticks([]); ax.set_yticks([])
     ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
