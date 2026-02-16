@@ -675,6 +675,7 @@ class VMCSolver:
             E_centered = (E_L_clipped - E_L_clipped.mean()).detach()
             loss = torch.mean(2.0 * E_centered * log_psi)
             
+            if torch.isnan(loss) or torch.isinf(loss) or energy < div_thresh:
                 self.optimizer.zero_grad()
                 if energy < div_thresh:
                     # === SURGICAL FIX: WALKER RESET & RESAMPLE ===
