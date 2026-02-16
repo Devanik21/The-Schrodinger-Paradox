@@ -1981,7 +1981,7 @@ def render_nqs_plot(fig, help_text):
 
 def render_nqs_plotly(fig, help_text):
     """Utility to render a plotly figure with a robust hover tooltip."""
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
     tooltip_html = f'''
     <div style="text-align: center; margin-top: -15px; margin-bottom: 25px; font-family: monospace;">
         <details style="color: #00ff88; cursor: pointer;">
@@ -4401,6 +4401,7 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
+
 
 
 
