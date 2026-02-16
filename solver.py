@@ -624,13 +624,12 @@ class VMCSolver:
         # Dynamic Divergence Threshold (User requested ~ -6/-7 for H)
         # Scale based on system size to remain valid for Ne/Molecules
         if self.system.exact_energy is not None:
-            # Sweet Spot Configuration: trigger H at -0.54 (1.08x)
-            # This allows natural convergence while blocking the -0.55+ dives.
-            multiplier = 1.08 if self.system.n_electrons == 1 else 1.2
+            # Ultra-Elite Configuration: trigger H at -0.53 (1.06x)
+            multiplier = 1.06 if self.system.n_electrons == 1 else 1.15
             div_thresh = self.system.exact_energy * multiplier
             
-            # Variance Sweet Spot: 0.5 for H (blocks 650+ disaster, allows learning)
-            var_thresh = 0.5 if self.system.n_electrons == 1 else 50.0
+            # Variance Trap: 1.0 for H (optimized for throughput vs spikes)
+            var_thresh = 1.0 if self.system.n_electrons == 1 else 25.0
         else:
             # Fallback heuristic: Tighter than before
             div_thresh = -1.2 * (self.system.n_electrons ** 2)
