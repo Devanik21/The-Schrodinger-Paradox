@@ -197,7 +197,7 @@ if mode == "3D Atomic VMC":
         d_model = st.slider("Feature Dimension", 16, 512, 256, 16, help="Higher = More detailed spectral features in Latent Blooms.")
         n_layers = st.slider("Backflow Layers", 1, 12, 8, help="Higher = More complex vorticity and topological twists.")
         n_dets = st.slider("Slater Determinants", 1, 64, 32, help="Higher = More complex nodal surfaces (Fermi Voids).")
-        n_walkers = st.slider("MCMC Walkers", 128, 8192, 1024, 128, help="Higher = Smoother density clouds / 0% graininess.")
+        n_walkers = st.slider("MCMC Walkers", 128, 8192, 2048, 128, help="Higher = Smoother density clouds / 0% graininess.")
         lr = st.select_slider("Learning Rate", [1e-4, 3e-4, 1e-3, 3e-3, 1e-2], value=1e-3)
         use_ssm = st.checkbox("Enable SSM-Backflow (Level 11)", value=True,
                               help="Uses State Space Models (Mamba) for O(N log N) electron correlation.")
@@ -4423,6 +4423,7 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
+
 
 
 
