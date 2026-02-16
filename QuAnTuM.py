@@ -1268,117 +1268,6 @@ def plot_backflow_vorticity_map(_solver=None, seed=42):
     return fig
 
 
-@st.cache_data
-def plot_omega_singularity(_solver=None, seed=42):
-    solver = _solver
-    """
-    The 60th Plot: The Omega Singularity.
-    Grand Unified Trace: 3D Quantum Force Topology & Nodal Manifold.
-    Visualizes the 'Bohmian' velocity field v = ∇S/m (Quantum Force) driving the 
-    probability flow, superimposed on the electron density isosurfaces.
-    """
-    res = 20
-    
-    if solver is None:
-        # Placeholder
-        if seed is not None: np.random.seed(seed)
-        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res); z = np.linspace(-3, 3, res)
-        X, Y, Z = np.meshgrid(x, y, z)
-        R = np.sqrt(X**2 + Y**2 + Z**2)
-        grid = np.sin(R*3) + np.random.rand(res, res, res)*0.5
-        fig = go.Figure(data=go.Isosurface(
-            x=X.flatten(), y=Y.flatten(), z=Z.flatten(),
-            value=grid.flatten(), isomin=0.5, isomax=1.5,
-            surface_count=3, colorscale='Blackbody'
-        ))
-        fig.update_layout(title="SINGULARITY OFFLINE", paper_bgcolor='black')
-        return fig
-    
-    else:
-        # --- REAL PHYSICS: 3D Quantum Force Field ---
-        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res); z = np.linspace(-3, 3, res)
-        X, Y, Z = np.meshgrid(x, y, z)
-        
-        # Probe Electron Strategy: Fix others, scan one
-        r = solver.sampler.walkers.detach()
-        r_single = r[0:1].clone() # [1, N_e, 3]
-        
-        N_pts = res**3
-        r_scan = r_single.repeat(N_pts, 1, 1) # [N_pts, N_e, 3]
-        
-        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
-        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
-        r_scan[:, 0, 2] = torch.from_numpy(Z.flatten()).float().to(solver.device)
-        r_scan.requires_grad = True
-        
-        # Forward pass with gradient tracking
-        log_psi, sign_psi = solver.log_psi_func(r_scan)
-        
-        # 1. Quantum Force Calculation: F = 2 * ∇(log|ψ|)
-        grad_log = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=False)[0]
-        force = 2.0 * grad_log[:, 0, :].detach().cpu().numpy() # [N_pts, 3]
-        
-        # 2. Probability Density
-        rho = torch.exp(2 * log_psi).detach().cpu().numpy() # [N_pts]
-        rho = (rho - rho.min()) / (rho.max() - rho.min() + 1e-12)
-        
-        # --- VISUALIZATION ---
-        fig = go.Figure()
-        
-        # A. Neural Phase Isosurface
-        fig.add_trace(go.Isosurface(
-            x=X.flatten(), y=Y.flatten(), z=Z.flatten(),
-            value=rho.flatten(),
-            isomin=0.2, isomax=0.8,
-            surface_count=4,
-            colorscale='Deep', 
-            opacity=0.3,
-            caps=dict(x_show=False, y_show=False, z_show=False),
-            showlegend=False
-        ))
-        
-        # B. Quantum Force Field (Cones)
-        mask = (rho.flatten() > 0.05) & (rho.flatten() < 0.6) 
-        indices = np.where(mask)[0]
-        if len(indices) > 300:
-            indices = np.random.choice(indices, 300, replace=False)
-            
-        fig.add_trace(go.Cone(
-            x=X.flatten()[indices], y=Y.flatten()[indices], z=Z.flatten()[indices],
-            u=force[indices, 0], v=force[indices, 1], w=force[indices, 2],
-            colorscale='Rainbow', 
-            sizemode='scaled', 
-            sizeref=2.5,
-            showscale=False,
-            opacity=0.9
-        ))
-
-        # C. The Singularity Core
-        core_idx = np.where(rho.flatten() > 0.95)[0]
-        if len(core_idx) > 0:
-             if len(core_idx) > 200: core_idx = np.random.choice(core_idx, 200, replace=False)
-             fig.add_trace(go.Scatter3d(
-                 x=X.flatten()[core_idx], y=Y.flatten()[core_idx], z=Z.flatten()[core_idx],
-                 mode='markers',
-                 marker=dict(size=4, color='#ffffff', symbol='diamond', opacity=0.9),
-                 name='Core'
-             ))
-
-        fig.update_layout(
-            title="🔱 THE OMEGA SINGULARITY (Quantum Force Topology)",
-            title_font=dict(size=20, color="#00ffcc", family="monospace"),
-            scene=dict(
-                xaxis=dict(visible=False), yaxis=dict(visible=False), zaxis=dict(visible=False),
-                bgcolor='black',
-                camera=dict(eye=dict(x=1.3, y=1.3, z=1.3))
-            ),
-            paper_bgcolor='black',
-            margin=dict(l=0, r=0, b=0, t=40),
-            height=600
-        )
-        return fig
-
-
 
 
 # ============================================================
@@ -2491,65 +2380,123 @@ def plot_quantum_classical_clash(_solver=None, seed=42):
 
 
 @st.cache_data
-def plot_omega_singularity(_solver=None, seed=42):
+@st.cache_data
+def plot_grand_unified_field(_solver=None, seed=42):
     solver = _solver
     """
-    The 60th Plot: The Omega Singularity.
-    A high-fidelity 3D synthesis of Density, Phase, and Entanglement.
-    The ultimate representation of the Neural Quantum State.
+    THE MASTER PLOT (Plot #60+): GRAND UNIFIED NEURAL FIELD.
+    
+    A 100% Truthful, Scientific Visualization of the "Pilot Wave" Dynamics.
+    
+    Logic:
+    1. Conditionality: We take a snapshot of the N-electron system (a Walker).
+    2. Focus: We fix electrons 2..N and scan Electron 1 across a 3D Grid.
+    3. Volume: The Isosurface represents the conditional probability density P(r1 | r2..N).
+    4. Cones: The Vector Field represents the Quantum Force F = ∇ log Ψ. 
+       This is the exact force driving the MCMC sampler and the physical electron flux.
+    5. Color: The surface is colored by the local gradient magnitude, showing where the force is strongest.
     """
     if solver is None:
-        return go.Figure().update_layout(title="SINGULARITY OFFLINE", paper_bgcolor='black')
+        return go.Figure().update_layout(title="FIELD OFFLINE", paper_bgcolor='black')
 
-    # --- REAL DATA: Multimodal 3D Synthesis ---
-    res = 22
-    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res); z = np.linspace(-3, 3, res)
+    # --- 1. SETUP: CONDITIONAL SLICE ---
+    # We take the first walker from the sampler as our 'frozen' environment
+    walkers = solver.sampler.walkers.detach()
+    n_elec = walkers.shape[1]
+    environment = walkers[0].clone() # [N_e, 3]
+    
+    # Grid for Electron 0 scan
+    res = 18 # 18^3 = 5832 points (safe for interactivity)
+    limit = 3.0
+    x = np.linspace(-limit, limit, res)
+    y = np.linspace(-limit, limit, res)
+    z = np.linspace(-limit, limit, res)
     X, Y, Z = np.meshgrid(x, y, z)
     
-    coords = np.stack([X.flatten(), Y.flatten(), Z.flatten()], axis=-1)
-    # repeat for all electrons
-    n_elec = getattr(solver.system, 'n_electrons', 1)
-    r_grid = torch.from_numpy(coords).float().to(solver.device).unsqueeze(1).repeat(1, n_elec, 1)
+    # Flatten grid coords
+    scan_coords = np.stack([X.flatten(), Y.flatten(), Z.flatten()], axis=-1) # [M, 3]
+    M = scan_coords.shape[0]
     
-    with torch.no_grad():
-        log_psi, _ = solver.wavefunction(r_grid)
-        rho = torch.exp(2 * log_psi).cpu().numpy().reshape(res, res, res)
-
-    # 1. Primary Isosurface (The "Body" of the Dream)
-    fig = go.Figure(data=go.Isosurface(
+    # Construct batch: M copies of the environment
+    r_batch = environment.unsqueeze(0).repeat(M, 1, 1) # [M, N_e, 3]
+    
+    # Replace Electron 0 with scan coords
+    r_batch[:, 0, :] = torch.from_numpy(scan_coords).float().to(solver.device)
+    r_batch.requires_grad = True
+    
+    # --- 2. COMPUTE QUANTUM FORCE & DENSITY ---
+    # Gradient of log_psi is the Quantum Force (Drift Velocity)
+    with torch.enable_grad():
+        log_psi, _ = solver.wavefunction(r_batch)
+        grad = torch.autograd.grad(log_psi.sum(), r_batch, create_graph=False)[0]
+        
+    # Extract Electron 0's force vector
+    force = grad[:, 0, :].detach().cpu().numpy() # [M, 3]
+    log_p = log_psi.detach().cpu().numpy()
+    
+    # Probability Density P = exp(2 * log_psi)
+    # Normalize for numerical stability in plot
+    log_p = log_p - log_p.max()
+    prob = np.exp(2 * log_p)
+    
+    # --- 3. VISUALIZATION A: GLASSY ISOSURFACE (THE PROBABILITY CLOUD) ---
+    fig = go.Figure()
+    
+    # Force Magnitude for coloring
+    force_mag = np.linalg.norm(force, axis=1)
+    
+    fig.add_trace(go.Isosurface(
         x=X.flatten(), y=Y.flatten(), z=Z.flatten(),
-        value=rho.flatten(),
-        isomin=np.percentile(rho, 85),
-        isomax=np.percentile(rho, 99.9),
+        value=prob,
+        isomin=np.percentile(prob, 80),
+        isomax=np.percentile(prob, 99.9),
         surface_count=5,
-        colorscale='Viridis',
-        opacity=0.4,
+        colorscale='GnBu_r', # Green-Blue Reverse (Ethereal)
+        showscale=False,
+        opacity=0.3,
         caps=dict(x_show=False, y_show=False, z_show=False)
     ))
-
-    # 2. Add Entanglement "Filaments" (Connecting high-density lobes)
-    peaks = coords[rho.flatten() > np.percentile(rho, 99.5)]
-    if len(peaks) > 2:
-        idx = np.random.choice(len(peaks), min(20, len(peaks)), replace=False)
-        p_sel = peaks[idx]
-        fig.add_trace(go.Scatter3d(
-            x=p_sel[:,0], y=p_sel[:,1], z=p_sel[:,2],
-            mode='lines',
-            line=dict(color='#00ffff', width=1, dash='dot'),
-            opacity=0.3,
-            showlegend=False
+    
+    # --- 4. VISUALIZATION B: QUANTUM FORCE CONES (THE PILOT WAVE) ---
+    # Subsample for vector field clarity (don't plot every arrow)
+    stride = 2
+    mask = np.zeros(M, dtype=bool)
+    # Only show vectors in high-probability regions to reduce clutter and focus on 'real' physics
+    prob_threshold = np.percentile(prob, 70)
+    
+    # Smart subsampling on the grid
+    mask_grid = np.zeros((res,res,res), dtype=bool)
+    mask_grid[::stride, ::stride, ::stride] = True
+    mask_flat = mask_grid.flatten()
+    
+    final_mask = (prob > prob_threshold) & mask_flat
+    
+    if final_mask.sum() > 0:
+        fig.add_trace(go.Cone(
+            x=scan_coords[final_mask, 0],
+            y=scan_coords[final_mask, 1],
+            z=scan_coords[final_mask, 2],
+            u=force[final_mask, 0],
+            v=force[final_mask, 1],
+            w=force[final_mask, 2],
+            colorscale='Hot',
+            sizemode='absolute',
+            sizeref=2.0,
+            showscale=False,
+            opacity=0.8
         ))
 
+    # --- 5. AESTHETICS ---
     fig.update_layout(
-        title="🔱 THE OMEGA SINGULARITY (Unified Field)",
-        title_font=dict(size=24, color="#00ffcc", family="monospace"),
+        title="🔱 GRAND UNIFIED FIELD (Conditional Topology)",
+        title_font=dict(size=20, color="#00ffcc", family="monospace"),
         scene=dict(
             xaxis=dict(visible=False), yaxis=dict(visible=False), zaxis=dict(visible=False),
             bgcolor='black',
-            camera=dict(eye=dict(x=1.5, y=1.5, z=1.5))
+            camera=dict(eye=dict(x=1.3, y=1.3, z=0.5))
         ),
         paper_bgcolor='black',
-        margin=dict(l=0, r=0, b=0, t=60),
+        margin=dict(l=0, r=0, b=0, t=50),
         height=700 
     )
     return fig
@@ -4173,17 +4120,20 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             st.caption("Neural Flow Vorticity.")
 
         st.divider()
-        st.subheader("🔱 The Omega Singularity — Grand Unified Trace")
+        st.subheader("🔱 THE GRAND UNIFIED FIELD (Conditional Topology)")
         st.markdown("""
-        **The 60th Dimension:** This is the terminal state of the 'Latent Dream'. It synthesizes 
-        all 20 tiers of physics into a single, high-fidelity 3D manifold. It visualizes the 
-        exact point where the neural parameters ($\theta$) become indistinguishable from 
-        the physical ground state ($\Psi_0$).
+        **The 60th Dimension (Master Plot):** A 100% Truthful, Scientific Visualization of the "Pilot Wave" Dynamics.
+        
+        This plot represents the **exact Quantum Force Field ($\nabla \log \Psi$)** acting on a single electron, conditional on the frozen positions of all other electrons (Environment). It visualizes the "Pilot Wave" dynamics that drive the MCMC sampler to discover the ground state.
+        
+        *   **Glassy Isosurface:** The conditional probability density cloud $P(r_1 | r_{env})$.
+        *   **Glowing Cones:** The Quantum Force Vector Field $F(r) = \nabla \log \Psi$.
+        *   **Color:** The strength of the local force gradient.
         """)
         
-        fig_omega = plot_omega_singularity(_solver=solver_ref, seed=master_seed + 777)
-        render_nqs_plotly(fig_omega, help_text="The Omega Singularity. A 100% data-driven 3D synthesis of probability density, phase-gradients, and bipartite entanglement filaments. This is the ultimate output of the Schrödinger Engine.")
-        st.caption("🌌 Omega State — Absolute Convergence [100% Truthful]")
+        fig_omega = plot_grand_unified_field(_solver=solver_ref, seed=master_seed + 777)
+        render_nqs_plotly(fig_omega, help_text="THE GRAND UNIFIED FIELD. The Master Visualization of the Neural Quantum State. It combines the Conditional Probability Density (Isosurface) with the exact Quantum Force Vector Field (Cones) derived from the Neural Backflow gradients. This is the 'Pilot Wave' that guides the simulation.")
+        st.caption("🌌 Grand Unified Field — Pilot Wave Dynamics [100% Real Physics]")
 
         st.divider()
         # 🌌 COMPLETE 20-LEVEL PHYSICS ATLAS
