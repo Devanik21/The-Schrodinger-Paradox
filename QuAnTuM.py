@@ -2954,15 +2954,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.markdown("##### 🔮 Tier 1: Space-Time & Memory Anomalies")
         col_t1, col_t2, col_t3 = st.columns(3)
         with col_t1:
-             fig_ssm = plot_ssm_memory_horizon(solver=solver_ref, seed=master_seed)
+             fig_ssm = plot_ssm_memory_horizon(_solver=solver_ref, seed=master_seed)
              render_nqs_plot(fig_ssm, help_text="The Event Horizon of Memory. Visualizes the exponential decay of the Mamba SSM hidden state, showing where quantum information vanishes into the void.")
              st.caption("SSM Memory Horizon")
         with col_t2:
-             fig_flow = plot_flow_jacobian(solver=solver_ref, seed=master_seed)
+             fig_flow = plot_flow_jacobian(_solver=solver_ref, seed=master_seed)
              render_nqs_plot(fig_flow, help_text="Hyper-Dimensional Jacobian Warp. A map of the coordinate stretching performed by the Normalizing Flow to sample the wavefunction probability mass.")
              st.caption("Flow Jacobian Topology")
         with col_t3:
-             fig_time = plot_neural_time_dilation(solver=solver_ref, seed=master_seed)
+             fig_time = plot_neural_time_dilation(_solver=solver_ref, seed=master_seed)
              render_nqs_plot(fig_time, help_text="Neural Time Dilation (dt). Visualizes the local 'time-step' of the neural ODE/SSM, showing where the network slows down to process dense correlation.")
              st.caption("Neural Time Dilation Field")
 
@@ -2970,15 +2970,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.markdown("##### 🌀 Tier 2: Quantum Singularities & Ghosting")
         col_t4, col_t5, col_t6 = st.columns(3)
         with col_t4:
-             fig_swap = plot_swap_density(solver=solver_ref, seed=master_seed)
+             fig_swap = plot_swap_density(_solver=solver_ref, seed=master_seed)
              render_nqs_plot(fig_swap, help_text="The Entanglement Swap-Field. Ectoplasmic filaments representing the non-local interference between independent replica systems during Rényi entropy calculation.")
              st.caption("Entanglement Swap Ghosts")
         with col_t5:
-             fig_spin = plot_spinor_phase_3d_L24(solver=solver_ref, seed=master_seed)
+             fig_spin = plot_spinor_phase_3d_L24(_solver=solver_ref, seed=master_seed)
              render_nqs_plotly(fig_spin, help_text="Topological Phase Singularities. 3D visualization of the phase vortices emerging in the relativistic spinor field (Level 17).")
              st.caption("Spinor Phase Singularities (3D)")
         with col_t6:
-             fig_void = plot_fermi_void_3d_L24(solver=solver_ref, seed=master_seed)
+             fig_void = plot_fermi_void_3d_L24(_solver=solver_ref, seed=master_seed)
              render_nqs_plotly(fig_void, help_text="The Fermi Void. Interactive 3D visualization of the nodal surfaces where the multi-electron wavefunction vanishes due to antisymmetry.")
              st.caption("The Fermi Void (Nodal Surfaces)")
 
@@ -2986,15 +2986,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.markdown("##### ⚡ Tier 3: Optimization Geometries & Forces")
         col_t7, col_t8, col_t9 = st.columns(3)
         with col_t7:
-             fig_nat = plot_natural_gradient_flow(solver=solver_ref, seed=master_seed)
+             fig_nat = plot_natural_gradient_flow(_solver=solver_ref, seed=master_seed)
              render_nqs_plot(fig_nat, help_text="The Natural Gradient Flow. Streamlines of the optimization vector field corrected by the Fisher Information Geometry of the wavefunction manifold.")
              st.caption("Natural Gradient Geodesics")
         with col_t8:
-             fig_storm = plot_kinetic_storm(solver=solver_ref, seed=master_seed)
+             fig_storm = plot_kinetic_storm(_solver=solver_ref, seed=master_seed)
              render_nqs_plot(fig_storm, help_text="The Kinetic Storm. A high-contrast turbulence map of the local kinetic energy, showing regions of extreme wavefunction curvature.")
              st.caption("Local Kinetic Energy Storm")
         with col_t9:
-             fig_bf = plot_backflow_displacement(solver=solver_ref, seed=master_seed)
+             fig_bf = plot_backflow_displacement(_solver=solver_ref, seed=master_seed)
              render_nqs_plot(fig_bf, help_text="The Backflow Displacement. A vector field showing the 'quasi-particle' transformation r -> r + g(r) that captures electron-electron correlation forces.")
              st.caption("Backflow Displacement Field")
 
@@ -3002,15 +3002,15 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.markdown("##### 🏛️ Tier 4: Deep Structural Echoes")
         col_t10, col_t11, col_t12 = st.columns(3)
         with col_t10:
-             fig_ewald = plot_ewald_ghosts(solver=solver_ref, seed=master_seed)
+             fig_ewald = plot_ewald_ghosts(_solver=solver_ref, seed=master_seed)
              render_nqs_plot(fig_ewald, help_text="Ewald's Infinite Ghosts. Visualizes the periodic images of the Coulomb potential fading into infinity, required for solid-state calculations.")
              st.caption("Ewald Lattice Echoes")
         with col_t11:
-             fig_traj = plot_optimization_trajectory(solver=solver_ref, seed=master_seed)
+             fig_traj = plot_optimization_trajectory(_solver=solver_ref, seed=master_seed)
              render_nqs_plotly(fig_traj, help_text="The Mind Trace. A 3D path through parameter space showing how the AI model converged to the physical ground state over training epochs.")
              st.caption("The Optimization Trajectory (3D)")
         with col_t12:
-             fig_clash = plot_quantum_classical_clash(solver=solver_ref, seed=master_seed)
+             fig_clash = plot_quantum_classical_clash(_solver=solver_ref, seed=master_seed)
              render_nqs_plot(fig_clash, help_text="The Quantum-Classical Clash. A difference map between the quantum Local Energy and the broad Classical Potential, highlighting purely quantum phenomena.")
              st.caption("Quantum-Classical Potential Clash")
 
