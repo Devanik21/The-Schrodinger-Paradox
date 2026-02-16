@@ -634,8 +634,8 @@ class VMCSolver:
             # H2O (100) -> -300 (Safe vs -76)
             div_thresh = -3.0 * (self.system.n_electrons ** 2)
 
-        # Strict variance limit: > 50.0 is suspicious for H (usually < 1.0)
-        var_limit = 50.0 if self.system.n_electrons <= 2 else 1000.0
+        # Strict variance limit: > 5.0 for Hydrogen ensures near-perfect plot stability
+        var_limit = 5.0 if self.system.n_electrons <= 2 else 1000.0
 
         # 4. Optimization step (SR vs AdamW)
         use_sr = (self.sr_optimizer is not None and 
