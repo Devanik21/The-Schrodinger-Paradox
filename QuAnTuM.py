@@ -1256,7 +1256,8 @@ def plot_kinetic_storm(_solver=None, seed=42):
         # Pull walkers and nukes
         r = solver.sampler.walkers.detach()
         # Evaluate Hutchinson Laplacian at first electron
-        r_test = r[:res*res].clone() if r.shape[0] >= res*res else r.repeat(10, 1, 1)[:res*res]
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_test = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
         r_test[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_test[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         
@@ -1293,7 +1294,8 @@ def plot_neural_time_dilation(_solver=None, seed=42):
         
         # Use Jastrow factor curvature as a proxy for 'neural dilation'
         r = solver.sampler.walkers.detach()
-        r_grid = r[:res*res].clone() if r.shape[0] >= res*res else r.repeat(10, 1, 1)[:res*res]
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_grid = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
         r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         
@@ -1330,7 +1332,8 @@ def plot_backflow_displacement(_solver=None, seed=42):
         
         # Test backflow at origin
         r = solver.sampler.walkers.detach()
-        r_grid = r[:res*res].clone() if r.shape[0] >= res*res else r.repeat(10, 1, 1)[:res*res]
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_grid = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
         r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         
@@ -1474,7 +1477,8 @@ def plot_quantum_classical_clash(_solver=None, seed=42):
         X, Y = np.meshgrid(x, y)
         
         r = solver.sampler.walkers.detach()
-        r_test = r[:res*res].clone() if r.shape[0] >= res*res else r.repeat(10, 1, 1)[:res*res]
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_test = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
         r_test[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_test[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         
