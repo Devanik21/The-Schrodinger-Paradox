@@ -545,8 +545,18 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
         sigma = 1.0 # sharper than standard blooms
         
         for ch in range(3):
-            # Project onto plane 'ch' (using cols 2*ch and 2*ch+1)
-            P_ch = Q[:, 2*ch : 2*ch+2] # [D, 2]
+            # Project onto plane 'ch'
+            # If D is small (e.g. Hydrogen D=3), we can't get 3 orthogonal 2D planes.
+            # In that case, we use independent random projections for each channel.
+            if D < 6:
+                rng_ch = np.random.RandomState(seed + 777 + ch)
+                proj_ch = rng_ch.randn(D, 2)
+                # QR to get orthonormal columns [D, 2]
+                P_ch, _ = np.linalg.qr(proj_ch)
+            else:
+                # Use the global orthonormal basis
+                P_ch = Q[:, 2*ch : 2*ch+2] # [D, 2]
+                
             latent_2d = flat_walkers @ P_ch # [N_w, 2]
             
             # Binning
