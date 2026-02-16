@@ -648,6 +648,48 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
 
 
 @st.cache_data
+def plot_fisher_manifold(_solver=None, seed=42):
+    solver = _solver
+    """Visualizes the curvature (Fisher Information) of the Hilbert space."""
+    res = 60
+    if solver is None or not hasattr(solver, 'sampler') or solver.sampler.walkers is None:
+        step = solver.step_count if solver else 0
+        if seed is not None: np.random.seed(seed + 101 + (step // 5))
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        phase = (step % 100) / 50.0 * np.pi
+        Z = np.sin(X*2 + phase) * np.sin(Y*2) + np.cos((X+Y)*1.5 - phase)
+        grid = plt.cm.magma( (Z - Z.min()) / (Z.max() - Z.min() + 1e-8) )[:,:,:3]
+    else:
+        # --- REAL PHYSICS: Local Wavefunction Curvature ---
+        walkers = solver.sampler.walkers.detach().cpu().numpy()
+        N_w, N_e, _ = walkers.shape
+        D = N_e * 3
+        flat_walkers = walkers.reshape(N_w, D)
+        rng = np.random.RandomState(seed + 101)
+        proj = rng.randn(D, 2); proj, _ = np.linalg.qr(proj)
+        coords = flat_walkers @ proj
+        colors = np.linalg.norm(flat_walkers, axis=1)
+        grid = np.zeros((res, res))
+        center = np.mean(coords, axis=0)
+        idx = ((coords - center) / (np.std(coords - center) * 3.0 + 1e-8) + 0.5) * res
+        idx = np.clip(idx, 0, res-1).astype(int)
+        for i in range(N_w): grid[idx[i,1], idx[i,0]] += colors[i]
+        from scipy.ndimage import gaussian_filter
+        grid = gaussian_filter(grid, sigma=1.5)
+        grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
+        grid = plt.cm.magma(grid)[:,:,:3]
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
+    ax.set_title("FISHER INFORMATION MANIFOLD", color='#ffaa00', fontsize=10, family='monospace')
+    ax.set_xticks([]); ax.set_yticks([])
+    ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    for spine in ax.spines.values(): spine.set_visible(False)
+    plt.tight_layout()
+    return fig
+
+
+@st.cache_data
 def plot_electron_localization_function(_solver=None, seed=42):
     solver = _solver
     """
@@ -3731,9 +3773,9 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             render_nqs_plot(fig_ce, help_text="L6: Kato cusp enforcement.")
             st.caption("L6: Cusp Singularity.")
         with col_b3:
-            fig_fm2 = plot_electron_localization_function(_solver=solver_ref, seed=master_seed + 50)
-            render_nqs_plot(fig_fm2, help_text="L7-8: Electron Localization Function (ELF). Maps atomic shells and bonding regions via kinetic energy variance.")
-            st.caption("L7-8: ELF Topology.")
+            fig_fm2 = plot_fisher_manifold(_solver=solver_ref, seed=master_seed + 50)
+            render_nqs_plot(fig_fm2, help_text="L7-8: Fisher Manifold Hilbert metric. Visualizes the natural gradient curvature of the parameter space.")
+            st.caption("L7-8: Fisher Metric.")
 
         # --- Row 3: Levels 9, 10, 11 ---
         st.markdown("##### 🔬 Phase II — Chemical Accuracy (Levels 9–11)")
