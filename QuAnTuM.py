@@ -1258,12 +1258,12 @@ def plot_kinetic_storm(_solver=None, seed=42):
         # Evaluate Hutchinson Laplacian at first electron
         repeat_cnt = (res*res // r.shape[0]) + 1
         r_test = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_test.requires_grad = True
         r_test[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_test[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         
-        with torch.no_grad():
-            E_L, E_kin, _ = compute_local_energy(solver.log_psi_func, r_test, solver.system, solver.device, n_hutchinson=1)
-            storm = E_kin.reshape(res, res).cpu().numpy()
+        E_L, E_kin, _ = compute_local_energy(solver.log_psi_func, r_test, solver.system, solver.device, n_hutchinson=1)
+        storm = E_kin.reshape(res, res).detach().cpu().numpy()
             
         norm_storm = np.clip((storm - np.percentile(storm, 5)) / (np.percentile(storm, 95) - np.percentile(storm, 5) + 1e-8), 0, 1)
         grid = plt.cm.inferno(norm_storm)[:,:,:3]
@@ -1479,13 +1479,13 @@ def plot_quantum_classical_clash(_solver=None, seed=42):
         r = solver.sampler.walkers.detach()
         repeat_cnt = (res*res // r.shape[0]) + 1
         r_test = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_test.requires_grad = True
         r_test[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_test[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         
-        with torch.no_grad():
-            V = compute_potential_energy(r_test, solver.system, solver.device)
-            E_L, _, _ = compute_local_energy(solver.log_psi_func, r_test, solver.system, solver.device)
-            clash = (E_L - V).reshape(res, res).cpu().numpy()
+        V = compute_potential_energy(r_test, solver.system, solver.device)
+        E_L, _, _ = compute_local_energy(solver.log_psi_func, r_test, solver.system, solver.device)
+        clash = (E_L - V).reshape(res, res).detach().cpu().numpy()
             
         norm_clash = np.clip((clash - np.mean(clash)) / (np.std(clash) + 1e-8), -2, 2)
         grid = plt.cm.seismic((norm_clash + 2) / 4.0)[:,:,:3]
