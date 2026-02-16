@@ -293,8 +293,6 @@ def plot_stigmergy_map(_solver=None, seed=None):
     solver = _solver
     """
     Level 20: Real-Time Global Knowledge Map (Meme Grid).
-    Now tied to live MCMC walker positions.
-    Projects the 3N-dimensional electron manifold into 2D visual clusters.
     """
     if solver is None or not hasattr(solver, 'sampler') or solver.sampler.walkers is None:
         # Fallback Mock (Nobel-Tier Aesthetics)
@@ -3990,6 +3988,7 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
+
 
 
 
