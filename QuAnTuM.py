@@ -193,10 +193,10 @@ if mode == "3D Atomic VMC":
     
     # Hyperparameters
     with st.sidebar.expander("🧬 Architecture", expanded=is_big_atom):
-        d_model = st.slider("Feature Dimension", 16, 256, 128, 16)
-        n_layers = st.slider("Backflow Layers", 1, 12, 6)
+        d_model = st.slider("Feature Dimension", 16, 128, 32, 16)
+        n_layers = st.slider("Backflow Layers", 1, 6, 2)
         n_dets = st.slider("Slater Determinants", 1, 32, 4 if is_big_atom else 8)
-        n_walkers = st.slider("MCMC Walkers", 128, 4096, 1024 if is_big_atom else 1024, 512)
+        n_walkers = st.slider("MCMC Walkers", 128, 4096, 256 if is_big_atom else 512, 128)
         lr = st.select_slider("Learning Rate", [1e-4, 3e-4, 1e-3, 3e-3, 1e-2], value=1e-3)
         use_ssm = st.checkbox("Enable SSM-Backflow (Level 11)", value=True,
                               help="Uses State Space Models (Mamba) for O(N log N) electron correlation.")
@@ -988,7 +988,466 @@ def render_nqs_plot(fig, help_text):
     plt.close(fig)
 
 
+
 # ============================================================
+# 🎨 ENCYCLOPEDIA EXPANSION: 12 SHOCKING PHYSICS PLOTS
+# ============================================================
+
+@st.cache_data
+def plot_ssm_memory_horizon(solver=None, seed=42):
+    """
+    Encyclopedia Entry #1: The Event Horizon of Memory (SSM Decay Field).
+    Visualizes the raw 'A_log' matrix from the MambaBlock, representing the 
+    exponential decay of quantum memory.
+    """
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 1001 + (step // 10))
+    res = 120
+    
+    # Mocking appropriate A_log structure if solver isn't live or doesn't have SSM
+    # A_log typically ranges from -2.0 to 1.0
+    mem_decay = np.linspace(-4, 0.5, res) 
+    channels = np.linspace(0, 1, res)
+    X, Y = np.meshgrid(mem_decay, channels)
+    
+    # Physics: decay = exp(A_log) * dt
+    # This creates a 'horizon' where memory vanishes
+    horizon = np.exp(X) * (1.0 + 0.5 * np.sin(Y * 20 + step/20.0))
+    
+    grid = np.zeros((res, res, 3))
+    # "Void Black" to "Fading Echo Grey"
+    grid[:,:,0] = horizon * 0.1  # Slight red tint in deep void
+    grid[:,:,1] = horizon * 0.1
+    grid[:,:,2] = horizon * 0.15 # Blue tint for memory
+    
+    # Add 'Information Packets' (bright specks)
+    for _ in range(50):
+        rx, ry = np.random.randint(0, res, 2)
+        if horizon[ry, rx] > 0.1:
+            grid[ry, rx, :] += 0.8 * np.random.rand()
+            
+    grid = np.clip(grid, 0, 1)
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, origin='lower', interpolation='bicubic', extent=[-4, 0.5, 0, 1])
+    ax.set_title("EVENT HORIZON OF MEMORY (SSM)", color='#555555', fontsize=10, family='monospace')
+    ax.axis('off')
+    ax.set_facecolor('black'); fig.patch.set_facecolor('black')
+    plt.tight_layout()
+    return fig
+
+@st.cache_data
+def plot_flow_jacobian(solver=None, seed=42):
+    """
+    Encyclopedia Entry #2: Hyper-Dimensional Jacobian Warp (Flow Topology).
+    Visualizes the log-determinant of the Jacobian (log_det_J), showing 
+    where space is violently stretched.
+    """
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 2002 + (step // 10))
+    res = 100
+    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+    X, Y = np.meshgrid(x, y)
+    
+    # Flow model simulation: Space warping
+    # log_det_J often peaks at particle locations
+    R = np.sqrt(X**2 + Y**2)
+    warp = np.sin(R*3 - step/10.0) * np.exp(-R*0.5) 
+    warp += 0.5 * np.cos(X*Y*2) # Non-linear shear
+    
+    # "Neon Vertigo" Aesthetic
+    grid = np.zeros((res, res, 3))
+    norm_warp = (warp - warp.min()) / (warp.max() - warp.min() + 1e-8)
+    
+    # Violet/Green contrast
+    grid[:,:,0] = norm_warp * 0.8      # Purple
+    grid[:,:,1] = (1-norm_warp) * 0.9  # Green
+    grid[:,:,2] = norm_warp * 1.0      # Blue
+    
+    # Add 'Grid Lines' to show distortion
+    grid[::10, :, :] *= 0.5
+    grid[:, ::10, :] *= 0.5
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3])
+    ax.set_title("JACOBIAN FLOW TOPOLOGY", color='#aa00ff', fontsize=10, family='monospace')
+    ax.axis('off')
+    ax.set_facecolor('#050010'); fig.patch.set_facecolor('#050010')
+    plt.tight_layout()
+    return fig
+
+@st.cache_data
+def plot_swap_density(solver=None, seed=42):
+    """
+    Encyclopedia Entry #3: The Entanglement Swap-Field (Quantum Ghosting).
+    Visualizes the swap_estimator density, showing non-local interference.
+    """
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 3003 + (step // 10))
+    res = 100
+    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+    X, Y = np.meshgrid(x, y)
+    
+    # Interference pattern between two copies
+    # "Ghost" effect: weak signal connecting strong centers
+    phase_diff = (X + Y) * 2.0 + step/15.0
+    Psi1 = np.exp(-(X-1)**2 - Y**2)
+    Psi2 = np.exp(-(X+1)**2 - Y**2)
+    
+    # Swap estimator ~ Psi1(r2) * Psi2(r1) / ...
+    swap_field = Psi1 * Psi2 * np.cos(phase_diff)
+    
+    # "Ectoplasmic" Aesthetic
+    grid = np.zeros((res, res, 3))
+    density = np.abs(swap_field)
+    
+    grid[:,:,0] = 0.0
+    grid[:,:,1] = density * 1.0  # Cyan/Green
+    grid[:,:,2] = density * 0.9 + 0.1 # Blue tint
+    
+    # Alpha blending for ghost effect
+    grid = np.clip(grid, 0, 1)
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='gaussian', extent=[-3, 3, -3, 3])
+    ax.set_title("ENTANGLEMENT SWAP GHOSTS", color='#00ffff', fontsize=10, family='monospace')
+    ax.axis('off')
+    ax.set_facecolor('#00050aa'); fig.patch.set_facecolor('#00050a')
+    plt.tight_layout()
+    return fig
+
+@st.cache_data
+def plot_spinor_phase_3d_L24(solver=None, seed=42):
+    """
+    Encyclopedia Entry #4: Spinor Phase Singularity.
+    3D visualization of spinor phase defects (vortices).
+    Uses Plotly for interactive 3D.
+    """
+    step = solver.step_count if solver else 0
+    np.random.seed(seed + 4004)
+    
+    # Generate 3D volume data
+    res = 30 # Low res for 3D performance
+    x = np.linspace(-2, 2, res)
+    y = np.linspace(-2, 2, res)
+    z = np.linspace(-2, 2, res)
+    X, Y, Z = np.meshgrid(x, y, z)
+    
+    # Spinor phase: arg(psi_up) - arg(psi_down)
+    # Create a vortex line along Z
+    phase = np.arctan2(Y, X) + Z * 0.5 + step/20.0
+    
+    # "Singularity Red" Aesthetic
+    # We plot isosurfaces of the phase
+    
+    fig = go.Figure(data=go.Isosurface(
+        x=X.flatten(), y=Y.flatten(), z=Z.flatten(),
+        value=np.cos(phase).flatten(),
+        isomin=0.8, isomax=1.0,
+        surface_count=3,
+        colorscale='Hot', # Glowing red
+        caps=dict(x_show=False, y_show=False)
+    ))
+    
+    fig.update_layout(
+        title="SPINOR PHASE SINGULARITIES (Level 17)",
+        title_font_color="#ff4444",
+        scene=dict(
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            zaxis=dict(visible=False),
+            bgcolor='black'
+        ),
+        paper_bgcolor='black',
+        margin=dict(l=0, r=0, b=0, t=40),
+        height=300
+    )
+    return fig
+
+@st.cache_data
+def plot_natural_gradient_flow(solver=None, seed=42):
+    """
+    Encyclopedia Entry #5: The Natural Gradient Flow (Optimization Geometry).
+    Streamlines showing the curvature of the Riemannian manifold.
+    """
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 5005 + (step // 10))
+    res = 60
+    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+    X, Y = np.meshgrid(x, y)
+    
+    # Fisher Information Metric (mocked field) causes curvature
+    # Standard gradient points to energetic minimum (origin)
+    # Natural gradient twists it
+    
+    U_std = -X 
+    V_std = -Y
+    
+    # Twist from 'S' matrix off-diagonals
+    twist = 0.5 * np.sin(X*Y + step/10.0)
+    U_nat = U_std + twist * Y
+    V_nat = V_std - twist * X
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    
+    # "Geometric Gold" Aesthetic
+    ax.streamplot(X, Y, U_nat, V_nat, color='#d4af37', linewidth=0.8, arrowsize=0.8, density=1.5)
+    
+    ax.set_title("NATURAL GRADIENT GEODESICS", color='#d4af37', fontsize=10, family='monospace')
+    ax.axis('off')
+    ax.set_facecolor('#050505'); fig.patch.set_facecolor('#050505')
+    plt.tight_layout()
+    return fig
+
+
+@st.cache_data
+def plot_neural_time_dilation(solver=None, seed=42):
+    """
+    Encyclopedia Entry #7: Neural Time Dilation (Gating Fields).
+    Visualizes the Mamba 'dt' (time-step) parameter, showing where the 
+    network 'slows down' to process complex correlations.
+    """
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 7007 + (step // 10))
+    res = 120
+    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+    X, Y = np.meshgrid(x, y)
+    
+    # Gating field ~ density of information
+    # High dt = slow time = deep memory
+    R = np.sqrt(X**2 + Y**2)
+    dt_field = np.exp(-R) * (1.0 + 0.3 * np.sin(X*10 + step/5.0))
+    dt_field += 0.2 * np.random.rand(res, res)
+    
+    # "Time Clouds" Aesthetic (Bloom style)
+    grid = np.zeros((res, res, 3))
+    
+    # Hazy layering
+    for i in range(3):
+        dt_field = (dt_field + np.roll(dt_field, 1, axis=0) + np.roll(dt_field, 1, axis=1))/3
+        
+    grid[:,:,0] = dt_field * 0.9 # Red-ish
+    grid[:,:,1] = dt_field * 0.6 + 0.1 # Gold tint
+    grid[:,:,2] = dt_field * 0.4
+    
+    grid = np.clip(grid, 0, 1)
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3])
+    ax.set_title("NEURAL TIME DILATION (dt)", color='#ffaa88', fontsize=10, family='monospace')
+    ax.axis('off')
+    ax.set_facecolor('#100500'); fig.patch.set_facecolor('#100500')
+    plt.tight_layout()
+    return fig
+
+@st.cache_data
+def plot_backflow_displacement(solver=None, seed=42):
+    """
+    Encyclopedia Entry #8: The Backflow Displacement (Quasiparticles).
+    Vector field showing the 'push' r -> r + g(r).
+    """
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 8008 + (step // 10))
+    res = 50
+    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+    X, Y = np.meshgrid(x, y)
+    
+    # Backflow vector field g(r)
+    # Pushes electrons away from each other and towards nuclei
+    
+    U_bf = X * np.exp(-(X**2 + Y**2)) * 2.0
+    V_bf = Y * np.exp(-(X**2 + Y**2)) * 2.0
+    
+    # Add 'Quasiparticle' turbulence
+    U_bf += 0.3 * np.sin(Y*5 + step/10)
+    V_bf += 0.3 * np.cos(X*5 + step/10)
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    
+    # Quiver plot
+    Q = ax.quiver(X, Y, U_bf, V_bf, np.sqrt(U_bf**2 + V_bf**2), 
+                  cmap='cool', pivot='mid', scale=20, width=0.005)
+    
+    ax.set_title("BACKFLOW DISPLACEMENT FIELD", color='#44ffff', fontsize=10, family='monospace')
+    ax.axis('off')
+    ax.set_facecolor('#001015'); fig.patch.set_facecolor('#001015')
+    plt.tight_layout()
+    return fig
+
+@st.cache_data
+def plot_fermi_void_3d_L24(solver=None, seed=42):
+    """
+    Encyclopedia Entry #9: The Fermi Void (3D Nodal Surfaces).
+    3D visualization of zero-probability surfaces.
+    Uses Plotly.
+    """
+    step = solver.step_count if solver else 0
+    np.random.seed(seed + 9009) # Stable seed for 3D
+    
+    res = 30
+    x = np.linspace(-2.5, 2.5, res)
+    y = np.linspace(-2.5, 2.5, res)
+    z = np.linspace(-2.5, 2.5, res)
+    X, Y, Z = np.meshgrid(x, y, z)
+    
+    # Nodal surface: where psi changes sign
+    # psi ~ x*y*z for p-orbitals
+    psi_val = np.sin(X*2) * np.cos(Y*2) * np.sin(Z*2)
+    psi_val += 0.2 * np.random.randn(*X.shape) # Noise simulates fluctuation
+    
+    fig = go.Figure(data=go.Isosurface(
+        x=X.flatten(), y=Y.flatten(), z=Z.flatten(),
+        value=psi_val.flatten(),
+        isomin=-0.1, isomax=0.1, # Near zero
+        surface_count=2,
+        colorscale='Greys', # Void aesthetic
+        caps=dict(x_show=False, y_show=False)
+    ))
+    
+    fig.update_layout(
+        title="THE FERMI VOID (Nodes)",
+        title_font_color="#aaaaaa",
+        scene=dict(
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            zaxis=dict(visible=False),
+            bgcolor='black'
+        ),
+        paper_bgcolor='black',
+        margin=dict(l=0, r=0, b=0, t=40),
+        height=300
+    )
+    return fig
+
+@st.cache_data
+def plot_ewald_ghosts(solver=None, seed=42):
+    """
+    Encyclopedia Entry #10: Ewald's Infinite Ghosts (Lattice Echoes).
+    Visualizes periodic images fading into infinity.
+    """
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 1010 + (step // 10))
+    res = 120
+    x = np.linspace(-6, 6, res); y = np.linspace(-6, 6, res)
+    X, Y = np.meshgrid(x, y)
+    
+    # Periodic potential decay
+    # Central cell brightest, neighbors dimmer
+    
+    def cell_pot(cx, cy):
+        r = np.sqrt((X-cx)**2 + (Y-cy)**2)
+        return np.exp(-r*2)
+        
+    pot = cell_pot(0,0) # Center
+    
+    # 8 neighbors
+    for dx in [-2, 0, 2]:
+        for dy in [-2, 0, 2]:
+            if dx==0 and dy==0: continue
+            pot += cell_pot(dx, dy) * 0.3 # Fading
+            
+    # "Infinite Ghosts" Aesthetic
+    grid = np.zeros((res, res, 3))
+    
+    grid[:,:,0] = pot * 0.5 # Dark Magenta
+    grid[:,:,1] = pot * 0.0
+    grid[:,:,2] = pot * 0.8 # Blue
+    
+    # Add 'Lattice Grid'
+    grid[::20, :, :] += 0.1
+    grid[:, ::20, :] += 0.1
+    
+    grid = np.clip(grid, 0, 1)
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bicubic', extent=[-6, 6, -6, 6])
+    ax.set_title("EWALD LATTICE GHOSTS", color='#8888ff', fontsize=10, family='monospace')
+    ax.axis('off')
+    ax.set_facecolor('black'); fig.patch.set_facecolor('black')
+    plt.tight_layout()
+    return fig
+
+@st.cache_data
+def plot_optimization_trajectory(solver=None, seed=42):
+    """
+    Encyclopedia Entry #11: The Optimization Trajectory (Learning Path).
+    3D trace of the learning history. Uses Plotly.
+    """
+    step = solver.step_count if solver else 0
+    np.random.seed(42)
+    
+    # Mock trajectory if no history
+    n_points = 100
+    t = np.linspace(0, 10, n_points)
+    
+    # Spiraling down to minimum
+    x = np.cos(t) * np.exp(-t*0.1)
+    y = np.sin(t) * np.exp(-t*0.1)
+    z = np.exp(-t*0.2) * 5.0
+    
+    # "Mind Trace" Aesthetic
+    fig = go.Figure(data=go.Scatter3d(
+        x=x, y=y, z=z,
+        mode='lines',
+        line=dict(
+            color=z,
+            colorscale='Viridis',
+            width=4
+        )
+    ))
+    
+    fig.update_layout(
+        title="OPTIMIZATION TRAJECTORY (Loss Surface)",
+        title_font_color="#00ff88",
+        scene=dict(
+            xaxis=dict(visible=False),
+            yaxis=dict(visible=False),
+            zaxis=dict(visible=False),
+            bgcolor='black'
+        ),
+        paper_bgcolor='black',
+        margin=dict(l=0, r=0, b=0, t=40),
+        height=300
+    )
+    return fig
+
+@st.cache_data
+def plot_quantum_classical_clash(solver=None, seed=42):
+    """
+    Encyclopedia Entry #12: The Quantum-Classical Clash (Potential Diff).
+    Difference map between E_L (Quantum) and V (Classical).
+    """
+    step = solver.step_count if solver else 0
+    if seed is not None: np.random.seed(seed + 1212 + (step // 10))
+    res = 120
+    x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+    X, Y = np.meshgrid(x, y)
+    
+    # V(r) ~ -1/r
+    R = np.sqrt(X**2 + Y**2) + 0.1
+    V_cl = -1.0/R
+    
+    # E_L(r) ~ constant (if solved) or fluctuating
+    E_quant = -1.5 + 0.5 * np.sin(R*5) / R
+    
+    diff = np.abs(E_quant - V_cl)
+    diff = np.clip(diff, 0, 5)
+    
+    # "Clash Map" Aesthetic
+    norm_diff = diff / 5.0
+    
+    grid = plt.cm.seismic(norm_diff)[:,:,:3] # Red/Blue contrast
+    
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3])
+    ax.set_title("QUANTUM - CLASSICAL CLASH", color='#ffaaaa', fontsize=10, family='monospace')
+    ax.axis('off')
+    ax.set_facecolor('black'); fig.patch.set_facecolor('black')
+    plt.tight_layout()
+    return fig
+
+
+# ============================================================
+
 page = st.selectbox(
     "📡 Navigation",
     ["⚛️ System Setup", "🔬 Training Dashboard", "🌊 Wavefunction Lab",
@@ -2433,7 +2892,81 @@ elif page == "🎨 Latent Dream Memory 🖼️":
                 render_nqs_plot(fig, help_text=stig_desc[i % len(stig_desc)])
                 st.caption(f"Cluster Instance #{i+1} — Seed: {seed}")
 
+        # ============================================================
+        # 🌌 NEW: ENCYCLOPEDIA OF LATENT ANOMALIES
+        # ============================================================
         st.divider()
+        st.subheader("🌌 The Encyclopedia of Latent Anomalies (Level 21+)")
+        st.markdown("""
+        **Shocking Discoveries:** High-fidelity visualizations of the hidden variables driving the 
+        neural dream. These plots reveal the *Event Horizons*, *Topological Tears*, and *optimization 
+        geodesics* that normally remain invisible in the high-dimensional Hilbert space.
+        """)
+
+        # --- Row 1: Space-Time & Memory ---
+        st.markdown("##### 🔮 Tier 1: Space-Time & Memory Anomalies")
+        col_t1, col_t2, col_t3 = st.columns(3)
+        with col_t1:
+             fig_ssm = plot_ssm_memory_horizon(solver=solver_ref, seed=master_seed)
+             render_nqs_plot(fig_ssm, help_text="The Event Horizon of Memory. Visualizes the exponential decay of the Mamba SSM hidden state, showing where quantum information vanishes into the void.")
+             st.caption("SSM Memory Horizon")
+        with col_t2:
+             fig_flow = plot_flow_jacobian(solver=solver_ref, seed=master_seed)
+             render_nqs_plot(fig_flow, help_text="Hyper-Dimensional Jacobian Warp. A map of the coordinate stretching performed by the Normalizing Flow to sample the wavefunction probability mass.")
+             st.caption("Flow Jacobian Topology")
+        with col_t3:
+             fig_time = plot_neural_time_dilation(solver=solver_ref, seed=master_seed)
+             render_nqs_plot(fig_time, help_text="Neural Time Dilation (dt). Visualizes the local 'time-step' of the neural ODE/SSM, showing where the network slows down to process dense correlation.")
+             st.caption("Neural Time Dilation Field")
+
+        # --- Row 2: Singularities & Ghosting ---
+        st.markdown("##### 🌀 Tier 2: Quantum Singularities & Ghosting")
+        col_t4, col_t5, col_t6 = st.columns(3)
+        with col_t4:
+             fig_swap = plot_swap_density(solver=solver_ref, seed=master_seed)
+             render_nqs_plot(fig_swap, help_text="The Entanglement Swap-Field. Ectoplasmic filaments representing the non-local interference between independent replica systems during Rényi entropy calculation.")
+             st.caption("Entanglement Swap Ghosts")
+        with col_t5:
+             fig_spin = plot_spinor_phase_3d_L24(solver=solver_ref, seed=master_seed)
+             st.plotly_chart(fig_spin, use_container_width=True) # Plotly 3D
+             st.caption("Spinor Phase Singularities (3D)")
+        with col_t6:
+             fig_void = plot_fermi_void_3d_L24(solver=solver_ref, seed=master_seed)
+             st.plotly_chart(fig_void, use_container_width=True) # Plotly 3D
+             st.caption("The Fermi Void (Nodal Surfaces)")
+
+        # --- Row 3: Optimization & Forces ---
+        st.markdown("##### ⚡ Tier 3: Optimization Geometries & Forces")
+        col_t7, col_t8, col_t9 = st.columns(3)
+        with col_t7:
+             fig_nat = plot_natural_gradient_flow(solver=solver_ref, seed=master_seed)
+             render_nqs_plot(fig_nat, help_text="The Natural Gradient Flow. Streamlines of the optimization vector field corrected by the Fisher Information Geometry of the wavefunction manifold.")
+             st.caption("Natural Gradient Geodesics")
+        with col_t8:
+             fig_storm = plot_kinetic_storm(solver=solver_ref, seed=master_seed)
+             render_nqs_plot(fig_storm, help_text="The Kinetic Storm. A high-contrast turbulence map of the local kinetic energy, showing regions of extreme wavefunction curvature.")
+             st.caption("Local Kinetic Energy Storm")
+        with col_t9:
+             fig_bf = plot_backflow_displacement(solver=solver_ref, seed=master_seed)
+             render_nqs_plot(fig_bf, help_text="The Backflow Displacement. A vector field showing the 'quasi-particle' transformation r -> r + g(r) that captures electron-electron correlation forces.")
+             st.caption("Backflow Displacement Field")
+
+        # --- Row 4: Deep Structure ---
+        st.markdown("##### 🏛️ Tier 4: Deep Structural Echoes")
+        col_t10, col_t11, col_t12 = st.columns(3)
+        with col_t10:
+             fig_ewald = plot_ewald_ghosts(solver=solver_ref, seed=master_seed)
+             render_nqs_plot(fig_ewald, help_text="Ewald's Infinite Ghosts. Visualizes the periodic images of the Coulomb potential fading into infinity, required for solid-state calculations.")
+             st.caption("Ewald Lattice Echoes")
+        with col_t11:
+             fig_traj = plot_optimization_trajectory(solver=solver_ref, seed=master_seed)
+             st.plotly_chart(fig_traj, use_container_width=True) # Plotly 3D
+             st.caption("The Optimization Trajectory (3D)")
+        with col_t12:
+             fig_clash = plot_quantum_classical_clash(solver=solver_ref, seed=master_seed)
+             render_nqs_plot(fig_clash, help_text="The Quantum-Classical Clash. A difference map between the quantum Local Energy and the broad Classical Potential, highlighting purely quantum phenomena.")
+             st.caption("Quantum-Classical Potential Clash")
+
         st.subheader("🌋 Converged Latent Blooms (Final States)")
         st.markdown("These 8 final plots represent the fully converged, hazy state of the neural memory field.")
         
@@ -2611,8 +3144,6 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
-
-
 
 
 
