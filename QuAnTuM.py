@@ -4121,13 +4121,19 @@ elif page == "🎨 Latent Dream Memory 🖼️":
 
         st.divider()
         st.subheader("🔱 THE GRAND UNIFIED FIELD (Conditional Topology)")
-        st.markdown("""
+        st.markdown(r"""
         **The 60th Dimension (Master Plot):** A 100% Truthful, Scientific Visualization of the "Pilot Wave" Dynamics.
         
-        This plot represents the **exact Quantum Force Field ($\nabla \log \Psi$)** acting on a single electron, conditional on the frozen positions of all other electrons (Environment). It visualizes the "Pilot Wave" dynamics that drive the MCMC sampler to discover the ground state.
+        This plot represents the **exact Quantum Force Field** acting on a single electron:
         
-        *   **Glassy Isosurface:** The conditional probability density cloud $P(r_1 | r_{env})$.
-        *   **Glowing Cones:** The Quantum Force Vector Field $F(r) = \nabla \log \Psi$.
+        $$
+        \mathbf{F}(\mathbf{r}) = \nabla \log \Psi(\mathbf{r})
+        $$
+        
+        It visualizes the "Pilot Wave" dynamics that drive the MCMC sampler to discover the ground state, conditional on the frozen positions of all other electrons (Environment).
+        
+        *   **Glassy Isosurface:** The conditional probability density cloud $P(\mathbf{r}_1 | \mathbf{r}_{env})$.
+        *   **Glowing Cones:** The Quantum Force Vector Field $\mathbf{F}(\mathbf{r})$.
         *   **Color:** The strength of the local force gradient.
         """)
         
