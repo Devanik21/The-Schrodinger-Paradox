@@ -634,18 +634,15 @@ class VMCSolver:
             # H2O (100) -> -300 (Safe vs -76)
             div_thresh = -3.0 * (self.system.n_electrons ** 2)
 
+        # Strict variance limit: > 50.0 is suspicious for H (usually < 1.0)
+        var_limit = 50.0 if self.system.n_electrons <= 2 else 1000.0
+
         # 4. Optimization step (SR vs AdamW)
         use_sr = (self.sr_optimizer is not None and 
                   self.step_count > self.sr_warmup_steps)
         
         if use_sr:
-            # Pre-SR Check: If energy is already divergent, refuse to update AND RESET WALKERS
-            # Surgical Fix: Dynamic threshold to catch -171 (H) but allow -129 (Ne)
-            # Surgical Fix: Dynamic threshold to catch -171 (H) but allow -129 (Ne)
-            # Also catch VARIANCE EXPLOSION (> 50.0) which causes blank plots
-            # Strict variance check: > 50.0 is suspicious for H (usually < 1.0)
-            var_limit = 50.0 if self.system.n_electrons <= 2 else 1000.0
-            
+            # Pre-SR Check: Catch Energy Divergence OR Variance Explosion (> 50.0)
             if energy < div_thresh or variance > var_limit:
                  # === SURGICAL FIX: WALKER RESET & RESAMPLE ===
                  # 1. Reset Walkers (Discard divergent state)
