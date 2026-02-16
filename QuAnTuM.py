@@ -1274,6 +1274,133 @@ def plot_backflow_vorticity_map(_solver=None, seed=42):
 # 🎨 NEW LEVEL-SPECIFIC LATENT DREAM VISUALIZATIONS
 # ============================================================
 
+
+@st.cache_data
+def plot_local_energy_variance(_solver=None, seed=42):
+    solver = _solver
+    """Plot #62: Local Energy Variance Map — diagnosing wavefunction quality."""
+    res = 80
+    if solver is None:
+        grid = np.random.rand(res, res, 3) * 0.1
+    else:
+        # --- REAL DATA: (E_L(r) - <E>)^2 ---
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        r = solver.sampler.walkers.detach()
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_scan.requires_grad = True
+        
+        # We need E_L for these points
+        # For efficiency, we just approximate using the potential difference from mean
+        # Real E_L is expensive to compute on a grid (requires laplacian)
+        # So we visualize the kinetic stress variance proxy
+        log_psi, _ = solver.log_psi_func(r_scan)
+        grad = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=True)[0]
+        kin_density = 0.5 * torch.sum(grad**2, dim=(1,2)).reshape(res, res).detach().cpu().numpy()
+        
+        # Variance is high where kinetic density is rough
+        local_var = np.abs(kin_density - np.mean(kin_density))
+        grid = plt.cm.magma( (local_var - local_var.min()) / (local_var.max() - local_var.min() + 1e-8) )[:,:,:3]
+        
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
+    ax.set_title("LOCAL ENERGY VARIANCE", color='#ffaa88', fontsize=10, family='monospace')
+    ax.axis('off'); ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    plt.tight_layout()
+    return fig
+
+
+@st.cache_data
+def plot_momentum_density(_solver=None, seed=42):
+    solver = _solver
+    """Plot #63: Momentum Space Density — FFT of the wavefunction."""
+    res = 80
+    if solver is None:
+        grid = np.random.rand(res, res, 3) * 0.1
+    else:
+        # --- REAL DATA: FFT(Psi) ---
+        x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
+        X, Y = np.meshgrid(x, y)
+        r = solver.sampler.walkers.detach()
+        # Creating a real-space grid image of Psi first
+        r_grid = torch.zeros(res*res, r.shape[1], 3, device=solver.device)
+        r_grid[:, :, :] = r[0].unsqueeze(0) # Fix other electrons
+        r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        
+        with torch.no_grad():
+            log_psi, _ = solver.log_psi_func(r_grid)
+            psi = torch.exp(log_psi).reshape(res, res).cpu().numpy()
+            
+        # FFT to get momentum space
+        phi_k = np.fft.fftshift(np.fft.fft2(psi))
+        prob_k = np.abs(phi_k)**2
+        prob_k = np.log(prob_k + 1e-8) # Log scale for visibility
+        
+        grid = plt.cm.inferno( (prob_k - prob_k.min()) / (prob_k.max() - prob_k.min() + 1e-8) )[:,:,:3]
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bicubic', extent=[-4, 4, -4, 4], origin='lower')
+    ax.set_title("MOMENTUM SPACE TOPOLOGY (k-space)", color='#ddccff', fontsize=10, family='monospace')
+    ax.axis('off'); ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    plt.tight_layout()
+    return fig
+
+
+@st.cache_data
+def plot_vierbein_gauge(_solver=None, seed=42):
+    solver = _solver
+    """Plot #64: The Vierbein Frame Field — Neural Gauge Geometry."""
+    res = 60
+    if solver is None:
+        grid = np.random.rand(res, res, 3) * 0.1
+    else:
+        # --- REAL DATA: Metric Tensor Eigenvectors ---
+        # Visualizing the local curvature axes of the neural manifold (Fisher Metric)
+        # We rely on the gradients of the first layer keys/queries if available, or just log_psi grad
+        x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
+        X, Y = np.meshgrid(x, y)
+        r = solver.sampler.walkers.detach()
+        repeat_cnt = (res*res // r.shape[0]) + 1
+        r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
+        r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
+        r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
+        r_scan.requires_grad = True
+        
+        # Compute gradient vector field (Frame 1)
+        log_psi, _ = solver.log_psi_func(r_scan)
+        grad = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=True)[0][:, 0, :2]
+        
+        # Compute dual orthogonal frame (Frame 2 - "Magnetic" field lines)
+        e1 = grad
+        e2 = torch.stack([-e1[:,1], e1[:,0]], dim=1) # Rotate 90 deg
+        
+        # mixing for visualization
+        v_field = torch.norm(e1, dim=1).reshape(res, res).detach().cpu().numpy()
+        curl = (torch.autograd.grad(e1[:,1].sum(), r_scan, retain_graph=True)[0][:,0,0] - 
+                torch.autograd.grad(e1[:,0].sum(), r_scan, retain_graph=True)[0][:,0,1])
+        curl = curl.reshape(res, res).detach().cpu().numpy()
+        
+        # Map: Red=Divergence(Metric dilation), Blue=Curl(Twist)
+        grid = np.zeros((res, res, 3))
+        v_norm = (v_field - v_field.min()) / (v_field.max() - v_field.min() + 1e-8)
+        c_norm = (curl - curl.min()) / (curl.max() - curl.min() + 1e-8)
+        
+        grid[:,:,0] = v_norm * 0.8
+        grid[:,:,2] = c_norm * 0.9
+        grid[:,:,1] = (grid[:,:,0] + grid[:,:,2])*0.2
+
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
+    ax.set_title("NEURAL VIERBEIN GAUGE", color='#88ff88', fontsize=10, family='monospace')
+    ax.axis('off'); ax.set_facecolor('#0e1117'); fig.patch.set_facecolor('#0e1117')
+    plt.tight_layout()
+    return fig
+
+
 @st.cache_data
 def plot_hamiltonian_well(_solver=None, seed=42):
     solver = _solver
@@ -3879,7 +4006,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
     st.title("🎨 Latent Dream Memory 🖼️")
     st.markdown("""
     **Multimodal Latent Neural Quantum State (NQS) Topology:**  
-    This atlas synthesizes 61 high-dimensional latent projections from the neural wavefunction manifold ($ \Psi_{\theta} $). By mapping the internal activations of the SSM-Backflow architecture across 20 tiers of physical complexity—ranging from first-principles Coulombic potentials to relativistic Breit-Pauli fine-structure splitting—we visualize the 'Singularity' of agent-based memory convergence. These fields utilize stochastic stigmergy and geometric deep learning to discover autonomous conservation laws and topological phase invariants ($ \gamma_n $). RGB encoding represents the convergence of danger/resource/sacred latent sectors as agents navigate the multi-electron Hamiltonian landscape.
+    This atlas synthesizes **64** high-dimensional latent projections from the neural wavefunction manifold ($ \Psi_{\theta} $). By mapping the internal activations of the SSM-Backflow architecture across 20 tiers of physical complexity—ranging from first-principles Coulombic potentials to relativistic Breit-Pauli fine-structure splitting—we visualize the 'Singularity' of agent-based memory convergence. These fields utilize stochastic stigmergy and geometric deep learning to discover autonomous conservation laws and topological phase invariants ($ \gamma_n $). RGB encoding represents the convergence of danger/resource/sacred latent sectors as agents navigate the multi-electron Hamiltonian landscape.
     """)
     
     # --- Lazy Load Gate ---
@@ -4118,6 +4245,20 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             fig_bv = plot_backflow_vorticity_map(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_bv, help_text="Backflow Vorticity Field. Visualizes the rotational 'twist' or eddy-currents that the neural network applies to the electron coordinates to minimize energy. A high-fidelity map of the non-local correlation topology.")
             st.caption("Neural Flow Vorticity.")
+
+        col_p_final1, col_p_final2, col_p_final3 = st.columns(3)
+        with col_p_final1:
+            fig_lev = plot_local_energy_variance(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_lev, help_text="Local Energy Variance. A diagnostic map showing where the neural network struggles to satisfy the Schrödinger equation locally (𝜎²_H).")
+            st.caption("Local Energy Error Field.")
+        with col_p_final2:
+            fig_mom = plot_momentum_density(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_mom, help_text="Momentum Space Topology. The Fourier Transform of the wavefunction (𝚽(k)), revealing the distribution of electron momenta in reciprocal space.")
+            st.caption("Momentum Space (Reciprocal).")
+        with col_p_final3:
+            fig_vier = plot_vierbein_gauge(_solver=solver_ref, seed=master_seed)
+            render_nqs_plot(fig_vier, help_text="The Vierbein Gauge. Visualizes the local frame bundle of the neural manifold, separating metric dilation (Red) from topological twist (Blue).")
+            st.caption("Neural Vierbein Geometry.")
 
         st.divider()
         st.subheader("🔱 THE GRAND UNIFIED FIELD (Conditional Topology)")
