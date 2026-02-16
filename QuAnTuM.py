@@ -1038,7 +1038,8 @@ def render_nqs_plotly(fig, help_text):
 # ============================================================
 
 @st.cache_data
-def plot_ssm_memory_horizon(solver=None, seed=42):
+def plot_ssm_memory_horizon(_solver=None, seed=42):
+    solver = _solver
     """
     Encyclopedia Entry #1: The Event Horizon of Memory (SSM Decay Field).
     Visualizes the raw 'A_log' matrix from the MambaBlock.
@@ -1081,7 +1082,8 @@ def plot_ssm_memory_horizon(solver=None, seed=42):
     return fig
 
 @st.cache_data
-def plot_flow_jacobian(solver=None, seed=42):
+def plot_flow_jacobian(_solver=None, seed=42):
+    solver = _solver
     """
     Encyclopedia Entry #2: Hyper-Dimensional Jacobian Warp (Flow Topology).
     """
@@ -1117,7 +1119,8 @@ def plot_flow_jacobian(solver=None, seed=42):
     return fig
 
 @st.cache_data
-def plot_swap_density(solver=None, seed=42):
+def plot_swap_density(_solver=None, seed=42):
+    solver = _solver
     """
     Encyclopedia Entry #3: The Entanglement Swap-Field (Quantum Ghosting).
     Visualizes where non-local SWAP interactions are highest.
@@ -1155,7 +1158,8 @@ def plot_swap_density(solver=None, seed=42):
     return fig
 
 @st.cache_data
-def plot_spinor_phase_3d_L24(solver=None, seed=42):
+def plot_spinor_phase_3d_L24(_solver=None, seed=42):
+    solver = _solver
     """
     Encyclopedia Entry #4: Spinor Phase Singularity.
     Real complex phase vortices from SpinorWavefunction.
@@ -1196,7 +1200,8 @@ def plot_spinor_phase_3d_L24(solver=None, seed=42):
     return fig
 
 @st.cache_data
-def plot_natural_gradient_flow(solver=None, seed=42):
+def plot_natural_gradient_flow(_solver=None, seed=42):
+    solver = _solver
     """
     Encyclopedia Entry #5: The Natural Gradient Flow (Optimization Geometry).
     Visualizes the actual Fisher Information Metric (S matrix) curvature.
@@ -1232,7 +1237,8 @@ def plot_natural_gradient_flow(solver=None, seed=42):
     return fig
 
 @st.cache_data
-def plot_kinetic_storm(solver=None, seed=42):
+def plot_kinetic_storm(_solver=None, seed=42):
+    solver = _solver
     """
     Encyclopedia Entry #6: The Kinetic Storm (Energy Turbulence).
     Visualizes local kinetic energy fluctuations from Hutchinson.
@@ -1269,7 +1275,8 @@ def plot_kinetic_storm(solver=None, seed=42):
 
 
 @st.cache_data
-def plot_neural_time_dilation(solver=None, seed=42):
+def plot_neural_time_dilation(_solver=None, seed=42):
+    solver = _solver
     """
     Encyclopedia Entry #7: Neural Time Dilation (Gating Fields).
     Visualizes where the NQS slows down processing.
@@ -1305,7 +1312,8 @@ def plot_neural_time_dilation(solver=None, seed=42):
     return fig
 
 @st.cache_data
-def plot_backflow_displacement(solver=None, seed=42):
+def plot_backflow_displacement(_solver=None, seed=42):
+    solver = _solver
     """
     Encyclopedia Entry #8: The Backflow Displacement (Quasiparticles).
     Vector field showing the real backflow g(r).
@@ -1342,7 +1350,8 @@ def plot_backflow_displacement(solver=None, seed=42):
     return fig
 
 @st.cache_data
-def plot_fermi_void_3d_L24(solver=None, seed=42):
+def plot_fermi_void_3d_L24(_solver=None, seed=42):
+    solver = _solver
     """
     Encyclopedia Entry #9: The Fermi Void (3D Nodal Surfaces).
     Real ISO-surfaces where Psi vanishes.
@@ -1381,7 +1390,8 @@ def plot_fermi_void_3d_L24(solver=None, seed=42):
     return fig
 
 @st.cache_data
-def plot_ewald_ghosts(solver=None, seed=42):
+def plot_ewald_ghosts(_solver=None, seed=42):
+    solver = _solver
     """
     Encyclopedia Entry #10: Ewald's Infinite Ghosts (Lattice Echoes).
     Visualizes periodic image potentials.
@@ -1416,7 +1426,8 @@ def plot_ewald_ghosts(solver=None, seed=42):
     return fig
 
 @st.cache_data
-def plot_optimization_trajectory(solver=None, seed=42):
+def plot_optimization_trajectory(_solver=None, seed=42):
+    solver = _solver
     """
     Encyclopedia Entry #11: The Optimization Trajectory (Learning Path).
     Real trace of energy history.
@@ -1448,7 +1459,8 @@ def plot_optimization_trajectory(solver=None, seed=42):
     return fig
 
 @st.cache_data
-def plot_quantum_classical_clash(solver=None, seed=42):
+def plot_quantum_classical_clash(_solver=None, seed=42):
+    solver = _solver
     """
     Encyclopedia Entry #12: The Quantum-Classical Clash (Potential Diff).
     """
