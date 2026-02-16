@@ -641,7 +641,12 @@ class VMCSolver:
         if use_sr:
             # Pre-SR Check: If energy is already divergent, refuse to update AND RESET WALKERS
             # Surgical Fix: Dynamic threshold to catch -171 (H) but allow -129 (Ne)
-            if energy < div_thresh:
+            # Surgical Fix: Dynamic threshold to catch -171 (H) but allow -129 (Ne)
+            # Also catch VARIANCE EXPLOSION (> 50.0) which causes blank plots
+            # Strict variance check: > 50.0 is suspicious for H (usually < 1.0)
+            var_limit = 50.0 if self.system.n_electrons <= 2 else 1000.0
+            
+            if energy < div_thresh or variance > var_limit:
                  # === SURGICAL FIX: WALKER RESET & RESAMPLE ===
                  # 1. Reset Walkers (Discard divergent state)
                  self.sampler.initialize_around_nuclei(self.system)
@@ -664,7 +669,7 @@ class VMCSolver:
                  return {
                     'energy': new_energy, 'variance': new_variance, 
                     'acceptance_rate': acc_rate, 'grad_norm': 0.0,
-                    'warning': f"Divergence detected (was {energy:.2f}). System reset & resampled."
+                    'warning': f"Instability detected (E={energy:.1f}, Var={variance:.1f}). System reset."
                 }
 
             grad_norm = self.sr_optimizer.compute_update(
@@ -675,9 +680,9 @@ class VMCSolver:
             E_centered = (E_L_clipped - E_L_clipped.mean()).detach()
             loss = torch.mean(2.0 * E_centered * log_psi)
             
-            if torch.isnan(loss) or torch.isinf(loss) or energy < div_thresh:
+            if torch.isnan(loss) or torch.isinf(loss) or energy < div_thresh or variance > var_limit:
                 self.optimizer.zero_grad()
-                if energy < div_thresh:
+                if energy < div_thresh or variance > var_limit:
                     # === SURGICAL FIX: WALKER RESET & RESAMPLE ===
                     self.sampler.initialize_around_nuclei(self.system)
                     self.equilibrate(n_steps=50)
@@ -696,16 +701,25 @@ class VMCSolver:
                 return {
                     'energy': energy, 'variance': variance,
                     'acceptance_rate': acc_rate, 'grad_norm': 0.0,
-                    'warning': f"Divergence detected. System reset & resampled."
+                    'warning': f"Instability (E={energy:.1f}, Var={variance:.1f}). System reset."
                 }
             
-            loss.backward()
-            # Absolute Grad Clip for Baseline
-            grad_norm = torch.nn.utils.clip_grad_norm_(
-                self.wavefunction.parameters(), max_norm=0.5
-            )
-            self.optimizer.step()
-            grad_norm = grad_norm.item() if isinstance(grad_norm, torch.Tensor) else grad_norm
+            try:
+                loss.backward()
+                # Absolute Grad Clip for Baseline
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    self.wavefunction.parameters(), max_norm=0.5
+                )
+                self.optimizer.step()
+                grad_norm = grad_norm.item() if isinstance(grad_norm, torch.Tensor) else grad_norm
+            except RuntimeError:
+                # Catch autograd errors during backward
+                 self.optimizer.zero_grad()
+                 return {
+                    'energy': energy, 'variance': variance,
+                    'acceptance_rate': acc_rate, 'grad_norm': 0.0,
+                    'warning': "Gradient Explosion Caught! Skipped Update."
+                }
 
         # 5. Record metrics
         self.energy_history.append(energy)
