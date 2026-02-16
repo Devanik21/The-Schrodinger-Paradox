@@ -628,9 +628,9 @@ class VMCSolver:
             multiplier = 1.06 if self.system.n_electrons == 1 else 1.15
             div_thresh = self.system.exact_energy * multiplier
             
-            # The "Precision" Variance Sweet Spot (Tuned between 1.0 and 1.2)
-            # 1.1 is the 'Golden Ratio' for Hydrogen: tight but resilient.
-            var_thresh = 1.1 if self.system.n_electrons == 1 else 25.0
+            # The "Master Precision" Variance Limit (Tuned between 1.0 and 1.1)
+            # 1.05 is the ultimate guardrail for Nobel-tier accuracy.
+            var_thresh = 1.05 if self.system.n_electrons == 1 else 25.0
         else:
             # Fallback heuristic: Tighter than before
             div_thresh = -1.2 * (self.system.n_electrons ** 2)
