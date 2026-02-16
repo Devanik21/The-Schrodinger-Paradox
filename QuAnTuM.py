@@ -1111,7 +1111,7 @@ def plot_swap_density(solver=None, seed=42):
     ax.imshow(grid, interpolation='gaussian', extent=[-3, 3, -3, 3])
     ax.set_title("ENTANGLEMENT SWAP GHOSTS", color='#00ffff', fontsize=10, family='monospace')
     ax.axis('off')
-    ax.set_facecolor('#00050aa'); fig.patch.set_facecolor('#00050a')
+    ax.set_facecolor('#00050a'); fig.patch.set_facecolor('#00050a')
     plt.tight_layout()
     return fig
 
