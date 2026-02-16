@@ -624,9 +624,10 @@ class VMCSolver:
         # Dynamic Divergence Threshold (User requested ~ -6/-7 for H)
         # Scale based on system size to remain valid for Ne/Molecules
         if self.system.exact_energy is not None:
-            # H (-0.5) -> -7.5 (15x margin)
+            # User Request: Harden H (-0.5) to trigger at -5.25 (10.5x)
             # Ne (-129) -> -1935 (15x margin)
-            div_thresh = self.system.exact_energy * 15.0 
+            multiplier = 10.5 if self.system.n_electrons == 1 else 15.0
+            div_thresh = self.system.exact_energy * multiplier
         else:
             # Fallback heuristic: -3.0 * N_e^2
             # H2 (4) -> -12 (Safe vs -1.17)
