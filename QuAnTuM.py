@@ -387,10 +387,9 @@ def plot_latent_bloom(_solver=None, seed=None, step=0, bloom_id=0):
     solver = _solver
     """
     Level 20: 'The Stigmergy Painting' — Real-time High-Dimensional Projection.
-    Now uses 'Spectral Hue Mapping' to visualize the 3rd latent dimension as vibrant color.
-    (Matches the 'Alien Art' aesthetic with 100% truth).
+    Projects the 3N-dimensional wavefunction into a random 2D latent slice.
     """
-    res = 100 # Increased resolution for smoother gradients
+    res = 80
     
     if solver is None or not hasattr(solver, 'sampler') or solver.sampler.walkers is None:
         # --- OFFLINE PROCEDURAL FALLBACK (Artistic Mode) ---
@@ -406,11 +405,8 @@ def plot_latent_bloom(_solver=None, seed=None, step=0, bloom_id=0):
         for _ in range(num_seeds):
             ry, rx = np.random.randint(0, res, 2)
             color = np.random.rand(3)
-            # bias towards neon
-            color = color / (color.max() + 1e-8)
-            color[color < 0.2] = 0.0
-            
-            strength = 0.3 + np.random.rand() * 0.7
+            if np.random.rand() > 0.5: color[1] *= 0.5 
+            strength = 0.2 + np.random.rand() * 0.6
             grid[ry, rx] = np.clip(grid[ry, rx] + color * strength, 0, 1)
         # 3. Organic Diffusion
         for i in range(8):
@@ -418,85 +414,69 @@ def plot_latent_bloom(_solver=None, seed=None, step=0, bloom_id=0):
             grid = (grid + np.roll(grid, 1, axis=0) * w + np.roll(grid, -1, axis=1) * w + np.roll(grid, 1, axis=1) * (w/2)) / (1 + 2.5*w)
         # 4. Final Aesthetic Polish
         grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
-        grid = np.clip(grid * 1.8, 0, 1) ** 1.1 # Bright neon
+        grid = np.clip(grid * 1.4, 0, 1) ** 1.3 
 
     else:
-        # --- REAL-TIME PHYSICS: Spectral Hue Projection (3N -> R3 -> HSV -> RGB) ---
-        # 1. Extract high-dimensional walker configuration [N_w, D]
+        # --- REAL-TIME PHYSICS: 3N -> 2D Projection ---
+        # 1. Extract high-dimensional walker configuration
+        # shape: [N_walkers, N_electrons, 3]
         walkers = solver.sampler.walkers.detach().cpu().numpy()
         N_w, N_e, _ = walkers.shape
         D = N_e * 3
+        
+        # Flatten to [N_w, D]
         flat_walkers = walkers.reshape(N_w, D)
         
-        # 2. Generate Random Projection to 3D (X, Y, Hue-Phase)
+        # 2. Generate Random Orthogonal Projection Matrix [D, 2]
+        # Seeded by the bloom_id to ensure each plot is a DIFFERENT slice
         rng = np.random.RandomState(seed + bloom_id * 999)
-        proj_matrix = rng.randn(D, 3)
+        proj_matrix = rng.randn(D, 2)
+        # Orthogonalize to preserve geometry
         Q, _ = np.linalg.qr(proj_matrix) 
+        proj_matrix = Q 
         
-        # [N_w, 3] Latent Space
-        latent_3d = flat_walkers @ Q
+        # 3. Project to 2D Latent Space [N_w, 2]
+        latent_2d = flat_walkers @ proj_matrix
         
-        # X, Y for position
-        pos = latent_3d[:, :2]
-        # Z for Color (Hue)
-        hue_phase = latent_3d[:, 2]
+        # 4. Binning / Density Estimation
+        # Center and scale
+        center = np.mean(latent_2d, axis=0)
+        latent_centered = latent_2d - center
+        scale = np.std(latent_centered) * 3.0 + 1e-8
         
-        # Normalize Position to Grid
-        center = np.mean(pos, axis=0)
-        pos_centered = pos - center
-        scale = np.std(pos_centered) * 3.0 + 1e-8
-        coords = (pos_centered / scale + 0.5) * res
+        # Map to [0, res]
+        coords = (latent_centered / scale + 0.5) * res
         coords = np.clip(coords, 0, res-1).astype(int)
         
-        # Normalize Hue Phase to [0, 1]
-        h_min, h_max = hue_phase.min(), hue_phase.max()
-        hue_norm = (hue_phase - h_min) / (h_max - h_min + 1e-8)
+        # density grid
+        grid = np.zeros((res, res, 3))
         
-        # Construct Accumulator Grid
-        grid_accum = np.zeros((res, res, 3))
+        # Unique color tint for this dimension
+        tint = rng.rand(3)
+        tint = tint / (np.max(tint) + 1e-8)
         
-        # Vectorized Colors: Map Hue -> RGB using simple rainbow approximation
-        # Or even better: Use a cyclical neon palette
-        import matplotlib.colors as mcolors
-        
-        # Fast HSV to RGB using matplotlib colormap (hsv is cyclical)
-        # We cycle hue 2 times to get more variation
-        colors = plt.cm.hsv((hue_norm * 1.5) % 1.0)[:, :3] 
-        
-        # Accumulate
+        # Accumulate walkers
         for i in range(N_w):
             cx, cy = coords[i]
-            # Add weighted color
-            grid_accum[cy, cx] += colors[i] * 1.5
+            grid[cy, cx] += tint
             
-        # 3. Apply "Bloom" (Heavy Gaussian Smoothing for 'Alien Cloud' effect)
+        # 5. Apply "Bloom" (Gaussian Smoothing)
+        # This replaces the raw histogram with a probability cloud
         from scipy.ndimage import gaussian_filter
-        # Use LARGE sigma to merge dots into clouds
-        sigma = 3.5 if N_w > 1000 else 4.5 
-        
-        # Smooth each channel
-        grid = np.zeros_like(grid_accum)
+        sigma = 1.5 if N_w > 1000 else 2.5
         for c in range(3):
-            grid[:,:,c] = gaussian_filter(grid_accum[:,:,c], sigma=sigma)
+            grid[:,:,c] = gaussian_filter(grid[:,:,c], sigma=sigma)
             
-        # 4. "Alien Art" Color Grading
-        # Improve contrast of the cloud
+        # Normalize and enhance contrast
         grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
-        
-        # S-Curve for contrast (makes background blacker, peaks brighter)
-        # Using simple power law for speed
-        grid = grid ** 0.6  # Gamma compression first to bring out mids
-        grid = np.clip(grid * 2.5, 0, 1) # Exposure boost
-        grid = grid ** 1.4 # Contrast crunch
-        
-        # Add subtle glow
-        glow = gaussian_filter(grid, sigma=8.0)
-        grid = np.clip(grid + glow * 0.4, 0, 1)
+        grid = grid * 2.5 # Gain
+        grid = np.clip(grid, 0, 1)
+        grid = grid ** 0.8 # Gamma
     
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, origin='upper', interpolation='bicubic')
     
-    title = f"Latent Spectral Bloom #{bloom_id+1} (Dimensional Hue Map)"
+    title = f"Latent Projection #{bloom_id+1} (R^{N_e*3} → R^2)"
     ax.set_title(title, color='white', fontsize=10, loc='left', pad=10, family='monospace')
     
     ax.set_facecolor('#0e1117')
@@ -516,17 +496,15 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
     solver = _solver
     """
     Level 20: The Master Latent Dimension Bloom.
-    Features 100% real Physics Data mixed into a 'Cosmic Nebula' via spectral compositing.
-    (Upgraded for smooth, cloud-like aesthetics).
+    Evolves with training metrics.
     """
-    res = 120 # High Res
-    
     if solver is None or not hasattr(solver, 'sampler') or solver.sampler.walkers is None:
         # --- OFFLINE PROCEDURAL FALLBACK (Artistic Mode) ---
         step = solver.step_count if solver else 0
         if seed is not None:
              np.random.seed(seed + (step // 5))
         
+        res = 120 
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
         energy_factor = 1.0
@@ -545,84 +523,72 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
         grid = np.clip(grid * 1.5, 0, 1) ** 1.4
 
     else:
-        # --- REAL-TIME HIGH-FIDELITY MASTER PROJECTION (NEBULA MODE) ---
-        # "The RGB Singularity": 3 Orthogonal Slices -> Plasma Cloud
+        # --- REAL-TIME HIGH-FIDELITY MASTER PROJECTION ---
+        # "The RGB Singularity": 3 Orthogonal Slices -> RGB Channels
         
+        # 1. Extract Walkers [N_w, D]
         walkers = solver.sampler.walkers.detach().cpu().numpy()
         N_w, N_e, _ = walkers.shape
         D = N_e * 3
         flat_walkers = walkers.reshape(N_w, D)
         
+        res = 120 # High Res
         rng = np.random.RandomState(seed + 777)
         
-        # Generate 4 Projections (R, G, B, Alpha-mask)
-        # Using 4th dimension for extra texture
-        proj_matrix = rng.randn(D, 4)
-        Q, _ = np.linalg.qr(proj_matrix) 
-        latent_4d = flat_walkers @ Q # [N_w, 4]
+        # 2. Generate 3 ORTHOGONAL projection planes (one for R, G, B)
+        # Create a [D, 6] matrix to get 3 pairs of [D, 2] vectors
+        proj_matrix = rng.randn(D, 6)
+        Q, _ = np.linalg.qr(proj_matrix) # Orthonormal basis in R^D
         
-        # Position [x, y]
-        pos = latent_4d[:, :2]
+        grid = np.zeros((res, res, 3))
         
-        # Modulation Channels [m1, m2]
-        m1 = latent_4d[:, 2] # Mapped to Cyan/Red axis
-        m2 = latent_4d[:, 3] # Mapped to Yellow/Blue axis
-        
-        # Binning (High smoothing requires precise binning)
-        center = np.mean(pos, axis=0)
-        latent_centered = pos - center
-        scale = np.std(latent_centered) * 3.5 + 1e-8
-        coords = (latent_centered / scale + 0.5) * res
-        coords = np.clip(coords, 0, res-1).astype(int)
-        
-        grid_accum = np.zeros((res, res, 3))
-        
-        # Colors: We mix colors based on m1 and m2
-        # m1 > 0: Cyan, m1 < 0: Red
-        # m2 > 0: Yellow, m2 < 0: Blue
-        
-        # Vectorized color mixing
-        m1_norm = (m1 - m1.min()) / (m1.max() - m1.min() + 1e-8)
-        m2_norm = (m2 - m2.min()) / (m2.max() - m2.min() + 1e-8)
-        
-        # Base plasma palette
-        # Construct colors per walker
-        w_colors = np.zeros((N_w, 3))
-        w_colors += np.outer(m1_norm, [0.0, 1.0, 1.0]) # Cyan
-        w_colors += np.outer(1-m1_norm, [1.0, 0.0, 0.2]) # Red-Pink
-        w_colors += np.outer(m2_norm, [1.0, 1.0, 0.0]) * 0.5 # Yellow tint
-        w_colors += np.outer(1-m2_norm, [0.0, 0.2, 1.0]) * 0.5 # Blue tint
-        
-        w_colors = np.clip(w_colors, 0, 1)
-
-        for i in range(N_w):
-            cx, cy = coords[i]
-            grid_accum[cy, cx] += w_colors[i]
-            
-        # Heavy Smoothing ("Nebula" Effect)
         from scipy.ndimage import gaussian_filter
-        sigma = 3.0 # Very smooth
+        sigma = 1.0 # sharper than standard blooms
         
-        grid = np.zeros_like(grid_accum)
-        for c in range(3):
-            grid[:,:,c] = gaussian_filter(grid_accum[:,:,c], sigma=sigma)
+        for ch in range(3):
+            # Project onto plane 'ch'
+            # If D is small (e.g. Hydrogen D=3), we can't get 3 orthogonal 2D planes.
+            # In that case, we use independent random projections for each channel.
+            if D < 6:
+                rng_ch = np.random.RandomState(seed + 777 + ch)
+                proj_ch = rng_ch.randn(D, 2)
+                # QR to get orthonormal columns [D, 2]
+                P_ch, _ = np.linalg.qr(proj_ch)
+            else:
+                # Use the global orthonormal basis
+                P_ch = Q[:, 2*ch : 2*ch+2] # [D, 2]
+                
+            latent_2d = flat_walkers @ P_ch # [N_w, 2]
             
-        # Master Polish
-        grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
-        grid = grid * 2.0
+            # Binning
+            center = np.mean(latent_2d, axis=0)
+            latent_centered = latent_2d - center
+            scale = np.std(latent_centered) * 3.5 + 1e-8
+            coords = (latent_centered / scale + 0.5) * res
+            coords = np.clip(coords, 0, res-1).astype(int)
+            
+            # Channel Density
+            channel_grid = np.zeros((res, res))
+            for i in range(N_w):
+                cx, cy = coords[i]
+                channel_grid[cy, cx] += 1.0
+                
+            # Smooth
+            channel_grid = gaussian_filter(channel_grid, sigma=sigma)
+            
+            # Normalize Channel
+            c_max = channel_grid.max() + 1e-8
+            grid[:,:,ch] = channel_grid / c_max
+            
+        # 3. Master Polish: Composite the RGB channels
+        # Boost contrast significantly to look like "Nebula"
+        grid = grid * 3.0 
         grid = np.clip(grid, 0, 1)
-        grid = grid ** 0.8 # Gamma for glow
-
-        # Add "Starfield" (noise in low density regions)
-        # Truthful Interpretation: "Zero Point Fluctuations"
-        # We use a random mask but only add it where density is low
-        stars = rng.rand(res, res, 3)
-        density_mask = np.mean(grid, axis=2)
-        star_visibility = np.clip(0.1 - density_mask, 0, 0.1) * 10.0 # Only visible in void
-        star_visibility = star_visibility[:,:,None]
+        grid = grid ** 0.7 # Gamma for glowing core
         
-        grid += stars * star_visibility * 0.15
-        grid = np.clip(grid, 0, 1)
+        # Add slight white noise for "Quantum Grain"
+        noise = rng.randn(res, res, 3) * 0.05
+        grid = np.clip(grid + noise, 0, 1)
 
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111)
@@ -631,7 +597,7 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
     # Labels matching the elite laboratory style
     ax.text(-2.8, 2.7, "MASTER LATENT DIMENSION BLOOM", color='white', 
             fontsize=16, fontweight='bold', family='monospace')
-    ax.text(-2.8, 2.5, "PHASE 4 CONVERGENCE — [4D HYPER-NEBULA]", color='#00ff88', 
+    ax.text(-2.8, 2.5, "PHASE 4 CONVERGENCE — [SR-OPTIMIZED MANIFOLD]", color='#00ff88', 
             fontsize=10, family='monospace')
     
     # --- TECHNICAL HUD OVERLAY ---
