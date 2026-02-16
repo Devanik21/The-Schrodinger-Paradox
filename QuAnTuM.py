@@ -4003,6 +4003,28 @@ elif page == "🔬 Conservation Discovery (Level 19)":
 # 🧠 COLLECTIVE MEMORY PAGE (Level 20)
 # ============================================================
 elif page == "🎨 Latent Dream Memory 🖼️":
+    # --- CONDITIONAL ACCESS GATE ---
+    # Only allow access if system is initialized (solver_3d) AND trained for at least 50 steps
+    if st.session_state.solver_3d is None:
+        st.title("🎨 Latent Dream Memory 🖼️")
+        st.error("🔒 ACCESS DENIED: System Not Initialized")
+        st.info("Please initialize a system in the '3D Atomic VMC' mode to access the neural memory.")
+        st.stop()
+        
+    if st.session_state.training_steps < 50:
+        st.title("🎨 Latent Dream Memory 🖼️")
+        st.warning(f"🔒 ACCESS LOCKED: Insufficient Neural Data ({st.session_state.training_steps}/50 Steps)")
+        st.markdown(f"""
+        The Latent Dream Memory requires a diverse history of optimization steps to build a valid manifold.
+        
+        **Current Status:**
+        - System: **ONLINE** ✅
+        - Training Steps: **{st.session_state.training_steps}** ❌ (Requires 50+)
+        
+        *Please train the model for at least {50 - st.session_state.training_steps} more steps to unlock this gallery.*
+        """)
+        st.stop()
+
     st.title("🎨 Latent Dream Memory 🖼️")
     st.markdown("""
     **Multimodal Latent Neural Quantum State (NQS) Topology:** This atlas synthesizes **68** high-dimensional latent projections from the neural wavefunction manifold ($ \Psi_{\theta} $). By mapping the internal activations of the SSM-Backflow architecture across 20 tiers of physical complexity—ranging from first-principles Coulombic potentials to relativistic Breit-Pauli fine-structure splitting—we visualize the 'Singularity' of agent-based memory convergence. These fields utilize stochastic stigmergy and geometric deep learning to discover autonomous conservation laws and topological phase invariants ($ \gamma_n $). RGB encoding represents the convergence of danger/resource/sacred latent sectors as agents navigate the multi-electron Hamiltonian landscape.
@@ -4400,7 +4422,6 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
-
 
 
 
