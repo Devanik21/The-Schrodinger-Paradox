@@ -3731,9 +3731,9 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             render_nqs_plot(fig_ce, help_text="L6: Kato cusp enforcement.")
             st.caption("L6: Cusp Singularity.")
         with col_b3:
-            fig_fm2 = plot_fisher_manifold(_solver=solver_ref, seed=master_seed + 50)
-            render_nqs_plot(fig_fm2, help_text="L7-8: Fisher Manifold Hilbert metric.")
-            st.caption("L7-8: Fisher Metric.")
+            fig_fm2 = plot_electron_localization_function(_solver=solver_ref, seed=master_seed + 50)
+            render_nqs_plot(fig_fm2, help_text="L7-8: Electron Localization Function (ELF). Maps atomic shells and bonding regions via kinetic energy variance.")
+            st.caption("L7-8: ELF Topology.")
 
         # --- Row 3: Levels 9, 10, 11 ---
         st.markdown("##### 🔬 Phase II — Chemical Accuracy (Levels 9–11)")
