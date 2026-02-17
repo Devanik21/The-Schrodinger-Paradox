@@ -170,41 +170,120 @@ def make_serializable(obj):
         return {k: make_serializable(v) for k, v in obj.items()}
     if isinstance(obj, (complex, np.complex64, np.complex128)):
         return {"real": obj.real, "imag": obj.imag}
+    if isinstance(obj, deque):
+        return [make_serializable(x) for x in obj]
     return obj
 
 def capture_dna_snapshot():
     """Capture 100% of the session state into a JSON-compatible dictionary."""
     dna = {
         'metadata': {
+            'version': 'TITAN_FINAL_3.0', # Definitive Version Marking
             'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
             'system_key': st.session_state.system_key,
+            'system_type': 'Atoms' if st.session_state.system_key in ATOMS else 'Molecules',
             'mode': st.session_state.mode,
-            'training_steps': st.session_state.training_steps
+            'training_steps': st.session_state.training_steps,
+            'optimizer_type': st.session_state.get('optimizer_type', 'sr')
         }
     }
     
-    # 3D Solver State
+    # 3D Solver State (The Core Brain)
     if st.session_state.solver_3d:
         s = st.session_state.solver_3d
         dna['solver_3d'] = {
-            'energy_history': s.energy_history,
-            'variance_history': s.variance_history,
-            'system': s.system.name,
-            'n_electrons': s.system.n_electrons,
-            'n_nuclei': s.system.n_nuclei,
+            'histories': {
+                'energy': s.energy_history,
+                'variance': s.variance_history,
+                'acceptance': s.acceptance_history,
+                'grad_norm': s.grad_norm_history,
+                'flow_acceptance': s.flow_acceptance_history
+            },
+            'step_count': s.step_count,
+            'equilibrated': s.equilibrated,
+            'system': {
+                'name': s.system.name,
+                'n_electrons': s.system.n_electrons,
+                'n_nuclei': s.system.n_nuclei,
+                'n_up': s.system.n_up,
+                'n_down': s.system.n_down,
+                'charges': make_serializable(s.system.charges()),
+                'positions': make_serializable(s.system.positions())
+            },
+            'sampler': {
+                'step_size': s.sampler.step_size,
+                'walkers': make_serializable(s.sampler.walkers)
+            },
             'hyperparams': {
                 'lr': s.optimizer.param_groups[0]['lr'], 
                 'n_walkers': s.n_walkers, 
                 'n_dets': s.wavefunction.n_determinants, 
-                'n_layers': s.wavefunction.backflow.n_layers
+                'n_layers': s.wavefunction.backflow.n_layers,
+                'optimizer': s.optimizer_type,
+                'sr_damping': s.sr_optimizer.damping if s.sr_optimizer else None
             },
-            'model_state': make_serializable(s.wavefunction.state_dict())
+            'model_state': make_serializable(s.wavefunction.state_dict()),
+            'optimizer_state': make_serializable(s.optimizer.state_dict()) # CAPTURE MOMENTUM
         }
 
-    # Lab Results (All Levels)
+        # Level 12: Flow Sampler State
+        if s.flow_sampler:
+             dna['solver_3d']['flow_sampler_state'] = make_serializable(s.flow_sampler.flow.state_dict())
+
+    # Phase 3: Excited States & Time-Evolution (Level 13+15)
+    if st.session_state.excited_solver:
+        ex = st.session_state.excited_solver
+        dna['excited_state_data'] = {
+            'energies': make_serializable(ex.energy_histories),
+            'n_states': ex.n_states,
+            'wavefunctions': [make_serializable(wf.state_dict()) for wf in ex.wavefunctions] # CAPTURE ALL STATES
+        }
+    if st.session_state.td_vmc:
+        td = st.session_state.td_vmc
+        dna['td_trajectories'] = {
+            'energies': make_serializable(td.td_energies),
+            'times': make_serializable(td.time_points),
+            'wavefunction_trajectory': [make_serializable(wf.state_dict()) for wf in [td.wavefunction]] # Snapshot current
+        }
+
+    # Phase 4: Advanced Solvers (Level 16-19)
+    if st.session_state.get('conservation_discoverer'):
+        cd = st.session_state.conservation_discoverer
+        dna['conservation_discovery'] = {
+            'Q_net_state': make_serializable(cd.Q_net.state_dict()),
+            'commutator_history': cd.commutator_history,
+            'novelty_history': cd.novelty_history,
+            'optimizer_state': make_serializable(cd.optimizer.state_dict())
+        }
+
+    # Atomic/Molecular State Extras (Spinor/Periodic)
+    if st.session_state.solver_3d:
+        wf = st.session_state.solver_3d.wavefunction
+        # Level 17: Spin-Orbit
+        if hasattr(wf, 'mixing_angle'):
+             dna['solver_3d']['spinor_mixing_angle'] = float(wf.mixing_angle.item())
+        # Level 16: Periodic Twist
+        if hasattr(wf, 'twist'):
+             dna['solver_3d']['periodic_twist'] = make_serializable(wf.twist)
+
+
+    # 1D Solver State (Demo Mode)
+    if st.session_state.solver_1d:
+        s1d = st.session_state.solver_1d
+        dna['solver_1d'] = {
+            'energy_history': st.session_state.energy_history_1d,
+            'V_x': make_serializable(st.session_state.V_x),
+            'psi_1d': make_serializable(st.session_state.psi_1d) if st.session_state.psi_1d is not None else None,
+            'generator_state': make_serializable(s1d.generator.state_dict()),
+            'dreamer_state': make_serializable(s1d.dreamer.state_dict()), # Level 11 Dreamer
+            'memory_buffer': make_serializable(list(s1d.memory)) # Capture Replay Buffer
+        }
+
+    # Lab Results (Universal Metadata)
     results_keys = [
         'pes_results', 'berry_result', 'so_results', 
-        'entanglement_results', 'conservation_results', 'td_results'
+        'entanglement_results', 'conservation_results', 'td_results',
+        'periodic_results'
     ]
     for key in results_keys:
         if key in st.session_state and st.session_state[key]:
@@ -360,8 +439,22 @@ if st.sidebar.button("🧬 Download Full Session DNA", width='stretch', help="Ex
         # Create ZIP in memory
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            # 1. The Data
             zip_file.writestr('schrodinger_dna.json', json_str)
-            zip_file.writestr('DNA_MANIFEST.txt', f"SCHRÖDINGER DREAM DNA\nExported: {time.ctime()}\nSystem: {st.session_state.system_key}")
+            
+            # 2. Manifest & Proof
+            zip_file.writestr('DNA_MANIFEST.txt', f"SCHRÖDINGER DREAM DNA\nExported: {time.ctime()}\nSystem: {st.session_state.system_key}\nSteps: {st.session_state.training_steps}")
+            
+            # 3. Documentation (Useful files)
+            import os
+            docs = {
+                'RARE_VISION.md': 'Rare.md',
+                'VERIFICATION.md': 'results_and_verification/README.md'
+            }
+            for arcname, filepath in docs.items():
+                if os.path.exists(filepath):
+                    with open(filepath, 'r') as f:
+                        zip_file.writestr(f"docs/{arcname}", f.read())
         
         st.sidebar.download_button(
             label="⬇️ Click to Save ZIP",
