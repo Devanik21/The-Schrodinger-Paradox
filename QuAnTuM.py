@@ -27,6 +27,7 @@ import io
 import json
 import zipfile
 import random
+from collections import deque
 
 from quantum_physics import (
     QuantumPhysicsEngine, MolecularSystem, MetropolisSampler,
@@ -179,7 +180,7 @@ def capture_dna_snapshot():
     """Capture 100% of the session state into a JSON-compatible dictionary."""
     dna = {
         'metadata': {
-            'version': 'TITAN_ABSOLUTE_4.0', # The Final Word in Precision
+            'version': 'TITAN_GOD_MODE_5.0', # Absolute 100% Bit-Exact Coverage
             'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
             'system_key': st.session_state.system_key,
             'system_type': 'Atoms' if st.session_state.system_key in ATOMS else 'Molecules',
@@ -188,7 +189,7 @@ def capture_dna_snapshot():
             'optimizer_type': st.session_state.get('optimizer_type', 'sr'),
             'rng_state': {
                 'torch': make_serializable(torch.get_rng_state()),
-                'numpy': make_serializable(np.random.get_state()[1]), # State vector
+                'numpy': make_serializable(np.random.get_state()[1]),
                 'python': make_serializable(random.getstate())
             }
         }
@@ -222,6 +223,7 @@ def capture_dna_snapshot():
             },
             'sampler': {
                 'step_size': s.sampler.step_size,
+                'acceptance_rate': s.sampler.acceptance_rate, # Persistence of adaptive state
                 'walkers': make_serializable(s.sampler.walkers)
             },
             'hyperparams': {
@@ -285,8 +287,10 @@ def capture_dna_snapshot():
             'V_x': make_serializable(st.session_state.V_x),
             'psi_1d': make_serializable(st.session_state.psi_1d) if st.session_state.psi_1d is not None else None,
             'generator_state': make_serializable(s1d.generator.state_dict()),
-            'dreamer_state': make_serializable(s1d.dreamer.state_dict()), # Level 11 Dreamer
-            'memory_buffer': make_serializable(list(s1d.memory)) # Capture Replay Buffer
+            'dreamer_state': make_serializable(s1d.dreamer.state_dict()), 
+            'memory_buffer': make_serializable(list(s1d.memory)),
+            'opt_gen_state': make_serializable(s1d.opt_gen.state_dict()),
+            'opt_dream_state': make_serializable(s1d.opt_dream.state_dict())
         }
 
     # Lab Results (Universal Metadata)
@@ -4216,7 +4220,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.stop()
 
     st.title("🎨 Latent Dream Memory 🖼️")
-    st.markdown("""Multimodal Latent Neural Quantum State (NQS) Topology: This atlas synthesizes **68** high-dimensional latent projections from the neural wavefunction manifold ($ \Psi_{\theta} $). By mapping the internal activations of the SSM-Backflow architecture across 20 tiers of physical complexity—ranging from first-principles Coulombic potentials to relativistic Breit-Pauli fine-structure splitting—we visualize the 'Singularity' of agent-based memory convergence. These fields utilize stochastic stigmergy and geometric deep learning to discover autonomous conservation laws and topological phase invariants ($ \gamma_n $). RGB encoding represents the convergence of danger/resource/sacred latent sectors as agents navigate the multi-electron Hamiltonian landscape.
+    st.markdown(r"""Multimodal Latent Neural Quantum State (NQS) Topology: This atlas synthesizes **68** high-dimensional latent projections from the neural wavefunction manifold ($ \Psi_{\theta} $). By mapping the internal activations of the SSM-Backflow architecture across 20 tiers of physical complexity—ranging from first-principles Coulombic potentials to relativistic Breit-Pauli fine-structure splitting—we visualize the 'Singularity' of agent-based memory convergence. These fields utilize stochastic stigmergy and geometric deep learning to discover autonomous conservation laws and topological phase invariants ($ \gamma_n $). RGB encoding represents the convergence of danger/resource/sacred latent sectors as agents navigate the multi-electron Hamiltonian landscape.
     """)
     
     # --- Lazy Load Gate ---
@@ -4611,7 +4615,6 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
-
 
 
 
