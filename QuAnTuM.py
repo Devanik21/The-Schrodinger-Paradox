@@ -178,13 +178,18 @@ def capture_dna_snapshot():
     """Capture 100% of the session state into a JSON-compatible dictionary."""
     dna = {
         'metadata': {
-            'version': 'TITAN_FINAL_3.0', # Definitive Version Marking
+            'version': 'TITAN_ABSOLUTE_4.0', # The Final Word in Precision
             'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
             'system_key': st.session_state.system_key,
             'system_type': 'Atoms' if st.session_state.system_key in ATOMS else 'Molecules',
             'mode': st.session_state.mode,
             'training_steps': st.session_state.training_steps,
-            'optimizer_type': st.session_state.get('optimizer_type', 'sr')
+            'optimizer_type': st.session_state.get('optimizer_type', 'sr'),
+            'rng_state': {
+                'torch': make_serializable(torch.get_rng_state()),
+                'numpy': make_serializable(np.random.get_state()[1]), # State vector
+                'python': make_serializable(random.getstate())
+            }
         }
     }
     
@@ -208,7 +213,11 @@ def capture_dna_snapshot():
                 'n_up': s.system.n_up,
                 'n_down': s.system.n_down,
                 'charges': make_serializable(s.system.charges()),
-                'positions': make_serializable(s.system.positions())
+                'positions': make_serializable(s.system.positions()),
+                'exact_energy': s.system.exact_energy,
+                # Level 16 Solid State
+                'lattice_vectors': make_serializable(s.system.lattice_vectors) if hasattr(s.system, 'lattice_vectors') else None,
+                'reciprocal_vectors': make_serializable(s.system.reciprocal_vectors) if hasattr(s.system, 'reciprocal_vectors') else None
             },
             'sampler': {
                 'step_size': s.sampler.step_size,
