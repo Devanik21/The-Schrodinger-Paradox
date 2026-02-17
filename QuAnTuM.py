@@ -26,6 +26,7 @@ import matplotlib.pyplot as plt
 import io
 import json
 import zipfile
+import random
 
 from quantum_physics import (
     QuantumPhysicsEngine, MolecularSystem, MetropolisSampler,
@@ -4610,6 +4611,7 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
+
 
 
 
