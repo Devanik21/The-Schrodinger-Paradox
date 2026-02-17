@@ -24,6 +24,8 @@ from plotly.subplots import make_subplots
 import time
 import matplotlib.pyplot as plt
 import io
+import json
+import zipfile
 
 from quantum_physics import (
     QuantumPhysicsEngine, MolecularSystem, MetropolisSampler,
@@ -147,6 +149,66 @@ def init_state():
 
 
 init_state()
+
+
+# ============================================================
+# 🧬 DNA SERIALIZATION (Download Feature)
+# ============================================================
+def make_serializable(obj):
+    """Recursively convert numpy/torch types to JSON-serializable Python natives."""
+    if isinstance(obj, torch.Tensor):
+        return obj.detach().cpu().numpy().tolist()
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (np.integer, np.int64, np.int32)):
+        return int(obj)
+    if isinstance(obj, (np.floating, np.float64, np.float32)):
+        return float(obj)
+    if isinstance(obj, (list, tuple)):
+        return [make_serializable(x) for x in obj]
+    if isinstance(obj, dict):
+        return {k: make_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, (complex, np.complex64, np.complex128)):
+        return {"real": obj.real, "imag": obj.imag}
+    return obj
+
+def capture_dna_snapshot():
+    """Capture 100% of the session state into a JSON-compatible dictionary."""
+    dna = {
+        'metadata': {
+            'timestamp': time.strftime("%Y-%m-%d %H:%M:%S"),
+            'system_key': st.session_state.system_key,
+            'mode': st.session_state.mode,
+            'training_steps': st.session_state.training_steps
+        }
+    }
+    
+    # 3D Solver State
+    if st.session_state.solver_3d:
+        s = st.session_state.solver_3d
+        dna['solver_3d'] = {
+            'energy_history': s.energy_history,
+            'variance_history': s.variance_history,
+            'system': s.system.name,
+            'n_electrons': s.system.n_electrons,
+            'n_nuclei': s.system.n_nuclei,
+            'hyperparams': {
+                'lr': s.lr, 'n_walkers': s.n_walkers, 
+                'n_dets': s.n_determinants, 'n_layers': s.n_layers
+            },
+            'model_state': make_serializable(s.wavefunction.state_dict())
+        }
+
+    # Lab Results (All Levels)
+    results_keys = [
+        'pes_results', 'berry_result', 'so_results', 
+        'entanglement_results', 'conservation_results', 'td_results'
+    ]
+    for key in results_keys:
+        if key in st.session_state and st.session_state[key]:
+            dna[key] = make_serializable(st.session_state[key])
+            
+    return dna
 
 
 # ============================================================
@@ -282,9 +344,30 @@ st.sidebar.divider()
 if st.sidebar.button("🔍 Render All Plots", width='stretch', type="primary"):
     st.session_state.show_plots = True
 
-if st.session_state.show_plots:
     if st.sidebar.button(" Hide Plots", width='stretch'):
         st.session_state.show_plots = False
+
+# --- Download DNA ---
+st.sidebar.divider()
+st.sidebar.subheader("💾 Save DNA")
+if st.sidebar.button("🧬 Download Full Session DNA", width='stretch', help="Export 100% of the simulation state (JSON+Zip)"):
+    with st.spinner("Packaging DNA..."):
+        dna_data = capture_dna_snapshot()
+        json_str = json.dumps(dna_data, indent=2)
+        
+        # Create ZIP in memory
+        zip_buffer = io.BytesIO()
+        with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
+            zip_file.writestr('schrodinger_dna.json', json_str)
+            zip_file.writestr('DNA_MANIFEST.txt', f"SCHRÖDINGER DREAM DNA\nExported: {time.ctime()}\nSystem: {st.session_state.system_key}")
+        
+        st.sidebar.download_button(
+            label="⬇️ Click to Save ZIP",
+            data=zip_buffer.getvalue(),
+            file_name=f"schrodinger_dna_{st.session_state.system_key}_{int(time.time())}.zip",
+            mime="application/zip"
+        )
+
 
 
 # ============================================================
@@ -4423,6 +4506,7 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
+
 
 
 
