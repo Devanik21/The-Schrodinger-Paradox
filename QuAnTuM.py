@@ -193,8 +193,10 @@ def capture_dna_snapshot():
             'n_electrons': s.system.n_electrons,
             'n_nuclei': s.system.n_nuclei,
             'hyperparams': {
-                'lr': s.lr, 'n_walkers': s.n_walkers, 
-                'n_dets': s.n_determinants, 'n_layers': s.n_layers
+                'lr': s.optimizer.param_groups[0]['lr'], 
+                'n_walkers': s.n_walkers, 
+                'n_dets': s.wavefunction.n_determinants, 
+                'n_layers': s.wavefunction.backflow.n_layers
             },
             'model_state': make_serializable(s.wavefunction.state_dict())
         }
