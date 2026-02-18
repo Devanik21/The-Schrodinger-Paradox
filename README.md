@@ -3,7 +3,7 @@
 **A Research Implementation of Variational Monte Carlo with State-Space Models**
 
 ---
-
+ 
 **Author:** Devanik  
 **Affiliation:** B.Tech ECE '26, National Institute of Technology Agartala  
 **Fellowships:** Samsung Convergence Software Fellowship (Grade I), Indian Institute of Science  
