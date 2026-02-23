@@ -1,33 +1,24 @@
-name: Dev Log Automation
+name: Dev Log Automation (Test)
 
 on:
-  schedule:
-    - cron: "0 3 * * *"   # daily (UTC)
   workflow_dispatch:
 
 jobs:
   dev-log:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Decide random commit count (1–7)
-        run: echo "COUNT=$((RANDOM % 7 + 1))" >> $GITHUB_ENV
-
-      - name: Update dev log
+      - name: Update dev log (fast test)
         run: |
           mkdir -p docs
-          touch docs/dev_log.md
-
-          for i in $(seq 1 $COUNT); do
-            echo "- [$(date '+%Y-%m-%d %H:%M:%S')] Research / development log update." >> docs/dev_log.md
-            sleep $((RANDOM % 1800 + 300))  # 5–35 min delay
-          done
+          echo "- [$(date '+%Y-%m-%d %H:%M:%S')] Test commit." >> docs/dev_log.md
 
       - name: Auto commit & push
         uses: stefanzweifel/git-auto-commit-action@v7
         with:
-          commit_message: "docs: dev log update"
+          commit_message: "docs: test dev log update"
           file_pattern: docs/dev_log.md
