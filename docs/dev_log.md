@@ -4,3 +4,8 @@
 - Reviewed theoretical foundations to ensure consistency between optimization objectives and the intended inductive biases.
 - Reviewed theoretical foundations to ensure consistency between optimization objectives and the intended inductive biases.
 - Revisited earlier design decisions to distinguish fundamental constraints from incidental implementation choices.
+- Audited internal data flow to minimize unintended information leakage across abstraction layers.
+- Aligned terminology across modules to maintain conceptual consistency throughout the system.
+- Revisited earlier design decisions to distinguish fundamental constraints from incidental implementation choices.
+- Translated informal reasoning into clearer invariants to support more rigorous future analysis.
+- Documented trade-offs between model expressivity and stability, noting regimes where each becomes limiting.
