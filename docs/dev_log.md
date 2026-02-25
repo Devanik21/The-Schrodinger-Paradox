@@ -9,3 +9,8 @@
 - Revisited earlier design decisions to distinguish fundamental constraints from incidental implementation choices.
 - Translated informal reasoning into clearer invariants to support more rigorous future analysis.
 - Documented trade-offs between model expressivity and stability, noting regimes where each becomes limiting.
+- Revisited earlier design decisions to distinguish fundamental constraints from incidental implementation choices.
+- Re-examined architectural choices in response to observed failure modes; identified sources of hidden coupling that may constrain extensibility.
+- Revisited earlier design decisions to distinguish fundamental constraints from incidental implementation choices.
+- Explicitly documented known limitations and conditions under which the current approach is expected to fail.
+- Re-examined architectural choices in response to observed failure modes; identified sources of hidden coupling that may constrain extensibility.
