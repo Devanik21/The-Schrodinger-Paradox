@@ -2,7 +2,7 @@ name: Dev Log Automation
 
 on:
   schedule:
-    - cron: "0 3 * * *"   # daily (UTC)
+    - cron: "0 6 * * *"   # daily (UTC) → 12:00 PM IST
   workflow_dispatch:
 
 jobs:
@@ -15,10 +15,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Decide random commit count (1–7)
-        run: echo "COUNT=$((RANDOM % 7 + 1))" >> $GITHUB_ENV
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      - name: Update dev log (Schrödinger Dream research-grade)
+      - name: Decide random commit count (5–11)
+        run: echo "COUNT=$((RANDOM % 7 + 5))" >> $GITHUB_ENV
+
+      - name: Update dev log with per-commit research notes
         run: |
           mkdir -p docs
           touch docs/dev_log.md
@@ -59,11 +64,10 @@ jobs:
           for i in $(seq 1 $COUNT); do
             IDX=$((RANDOM % ${#NOTES[@]}))
             echo "- ${NOTES[$IDX]}" >> docs/dev_log.md
-            sleep $((RANDOM % 600 + 120))   # 2–12 min delay
+            git add docs/dev_log.md
+            git commit -m "docs: Schrödinger Dream research dev log"
+            sleep $((RANDOM % 600 + 120))   # 2–12 min spacing
           done
 
-      - name: Auto commit & push
-        uses: stefanzweifel/git-auto-commit-action@v7
-        with:
-          commit_message: "docs: Schrödinger Dream research dev log update"
-          file_pattern: docs/dev_log.md
+      - name: Push commits
+        run: git push
