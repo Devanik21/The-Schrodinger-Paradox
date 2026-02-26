@@ -2,7 +2,7 @@ name: Dev Log Automation
 
 on:
   schedule:
-    - cron: "0 6 * * *"   # daily (UTC) → 12:00 PM IST
+    - cron: "0 4 * * *"   # daily (UTC) → 12:00 PM IST
   workflow_dispatch:
 
 jobs:
