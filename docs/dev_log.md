@@ -18,3 +18,4 @@
 - Recorded open questions regarding scalability beyond small atomic and molecular systems.
 - Reviewed local energy computation to confirm numerical stability of Laplacian estimates in high-dimensional electron space.
 - Reframed intermediate architectural observations as hypotheses rather than empirical claims.
+- Noted sensitivity of topological phase accumulation to sampling noise and overlap precision.
