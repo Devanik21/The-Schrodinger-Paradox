@@ -16,3 +16,4 @@
 - Re-examined architectural choices in response to observed failure modes; identified sources of hidden coupling that may constrain extensibility.
 - Documented sensitivity of SR convergence to walker count and conditioning of the quantum Fisher matrix.
 - Recorded open questions regarding scalability beyond small atomic and molecular systems.
+- Reviewed local energy computation to confirm numerical stability of Laplacian estimates in high-dimensional electron space.
