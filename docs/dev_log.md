@@ -15,3 +15,4 @@
 - Explicitly documented known limitations and conditions under which the current approach is expected to fail.
 - Re-examined architectural choices in response to observed failure modes; identified sources of hidden coupling that may constrain extensibility.
 - Documented sensitivity of SR convergence to walker count and conditioning of the quantum Fisher matrix.
+- Recorded open questions regarding scalability beyond small atomic and molecular systems.
