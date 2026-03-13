@@ -788,7 +788,7 @@ conda activate quantum
 
 # Install dependencies
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-pip install streamlit plotly numpy pandas
+pip install streamlit plotly numpy matplotlib scipy pandas
 
 # Run application
 streamlit run QuAnTuM.py

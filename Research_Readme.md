@@ -285,7 +285,7 @@ conda create -n quantum python=3.10
 conda activate quantum
 
 pip install torch --index-url https://download.pytorch.org/whl/cu118
-pip install streamlit plotly numpy pandas
+pip install streamlit plotly numpy matplotlib scipy pandas
 
 streamlit run QuAnTuM.py
 ```
