@@ -63,6 +63,8 @@ class MolecularSystem:
 # ============================================================
 ATOMS = {
     # Level 9: Full periodic table H → Ne with NIST exact energies (Hartree)
+    # TODO: Consider extending the dictionary to include heavier transition
+    # metals once memory/scaling issues for larger N_e are resolved.
     "H":  MolecularSystem(nuclei=[(1, [0.0, 0.0, 0.0])], n_up=1, n_down=0,
                            name="Hydrogen", exact_energy=-0.5000),
     "He": MolecularSystem(nuclei=[(2, [0.0, 0.0, 0.0])], n_up=1, n_down=1,
