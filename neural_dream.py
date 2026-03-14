@@ -24,6 +24,8 @@ import math
 # ============================================================
 # 🧬 BACKBONE: MAMBA-STYLE STATE SPACE MODEL (SSM)
 # ============================================================
+# TODO: Explore memory optimizations (e.g., gradient checkpointing or
+# custom CUDA kernels) for processing significantly longer electron sequences.
 class MambaBlock(nn.Module):
     """
     Selective State Space Model block.

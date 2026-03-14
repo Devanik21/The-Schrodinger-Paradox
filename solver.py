@@ -128,6 +128,9 @@ class StochasticReconfiguration:
             S = S + eps * torch.eye(S.shape[0], device=S.device)
             delta_theta = torch.linalg.solve(S, f)
         except (torch.linalg.LinAlgError, RuntimeError):
+            # TODO: Consider monitoring the condition number of S before failing,
+            # to dynamically adjust the Tikhonov damping `eps_fallback` rather
+            # than relying on a hardcoded constant.
             # Fallback to Tikhonov-regularized Pseudo-Inverse
             eps_fallback = 1e-3
             S_reg = S + eps_fallback * torch.eye(S.shape[0], device=S.device)
