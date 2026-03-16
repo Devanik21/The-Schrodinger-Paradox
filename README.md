@@ -29,6 +29,25 @@ The system is not presented as a superior alternative to existing methods, but r
 
 ---
 
+## Table of Contents
+
+1. [Theoretical Foundation](#1-theoretical-foundation)
+2. [Neural Architecture: SSM-Backflow Hypothesis](#2-neural-architecture-ssm-backflow-hypothesis)
+3. [Optimization: Stochastic Reconfiguration](#3-optimization-stochastic-reconfiguration)
+4. [Advanced Methodologies](#4-advanced-methodologies)
+5. [Benchmark Systems and Validation](#5-benchmark-systems-and-validation)
+6. [Implementation Architecture](#6-implementation-architecture)
+7. [Relation to Existing Methods](#7-relation-to-existing-methods)
+8. [Limitations and Future Work](#8-limitations-and-future-work)
+9. [Reproducibility](#9-reproducibility)
+10. [Mathematical Appendix](#10-mathematical-appendix)
+11. [Acknowledgments](#11-acknowledgments)
+12. [Disclaimer](#12-disclaimer)
+13. [License](#13-license)
+14. [Interactive Demonstration](#14-interactive-demonstration)
+
+---
+
 ## 1. Theoretical Foundation
 
 ### 1.1 The Electronic Schrödinger Equation

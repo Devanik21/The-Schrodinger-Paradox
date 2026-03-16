@@ -154,6 +154,11 @@ def build_molecule_at_distance(mol_key: str, bond_length: float) -> MolecularSys
 # ============================================================
 # ⚡ COULOMB POTENTIAL (Level 1)
 # ============================================================
+
+# TODO: Excellent vectorized implementation for distances here.
+# For scaling up to larger molecular systems in the future,
+# you might consider using `torch.cdist` for potentially
+# better memory efficiency and performance.
 def compute_distances(r_electrons: torch.Tensor, r_nuclei: torch.Tensor):
     """
     Compute all pairwise distance matrices.
