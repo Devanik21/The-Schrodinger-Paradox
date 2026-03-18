@@ -307,6 +307,9 @@ def compute_local_energy(log_psi_func, r_electrons: torch.Tensor,
                          n_hutchinson: int = 1):
     """
     Compute local energy E_L(r) = T(r) + V(r).
+
+    # TODO: Consider implementing adaptive Hutchinson sample sizing based on local variance.
+    # High variance regions (e.g., near nodes or cusps) might benefit from larger `n_hutchinson`.
     
     Kinetic energy in log-domain:
       T = -0.5 * (∇²log|ψ| + |∇log|ψ||²)
