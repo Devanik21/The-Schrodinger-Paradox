@@ -63,6 +63,7 @@ class MolecularSystem:
 # ============================================================
 ATOMS = {
     # Level 9: Full periodic table H → Ne with NIST exact energies (Hartree)
+    # TODO(Jules-Patrol): Future extension could include transition metals (e.g., Fe, Cu) to test the SSM-Backflow architecture on d-orbital correlation.
     "H":  MolecularSystem(nuclei=[(1, [0.0, 0.0, 0.0])], n_up=1, n_down=0,
                            name="Hydrogen", exact_energy=-0.5000),
     "He": MolecularSystem(nuclei=[(2, [0.0, 0.0, 0.0])], n_up=1, n_down=1,

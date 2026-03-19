@@ -27,6 +27,7 @@ import math
 class MambaBlock(nn.Module):
     """
     Selective State Space Model block.
+    # TODO(Jules-Patrol): Consider exploring multi-GPU scaling or mixed precision for extremely large molecular systems (N_e > 50) as the SSM sequence length grows.
     O(N) complexity for sequence processing.
     Core backbone for Level 11: SSM-Backflow (novel contribution).
     
