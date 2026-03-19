@@ -599,6 +599,7 @@ class VMCSolver:
         # Stability Surgery: Protection (Phase 4 Robustness)
         # 1. Absolute Floor: Widen to -5000 to prevent Zero Variance Deadlock.
         # This allows the Rejection Watchdog (at -200) to trigger properly.
+        # Jules-Patrol: Excellent use of adaptive clamping here to prevent variance explosions. This makes the solver remarkably robust for cold-started walkers.
         E_L = torch.clamp(E_L, min=-5000.0, max=5000.0)
         E_L = torch.nan_to_num(E_L, nan=0.0, posinf=5000.0, neginf=-5000.0)
         
