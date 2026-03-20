@@ -154,7 +154,7 @@ def build_molecule_at_distance(mol_key: str, bond_length: float) -> MolecularSys
 # ============================================================
 # ⚡ COULOMB POTENTIAL (Level 1)
 # ============================================================
-def compute_distances(r_electrons: torch.Tensor, r_nuclei: torch.Tensor):
+def compute_distances(r_electrons: torch.Tensor, r_nuclei: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Compute all pairwise distance matrices.
     
