@@ -126,7 +126,10 @@ class StochasticReconfiguration:
             # Precision Surgery: Lower jitter for convergence phase
             eps = 1e-5
             S = S + eps * torch.eye(S.shape[0], device=S.device)
-            delta_theta = torch.linalg.solve(S, f)
+
+            # Optimization: Use Cholesky decomposition for better stability since S is symmetric positive-definite
+            L = torch.linalg.cholesky(S)
+            delta_theta = torch.cholesky_solve(f.unsqueeze(1), L).squeeze(1)
         except (torch.linalg.LinAlgError, RuntimeError):
             # Fallback to Tikhonov-regularized Pseudo-Inverse
             eps_fallback = 1e-3
@@ -1130,7 +1133,10 @@ class TimeDependentVMC:
                 # Stability Surgery: Add jitter to S
                 eps_td = 1e-5
                 S = S + eps_td * torch.eye(S.shape[0], device=self.device)
-                theta_dot = torch.linalg.solve(S, f)
+
+                # Optimization: Use Cholesky decomposition for better stability since S is symmetric positive-definite
+                L = torch.linalg.cholesky(S)
+                theta_dot = torch.cholesky_solve(f.unsqueeze(1), L).squeeze(1)
             except (torch.linalg.LinAlgError, RuntimeError):
                 # Fallback to Tikhonov-regularized Pseudo-Inverse
                 eps_fallback = 1e-4
