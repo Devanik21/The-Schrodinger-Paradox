@@ -29,7 +29,7 @@ class MambaBlock(nn.Module):
     Selective State Space Model block.
     O(N) complexity for sequence processing.
     Core backbone for Level 11: SSM-Backflow (novel contribution).
-    
+
     The SSM recurrence h_t = Ā·h_{t-1} + B̄·x_t naturally models
     exponential decay of correlation: eigenvalues of Ā control memory,
     matching the physical e^{-αr} decay of electron correlation.
@@ -90,11 +90,11 @@ class MambaBlock(nn.Module):
 class DeepBackflowNet(nn.Module):
     """
     Level 7 + 11: Deep Backflow with SSM-Backflow Option.
-    
+
     LEVEL 7 (Dense — FermiNet-style):
       h_i^(l) = h_i^(l-1) + σ(W₁·h_i + W₂·mean_j[g(h_i, h_j, r_ij)])
       Cost: O(N_e²) per layer — quadratic scaling.
-    
+
     LEVEL 11 (SSM-Backflow — NOVEL, our contribution):
       For each electron i:
         1. Sort other electrons j by distance r_ij → ordered sequence
@@ -103,19 +103,19 @@ class DeepBackflowNet(nn.Module):
            correlation through the "sequence" of electrons
         4. Output is the aggregated message for electron i
       Cost: O(N_e log N_e) per layer — log-linear scaling.
-    
+
     WHY SSM WORKS FOR ELECTRONS:
       In SSM recurrence h_t = Ā·h_{t-1} + B̄·x_t, the eigenvalues of Ā
       control memory decay. For quantum systems, correlation between
       electrons i and j decays as ~e^{-αr_ij} — exactly the exponential
       decay that SSMs represent through their state dynamics.
-      
+
       The selective gating (Δ-parameterization) learns WHICH electron
       interactions matter → implicit attention without quadratic cost.
-    
+
     Theoretical advantage:
       FermiNet:      O(N²) per layer — max ~30 electrons
-      PauliNet:      O(N·K) SchNet — fixed cutoff  
+      PauliNet:      O(N·K) SchNet — fixed cutoff
       SSM-Backflow:  O(N log N) — can scale to hundreds of electrons
     """
     def __init__(self, n_nuclei: int, d_model: int = 64, n_layers: int = 3,
@@ -128,7 +128,7 @@ class DeepBackflowNet(nn.Module):
         self.ssm_threshold = ssm_threshold  # Use SSM only when N_e >= threshold
 
         # --- Input embedding ---
-        single_input_dim = 3 + n_nuclei * 3  
+        single_input_dim = 3 + n_nuclei * 3
         self.single_embed = nn.Sequential(
             nn.Linear(single_input_dim, d_model),
             nn.Tanh(),
@@ -151,7 +151,7 @@ class DeepBackflowNet(nn.Module):
 
         # Dense aggregation layers (Level 7 fallback)
         self.agg_layers = nn.ModuleList()
-        
+
         # Level 11: SSM-Backflow layers (one MambaBlock per interaction layer)
         self.ssm_blocks = nn.ModuleList()
         # Project (h_j, pair_ij) → ssm input
@@ -180,7 +180,7 @@ class DeepBackflowNet(nn.Module):
                 nn.Linear(d_model * 2, d_model),  # [h_j, pair_ij] → d_model
                 nn.SiLU()
             ))
-            
+
             self.norms_single.append(nn.LayerNorm(d_model))
             self.norms_pair.append(nn.LayerNorm(d_model))
 
@@ -196,7 +196,12 @@ class DeepBackflowNet(nn.Module):
     def _ssm_aggregation(self, h, pair_h, r_ee, N_w, N_e, l):
         """
         Level 11: O(N log N) SSM-Backflow aggregation (NOVEL).
-        
+
+        TODO: The O(N log N) complexity is theoretically attractive, but the overhead
+        of sorting operations and sequential execution can offset this advantage for
+        small to medium systems. Performance profiling and potential kernel-level
+        fusion for the SSM scan operations should be explored.
+
         For each electron i:
           1. Get distances to all other electrons j → sort by proximity
           2. Build feature sequence from sorted neighbors
@@ -204,47 +209,47 @@ class DeepBackflowNet(nn.Module):
           4. Take final hidden state as aggregated message
         """
         device = h.device
-        
+
         # For each electron i, sort other electrons j by distance
         # r_ee: [N_w, N_e, N_e] distances
-        
+
         # Build per-electron aggregated messages
         all_agg = torch.zeros(N_w, N_e, self.d_model, device=device)
-        
+
         for i in range(N_e):
             # Distances from electron i to all others
             dists_i = r_ee[:, i, :]  # [N_w, N_e]
-            
+
             # Mask self (set to inf so it sorts last)
             dists_i_masked = dists_i.clone()
             dists_i_masked[:, i] = float('inf')
-            
+
             # Sort neighbors by distance (O(N log N))
             sorted_indices = torch.argsort(dists_i_masked, dim=1)  # [N_w, N_e]
-            
+
             # Take only actual neighbors (exclude self = last after sort)
             n_neighbors = N_e - 1
             sorted_indices = sorted_indices[:, :n_neighbors]  # [N_w, n_neighbors]
-            
+
             # Gather neighbor features: h_j
             idx_exp = sorted_indices.unsqueeze(-1).expand(-1, -1, self.d_model)
             h_neighbors = torch.gather(h, 1, idx_exp)  # [N_w, n_neighbors, d_model]
-            
+
             # Gather pairwise features: pair_h[i, j]
             pair_idx = sorted_indices.unsqueeze(-1).expand(-1, -1, self.d_model)
             pair_neighbors = torch.gather(pair_h[:, i, :, :], 1, pair_idx)  # [N_w, n_neighbors, d_model]
-            
+
             # Project (h_j, pair_ij) → SSM input
             ssm_input = self.ssm_input_projs[l](
                 torch.cat([h_neighbors, pair_neighbors], dim=-1)
             )  # [N_w, n_neighbors, d_model]
-            
+
             # Feed through MambaBlock (O(N) scan)
             ssm_out = self.ssm_blocks[l](ssm_input)  # [N_w, n_neighbors, d_model]
-            
+
             # Aggregate: mean over sequence output
             all_agg[:, i, :] = ssm_out.mean(dim=1)
-        
+
         return all_agg
 
     def forward(self, r_electrons, r_nuclei, charges, spin_mask_parallel):
@@ -254,7 +259,7 @@ class DeepBackflowNet(nn.Module):
             r_nuclei: [N_n, 3]
             charges: [N_n]
             spin_mask_parallel: [N_e, N_e] bool
-            
+
         Returns:
             h: [N_w, N_e, d_model] per-electron backflow features
         """
@@ -301,18 +306,18 @@ class DeepBackflowNet(nn.Module):
             if pair_h is not None:
                 # Decision: SSM-Backflow (Level 11) or Dense (Level 7)?
                 use_ssm = (self.use_ssm_backflow and N_e >= self.ssm_threshold)
-                
+
                 if use_ssm:
                     # Level 11: SSM-Backflow — O(N log N)
                     pair_agg = self._ssm_aggregation(
                         h, pair_h, r_ee_dist, N_w, N_e, l
                     )
                 else:
-                    # Level 7: Dense aggregation — O(N²) 
+                    # Level 7: Dense aggregation — O(N²)
                     pair_agg = self._dense_aggregation(
                         h, pair_h, eye_mask, N_e, l
                     )
-                
+
                 # Update pairwise features
                 pair_h = self.norms_pair[l](pair_h + self.pair_layers[l](pair_h))
             else:
@@ -329,7 +334,7 @@ class DeepBackflowNet(nn.Module):
 class JastrowFactor(nn.Module):
     """
     Level 6: Kato Cusp Conditions — Hard-Coded Physics.
-    
+
     Enforces EXACT cusp behavior analytically (NOT learned):
       e-n cusp: J_en = -Z_I · r / (1 + b_en · r)   → ∂J/∂r|_{r=0} = -Z_I
       e-e cusp: J_ee = a · r / (1 + b_ee · r)       → a=1/2 (anti) or 1/4 (para)
@@ -404,15 +409,15 @@ class JastrowFactor(nn.Module):
 class NeuralWavefunction(nn.Module):
     """
     Complete neural wavefunction ansatz for 3D many-body systems.
-    
+
     Architecture (Levels 4-7+11 unified):
       ψ(r) = exp(J(r)) × Σ_k w_k × det[Φ^(k)_↑] × det[Φ^(k)_↓]
-    
+
     Where:
       - J(r) = Jastrow with exact Kato cusps (Level 6)
       - Φ^(k) = orbitals from deep backflow / SSM-Backflow (Level 7/11)
       - Determinant via slogdet in log-domain (Level 4+5)
-    
+
     Output: (log|ψ|, sign(ψ)) for numerical stability.
     """
     def __init__(self, system, d_model: int = 64, n_layers: int = 3,
@@ -474,14 +479,14 @@ class NeuralWavefunction(nn.Module):
                 h_up = h[:, :self.n_up, :]
                 orb_up = self.orbital_up(h_up)
                 orb_up_k = orb_up[:, :, k * self.n_up:(k + 1) * self.n_up]
-                
+
                 # Stability Surgery: Robustness Hardeners
                 eps = 1e-6 # Increased from 1e-7
                 eye = torch.eye(self.n_up, device=device).unsqueeze(0)
                 # Clip orbital values and sanitize NaNs before slogdet
                 orb_up_k = torch.nan_to_num(orb_up_k, nan=0.0, posinf=1e6, neginf=-1e6)
                 orb_up_k = orb_up_k + eps * eye
-                
+
                 sign_up, logabsdet_up = torch.linalg.slogdet(orb_up_k)
                 log_det_k = log_det_k + logabsdet_up
                 sign_det_k = sign_det_k * sign_up
@@ -490,14 +495,14 @@ class NeuralWavefunction(nn.Module):
                 h_down = h[:, self.n_up:, :]
                 orb_down = self.orbital_down(h_down)
                 orb_down_k = orb_down[:, :, k * self.n_down:(k + 1) * self.n_down]
-                
+
                 # Stability Surgery: Robustness Hardeners
                 eps = 1e-6 # Increased from 1e-7
                 eye = torch.eye(self.n_down, device=device).unsqueeze(0)
                 # Clip orbital values and sanitize NaNs before slogdet
                 orb_down_k = torch.nan_to_num(orb_down_k, nan=0.0, posinf=1e6, neginf=-1e6)
                 orb_down_k = orb_down_k + eps * eye
-                
+
                 sign_down, logabsdet_down = torch.linalg.slogdet(orb_down_k)
                 log_det_k = log_det_k + logabsdet_down
                 sign_det_k = sign_det_k * sign_down
@@ -529,16 +534,16 @@ class NeuralWavefunction(nn.Module):
 class PeriodicNeuralWavefunction(nn.Module):
     """
     Level 16: Neural wavefunction with Bloch boundary conditions for periodic systems.
-    
+
     For solids (e.g., Homogeneous Electron Gas), enforces:
       ψ(r + L) = e^{ikL} · ψ(r)
-    
+
     Architecture:
       ψ_k(r) = e^{ik·Σr_i} × Σ_k w_k × det[Φ^(k)_↑] × det[Φ^(k)_↓]
-    
+
     The complex Bloch phase e^{ik·r} is applied to each electron,
     and orbitals are plane-wave-dressed backflow features.
-    
+
     Twist-Averaged Boundary Conditions (TABC):
       Average energy over multiple k-points to reduce finite-size error.
     """
@@ -550,15 +555,15 @@ class PeriodicNeuralWavefunction(nn.Module):
         self.n_down = periodic_system.n_down
         self.n_determinants = n_determinants
         self.d_model = d_model
-        
+
         self.register_buffer('cell', periodic_system.cell_tensor())
         self.register_buffer('twist', periodic_system.twist_tensor())
-        
+
         # --- Electron feature network (no nuclei in HEG) ---
         # Use plane-wave features + learned interactions
         self.electron_embed = nn.Linear(3, d_model)  # position embedding
         self.pw_embed = nn.Linear(6, d_model)  # sin/cos plane-wave features
-        
+
         # Interaction layers (same architecture as backflow but for periodic)
         self.interaction_layers = nn.ModuleList()
         self.layer_norms = nn.ModuleList()
@@ -569,15 +574,15 @@ class PeriodicNeuralWavefunction(nn.Module):
                 nn.Linear(d_model, d_model)
             ))
             self.layer_norms.append(nn.LayerNorm(d_model))
-        
+
         # Orbital heads
         if self.n_up > 0:
             self.orbital_up = nn.Linear(d_model, n_determinants * self.n_up)
         if self.n_down > 0:
             self.orbital_down = nn.Linear(d_model, n_determinants * self.n_down)
-        
+
         self.det_weights = nn.Parameter(torch.zeros(n_determinants))
-        
+
         # Jastrow for periodic (learned, no cusp for jellium)
         self.jastrow_net = nn.Sequential(
             nn.Linear(1, 32), nn.SiLU(),
@@ -585,21 +590,21 @@ class PeriodicNeuralWavefunction(nn.Module):
             nn.Linear(32, 1)
         )
         self.jastrow_scale = nn.Parameter(torch.tensor(0.1))
-    
+
     def _wrap_to_cell(self, r):
         """Wrap electron positions into the simulation cell using fractional coords."""
         L_inv = torch.linalg.inv(self.cell)
         s = torch.matmul(r, L_inv.T)
         s = s - torch.floor(s)
         return torch.matmul(s, self.cell)
-    
+
     def _plane_wave_features(self, r):
         """Generate plane-wave features: [sin(2πs), cos(2πs)] for fractional coords s."""
         L_inv = torch.linalg.inv(self.cell)
         s = torch.matmul(r, L_inv.T)  # fractional coordinates [N_w, N_e, 3]
         pw = torch.cat([torch.sin(2 * np.pi * s), torch.cos(2 * np.pi * s)], dim=-1)
         return pw  # [N_w, N_e, 6]
-    
+
     def forward(self, r_electrons):
         """
         Args:
@@ -610,16 +615,16 @@ class PeriodicNeuralWavefunction(nn.Module):
         """
         N_w, N_e, _ = r_electrons.shape
         r = self._wrap_to_cell(r_electrons)
-        
+
         # --- Bloch phase: e^{ik·Σr_i} ---
         # Total Bloch phase = sum over all electrons
         k = self.twist  # [3]
         bloch_phase = torch.sum(r * k.unsqueeze(0).unsqueeze(0), dim=(1, 2))  # [N_w]
-        
+
         # --- Electron features ---
         pw_feat = self._plane_wave_features(r)
         h = self.electron_embed(r) + self.pw_embed(pw_feat)  # [N_w, N_e, d_model]
-        
+
         # --- Interaction layers ---
         for l in range(len(self.interaction_layers)):
             # Mean-field aggregation (periodic-aware)
@@ -627,7 +632,7 @@ class PeriodicNeuralWavefunction(nn.Module):
             interaction_input = torch.cat([h, h_mean, h * h_mean], dim=-1)
             delta = self.interaction_layers[l](interaction_input)
             h = self.layer_norms[l](h + delta)
-        
+
         # --- Jastrow (electron-electron) ---
         # Pairwise distances (minimum image)
         r_ij_vec = r.unsqueeze(2) - r.unsqueeze(1)  # [N_w, N_e, N_e, 3]
@@ -636,52 +641,52 @@ class PeriodicNeuralWavefunction(nn.Module):
         s_ij = s_ij - torch.round(s_ij)
         r_ij_vec = torch.matmul(s_ij, self.cell)
         r_ij = torch.norm(r_ij_vec, dim=-1)  # [N_w, N_e, N_e]
-        
+
         triu_mask = torch.triu(torch.ones(N_e, N_e, device=r.device), diagonal=1).bool()
         r_pairs = r_ij[:, triu_mask].unsqueeze(-1)  # [N_w, n_pairs, 1]
         jastrow = self.jastrow_scale * self.jastrow_net(r_pairs).squeeze(-1).sum(dim=1)  # [N_w]
-        
+
         # --- Slater determinants ---
         log_det_total = torch.zeros(N_w, device=r.device)
         sign_det_total = torch.ones(N_w, device=r.device)
-        
+
         weights = F.softmax(self.det_weights, dim=0)
-        
+
         for k_det in range(self.n_determinants):
             w = weights[k_det]
             log_det_k = torch.zeros(N_w, device=r.device)
             sign_k = torch.ones(N_w, device=r.device)
-            
+
             if self.n_up > 0:
                 orb_up = self.orbital_up(h[:, :self.n_up, :])
                 phi_up = orb_up[:, :, k_det * self.n_up:(k_det + 1) * self.n_up]
-                
+
                 # Stability Surgery: Robustness Hardeners
                 eps = 1e-6 # Increased from 1e-7
                 eye = torch.eye(self.n_up, device=r.device).unsqueeze(0)
                 # Clip orbital values and sanitize NaNs before slogdet
                 phi_up = torch.nan_to_num(phi_up, nan=0.0, posinf=1e6, neginf=-1e6)
                 phi_up = phi_up + eps * eye
-                
+
                 sign_up, logdet_up = torch.linalg.slogdet(phi_up)
                 log_det_k = log_det_k + logdet_up
                 sign_k = sign_k * sign_up
-            
+
             if self.n_down > 0:
                 orb_dn = self.orbital_down(h[:, self.n_up:, :])
                 phi_dn = orb_dn[:, :, k_det * self.n_down:(k_det + 1) * self.n_down]
-                
+
                 # Stability Surgery: Robustness Hardeners
                 eps = 1e-6 # Increased from 1e-7
                 eye = torch.eye(self.n_down, device=r.device).unsqueeze(0)
                 # Clip orbital values and sanitize NaNs before slogdet
                 phi_dn = torch.nan_to_num(phi_dn, nan=0.0, posinf=1e6, neginf=-1e6)
                 phi_dn = phi_dn + eps * eye
-                
+
                 sign_dn, logdet_dn = torch.linalg.slogdet(phi_dn)
                 log_det_k = log_det_k + logdet_dn
                 sign_k = sign_k * sign_dn
-            
+
             if k_det == 0:
                 log_det_total = log_det_k + torch.log(w + 1e-10)
                 sign_det_total = sign_k
@@ -692,32 +697,32 @@ class PeriodicNeuralWavefunction(nn.Module):
                            + sign_k * torch.exp(log_new - max_log))
                 sign_det_total = torch.sign(sum_exp)
                 log_det_total = max_log + torch.log(torch.abs(sum_exp) + 1e-30)
-        
+
         log_psi = jastrow + log_det_total
         sign_psi = sign_det_total
-        
+
         return log_psi, sign_psi
-    
+
     def compute_twist_averaged_energy(self, energy_func, n_twists: int = 8):
         """
         Twist-Averaged Boundary Conditions (TABC).
-        
+
         Average energy over a grid of k-points to reduce finite-size effects:
           E_TABC = (1/N_k) Σ_k E(k)
-        
+
         Uses Monkhorst-Pack grid in the Brillouin zone.
-        
+
         Args:
             energy_func: callable(twist_tensor) -> energy
             n_twists: number of twist vectors per dimension
-        
+
         Returns:
             E_avg: twist-averaged energy
             E_list: energies at each twist
         """
         L_inv = torch.linalg.inv(self.cell)
         b = 2 * np.pi * L_inv  # reciprocal lattice
-        
+
         E_list = []
         # Monkhorst-Pack grid
         for i in range(n_twists):
@@ -732,7 +737,7 @@ class PeriodicNeuralWavefunction(nn.Module):
                     twist = torch.matmul(s, b.cpu())
                     E = energy_func(twist)
                     E_list.append(E)
-        
+
         E_avg = np.mean(E_list)
         return E_avg, E_list
 
@@ -743,17 +748,17 @@ class PeriodicNeuralWavefunction(nn.Module):
 class SpinorWavefunction(nn.Module):
     """
     Level 17: 2-Component Spinor Wavefunction for Spin-Orbit Coupling.
-    
+
     Extends the standard wavefunction to include spin-orbit effects:
       Ψ = (ψ_↑, ψ_↓)^T  — 2-component spinor
-    
+
     Each component is a full NeuralWavefunction, mixed by spin-orbit:
       E_total = E_nonrel + <H_SO>
-    
+
     For Helium fine-structure:
       1s² ¹S₀ → 1s2p ³P_{0,1,2} splitting
       Splitting ~ α²Z⁴/n³ ≈ 0.35 cm⁻¹ for He
-    
+
     The spinor representation allows computing:
       - Fine-structure splitting (comparison to 12-digit spectroscopy)
       - Spin-orbit matrix elements
@@ -768,7 +773,7 @@ class SpinorWavefunction(nn.Module):
         self.n_electrons = system.n_electrons
         self.n_up = system.n_up
         self.n_down = system.n_down
-        
+
         # Two-component spinor: ψ_↑ and ψ_↓
         # Each is a full NeuralWavefunction
         self.psi_up = NeuralWavefunction(
@@ -779,118 +784,118 @@ class SpinorWavefunction(nn.Module):
             system, d_model=d_model, n_layers=n_layers,
             n_determinants=n_determinants, use_ssm_backflow=use_ssm_backflow
         )
-        
+
         # Mixing angle for spin-orbit coupling
         # θ = 0: pure spin-up, θ = π/2: pure spin-down
         self.mixing_angle = nn.Parameter(torch.tensor(0.1))
-        
+
         # Pauli matrices (σ_x, σ_y, σ_z)
         self.register_buffer('sigma_x', torch.tensor([[0., 1.], [1., 0.]]))
         self.register_buffer('sigma_y', torch.tensor([[0., -1.], [1., 0.]]))
         self.register_buffer('sigma_z', torch.tensor([[1., 0.], [0., -1.]]))
-    
+
     def forward(self, r_electrons):
         """
         Compute spinor wavefunction.
-        
+
         The total wavefunction is a coherent superposition:
           Ψ = cos(θ) · ψ_↑ + sin(θ) · ψ_↓
-        
+
         In log-domain:
           log|Ψ| = log|cos(θ)·ψ_↑ + sin(θ)·ψ_↓| (log-sum-exp)
-        
+
         Returns:
             log_psi: [N_w]
             sign_psi: [N_w]
         """
         log_psi_up, sign_up = self.psi_up(r_electrons)
         log_psi_down, sign_down = self.psi_down(r_electrons)
-        
+
         # Mixing coefficients
         c_up = torch.cos(self.mixing_angle)
         c_down = torch.sin(self.mixing_angle)
-        
+
         # Log-sum-exp combination: log|c_up·ψ_up + c_down·ψ_down|
         log_c_up = torch.log(torch.abs(c_up) + 1e-10) + log_psi_up
         log_c_down = torch.log(torch.abs(c_down) + 1e-10) + log_psi_down
         sign_c_up = torch.sign(c_up) * sign_up
         sign_c_down = torch.sign(c_down) * sign_down
-        
+
         max_log = torch.max(log_c_up, log_c_down)
         sum_exp = (sign_c_up * torch.exp(log_c_up - max_log)
                    + sign_c_down * torch.exp(log_c_down - max_log))
-        
+
         log_psi = max_log + torch.log(torch.abs(sum_exp) + 1e-30)
         sign_psi = torch.sign(sum_exp)
-        
+
         return log_psi, sign_psi
-    
+
     def compute_so_correction(self, r_electrons):
         """
         Compute spin-orbit energy correction.
-        
+
         H_SO = (α²/2) Σ_{i,I} Z_I / r_{iI}³ · L·S
-        
+
         Uses finite difference on the mixing angle to compute
         the off-diagonal spin-orbit matrix element.
-        
+
         Returns:
             E_SO: spin-orbit energy per walker [N_w]
         """
         N_w = r_electrons.shape[0]
         r = r_electrons.detach().requires_grad_(True)
-        
+
         # Get gradient of log|ψ| for momentum
         log_psi_up, _ = self.psi_up(r)
         grad_up = torch.autograd.grad(
             log_psi_up, r, grad_outputs=torch.ones_like(log_psi_up),
             create_graph=False, retain_graph=False
         )[0]
-        
+
         r_nuclei = self.psi_up.r_nuclei
         charges = self.psi_up.charges
-        
+
         E_SO = torch.zeros(N_w, device=r.device)
-        
+
         for I in range(self.system.n_nuclei):
             Z_I = charges[I]
             R_I = r_nuclei[I]
-            
+
             r_iI_vec = r.detach() - R_I.unsqueeze(0).unsqueeze(0)
             r_iI = torch.norm(r_iI_vec, dim=-1, keepdim=True)
-            
+
             L = torch.cross(r_iI_vec, grad_up.detach(), dim=-1)
-            
+
             # Spin expectation
             n_up = self.n_up
             N_e = self.n_electrons
             spin_z = torch.zeros(N_e, device=r.device)
             spin_z[:n_up] = 0.5
             spin_z[n_up:] = -0.5
-            
+
             L_dot_S = L[:, :, 2] * spin_z.unsqueeze(0)
             r_iI_cubed = (r_iI.squeeze(-1) ** 3).clamp(min=1e-6)
-            
+
             E_SO += (self.alpha_fs**2 / 2.0) * Z_I * (L_dot_S / r_iI_cubed).sum(dim=1)
-        
+
         return E_SO
-    
+
     def compute_fine_structure(self, r_electrons, system):
         """
         Compute fine-structure spectrum for comparison to experiment.
-        
+
         For He ³P term: splitting between J=0,1,2 levels.
         Compare to experimental values (measured to 12 significant figures).
-        
+
         Returns:
             dict with energies and splittings in various units.
         """
         log_psi, sign_psi = self.forward(r_electrons)
         E_SO = self.compute_so_correction(r_electrons)
-        
+
         ha_to_cm = 219474.63  # Hartree to cm⁻¹
         ha_to_ev = 27.2114    # Hartree to eV
-        
+
         return {
             'E_SO_Ha': E_SO.mean().item(),
             'E_SO_std_Ha': E_SO.std().item(),

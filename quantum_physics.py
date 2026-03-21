@@ -29,7 +29,7 @@ from typing import List, Tuple, Optional
 class MolecularSystem:
     """
     Defines a molecular/atomic system for 3D VMC.
-    
+
     Attributes:
         nuclei: List of (Z, [x, y, z]) tuples — atomic number + 3D position
         n_up: Number of spin-up electrons
@@ -112,11 +112,11 @@ MOLECULES = {
 def build_molecule_at_distance(mol_key: str, bond_length: float) -> MolecularSystem:
     """
     Build a molecule with a specific bond length for PES scanning (Level 10).
-    
+
     Args:
         mol_key: "H2", "LiH", or "H2O"
         bond_length: bond distance in Bohr
-        
+
     Returns:
         MolecularSystem with updated nuclear positions
     """
@@ -157,11 +157,11 @@ def build_molecule_at_distance(mol_key: str, bond_length: float) -> MolecularSys
 def compute_distances(r_electrons: torch.Tensor, r_nuclei: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Compute all pairwise distance matrices.
-    
+
     Args:
         r_electrons: [N_walkers, N_e, 3] electron positions
         r_nuclei: [N_n, 3] nuclear positions
-        
+
     Returns:
         r_ee: [N_w, N_e, N_e] electron-electron distances
         r_en: [N_w, N_e, N_n] electron-nuclear distances
@@ -187,11 +187,11 @@ def compute_potential_energy(r_electrons: torch.Tensor, system: MolecularSystem,
     """
     Full Coulomb potential energy:
       V = -Σ_{i,I} Z_I/r_{iI}  +  Σ_{i<j} 1/r_{ij}  +  Σ_{I<J} Z_I Z_J / R_{IJ}
-    
+
     Args:
         r_electrons: [N_w, N_e, 3]
         system: MolecularSystem
-        
+
     Returns:
         V: [N_w] total potential energy per walker
     """
@@ -229,7 +229,7 @@ def compute_potential_energy(r_electrons: torch.Tensor, system: MolecularSystem,
 class MetropolisSampler:
     """
     Metropolis-Hastings sampler for |ψ(r)|² distribution.
-    
+
     Implements adaptive step size to maintain ~50% acceptance rate.
     All walkers evolve in parallel for GPU efficiency.
     """
@@ -258,10 +258,10 @@ class MetropolisSampler:
     def step(self, log_psi_func):
         """
         One Metropolis-Hastings step for all walkers.
-        
+
         Args:
             log_psi_func: function(r) -> (log|ψ|, sign) where r is [N_w, N_e, 3]
-            
+
         Returns:
             walkers: updated positions [N_w, N_e, 3]
             acceptance_rate: float
@@ -307,20 +307,20 @@ def compute_local_energy(log_psi_func, r_electrons: torch.Tensor,
                          n_hutchinson: int = 1):
     """
     Compute local energy E_L(r) = T(r) + V(r).
-    
+
     Kinetic energy in log-domain:
       T = -0.5 * (∇²log|ψ| + |∇log|ψ||²)
-    
+
     Uses Hutchinson's stochastic trace estimator for the Laplacian:
       ∇²f ≈ E_v[v^T H v]  where v ~ N(0, I)
     Implemented via JVP trick: v^T H v = ∂/∂ε [v · ∇f(r + εv)]|_{ε=0}
-    
+
     Args:
         log_psi_func: function(r) -> (log|ψ|, sign)
         r_electrons: [N_w, N_e, 3] — requires_grad will be set
         system: MolecularSystem
         n_hutchinson: number of Hutchinson samples (1 is usually sufficient)
-        
+
     Returns:
         E_L: [N_w] local energy per walker
         log_psi: [N_w] log|ψ| values
@@ -367,17 +367,21 @@ def compute_local_energy(log_psi_func, r_electrons: torch.Tensor,
     # Kinetic energy: T = -0.5 * (∇² log|ψ| + |∇ log|ψ||²)
     # This is the log-domain formula, theoretically more stable than ∇²ψ/ψ
     E_kin = -0.5 * (laplacian + grad_sq)  # [N_w]
-    
+
     # Potential energy
     E_pot = compute_potential_energy(r_electrons.detach(), system, device)
-    
+
+    # TODO: In cases of poor initialization or near nodes of the trial wavefunction,
+    # the local energy E_L can exhibit extreme variance explosions. We might want
+    # to consider adding a more robust statistical clipping mechanism here (e.g. median
+    # absolute deviation filtering) rather than just clamping NaNs, to prevent instability.
     E_L = E_kin + E_pot
-    
+
     # Stability Surgery: Protect against NaNs at the physics level
     # Widened (L20): Match solver floor to prevent 'Zero Variance' saturation.
     E_L = torch.nan_to_num(E_L, nan=0.0, posinf=10000.0, neginf=-10000.0)
     E_L = torch.clamp(E_L, min=-10000.0, max=10000.0)
-    
+
     # Return E_L and detached components
     return E_L, E_kin.detach(), E_pot.detach()
 
@@ -388,20 +392,20 @@ def compute_local_energy(log_psi_func, r_electrons: torch.Tensor,
 class BerryPhaseComputer:
     """
     Level 14: Berry Phase from Neural Wavefunction — First-ever from NQS.
-    
+
     Parametrize the Hamiltonian by λ (e.g., bond angle, external field).
     At each λ_k, run full VMC to convergence. Then compute:
-    
+
       γ = -Im Σ_k log( ⟨ψ(λ_k)|ψ(λ_{k+1})⟩ / |⟨ψ(λ_k)|ψ(λ_{k+1})⟩| )
-    
+
     The overlap between two neural wavefunctions is estimated via VMC:
       ⟨ψ_a|ψ_b⟩ = E_{r~|ψ_a|²}[ ψ_b(r) / ψ_a(r) ]
-    
+
     Publishable result:
       H₃ equilateral → isosceles deformation loop: γ = π (exact).
       First demonstration of topological computation from NQS.
     """
-    def __init__(self, system_builder, n_lambda: int = 20, 
+    def __init__(self, system_builder, n_lambda: int = 20,
                  device: str = 'cpu'):
         """
         Args:
@@ -414,42 +418,42 @@ class BerryPhaseComputer:
         self.n_lambda = n_lambda
         self.device = device
         self.lambda_values = np.linspace(0, 2 * np.pi, n_lambda, endpoint=False)
-        
+
         self.wavefunctions = []
         self.overlaps = []
         self.energies = []
         self.berry_phase = None
-    
+
     @staticmethod
     def h3_triangle_loop(lam: float) -> 'MolecularSystem':
         """
         H₃ equilateral → isosceles deformation loop.
-        
+
         Three hydrogen atoms arranged in a triangle.
         At λ = 0: equilateral triangle (R = 1.8 Bohr).
         As λ goes 0 → 2π: the triangle deforms through
         isosceles configurations and returns to equilateral.
-        
+
         Known exact Berry phase: γ = π (due to conical intersection).
         """
         R0 = 1.8  # Equilibrium bond length in Bohr
         # Deformation parameter: controls asymmetry
         delta = 0.3 * np.sin(lam)  # Smooth isosceles deformation
-        
+
         # Three atoms in a plane (z=0)
         # Atom 1 at origin
         # Atom 2 and 3 arranged symmetrically
         r12 = R0 + delta
         r13 = R0 - delta
-        
+
         # Equilateral base angle: 60°, modulated
         angle = np.pi / 3 + 0.1 * np.cos(lam)
-        
+
         x2 = r12 * np.cos(angle / 2)
         y2 = r12 * np.sin(angle / 2)
         x3 = r13 * np.cos(angle / 2)
         y3 = -r13 * np.sin(angle / 2)
-        
+
         return MolecularSystem(
             nuclei=[
                 (1, [0.0, 0.0, 0.0]),
@@ -460,31 +464,31 @@ class BerryPhaseComputer:
             name=f"H₃ (λ={lam:.2f})",
             exact_energy=None
         )
-    
+
     def compute_overlap(self, wf_a, wf_b, sampler_a, n_estimates: int = 1000):
         """
         Estimate ⟨ψ_a|ψ_b⟩ = E_{r~|ψ_a|²}[ ψ_b(r) / ψ_a(r) ]
-        
+
         In log domain:
           ratio = sign_b · sign_a · exp(log|ψ_b| - log|ψ_a|)
-        
+
         Returns complex overlap (real + imaginary parts).
         """
         with torch.no_grad():
             r = sampler_a.walkers[:n_estimates].detach()
-            
+
             log_psi_a, sign_a = wf_a(r)
             log_psi_b, sign_b = wf_b(r)
-            
+
             log_ratio = log_psi_b - log_psi_a
             log_ratio = torch.clamp(log_ratio, min=-30.0, max=30.0)
-            
+
             # Real overlap (since wavefunctions are real-valued)
             ratio = sign_a * sign_b * torch.exp(log_ratio)
             overlap = ratio.mean()
-        
+
         return complex(overlap.item(), 0.0)
-    
+
     def compute_berry_phase(self, n_vmc_steps: int = 200, n_walkers: int = 512,
                             d_model: int = 32, n_layers: int = 2,
                             n_determinants: int = 4, lr: float = 1e-3,
@@ -494,21 +498,21 @@ class BerryPhaseComputer:
           1. For each λ_k: run VMC to convergence → ψ(λ_k)
           2. Compute all overlaps ⟨ψ(λ_k)|ψ(λ_{k+1})⟩
           3. Compute γ = -Im Σ log(overlap / |overlap|)
-        
+
         Returns:
             berry_phase: float (in radians)
         """
         # Import here to avoid circular dependency
         from solver import VMCSolver
-        
+
         self.wavefunctions = []
         self.energies = []
         samplers = []
-        
+
         # Step 1: Converge wavefunction at each λ
         for idx, lam in enumerate(self.lambda_values):
             system = self.system_builder(lam)
-            
+
             solver = VMCSolver(
                 system, n_walkers=n_walkers,
                 d_model=d_model, n_layers=n_layers,
@@ -517,7 +521,7 @@ class BerryPhaseComputer:
                 optimizer_type='adamw'
             )
             solver.equilibrate(n_steps=100)
-            
+
             for step in range(n_vmc_steps):
                 try:
                     solver.train_step(n_mcmc_steps=5)
@@ -525,29 +529,29 @@ class BerryPhaseComputer:
                     # Partial point failure is acceptable in topological loops
                     print(f"Warning: Berry Phase Step {step} failed at λ point {idx}: {e}")
                     continue
-            
+
             # Store converged wavefunction & sampler
             self.wavefunctions.append(solver.wavefunction)
             samplers.append(solver.sampler)
-            
+
             tail = max(1, n_vmc_steps // 5)
             E = np.mean(solver.energy_history[-tail:])
             self.energies.append(E)
-            
+
             if progress_callback:
                 progress_callback(idx, self.n_lambda, E)
-        
+
         # Step 2: Compute overlaps around the loop
         self.overlaps = []
         for k in range(self.n_lambda):
             k_next = (k + 1) % self.n_lambda
-            
+
             overlap = self.compute_overlap(
                 self.wavefunctions[k], self.wavefunctions[k_next],
                 samplers[k]
             )
             self.overlaps.append(overlap)
-        
+
         # Step 3: Berry phase = -Im Σ log(overlap / |overlap|)
         berry_phase = 0.0
         for overlap in self.overlaps:
@@ -555,10 +559,10 @@ class BerryPhaseComputer:
                 # Phase of the overlap
                 phase = np.angle(overlap)
                 berry_phase -= phase
-        
+
         # Normalize to [-π, π]
         self.berry_phase = (berry_phase + np.pi) % (2 * np.pi) - np.pi
-        
+
         return self.berry_phase
 
 
@@ -569,13 +573,13 @@ class BerryPhaseComputer:
 class PeriodicSystem:
     """
     Level 16: Periodic system for solid-state calculations.
-    
+
     Implements Bloch boundary conditions:
       ψ(r + L) = e^{ikL} · ψ(r)
-    
+
     Twist-Averaged Boundary Conditions (TABC):
       Average over k-points to reduce finite-size effects.
-    
+
     Attributes:
         cell_vectors: [3, 3] lattice vectors (rows = a₁, a₂, a₃)
         n_electrons: total electrons in simulation cell
@@ -619,10 +623,10 @@ class PeriodicSystem:
 def build_heg_system(rs: float, n_electrons: int, n_up: int = None) -> PeriodicSystem:
     """
     Build Homogeneous Electron Gas (HEG) system.
-    
+
     The HEG is the fundamental model of metallic bonding.
     Cell size L determined by electron density: (4/3)πr_s³ × N_e = L³
-    
+
     Args:
         rs: Wigner-Seitz radius (density parameter)
         n_electrons: total electrons
@@ -631,13 +635,13 @@ def build_heg_system(rs: float, n_electrons: int, n_up: int = None) -> PeriodicS
     if n_up is None:
         n_up = n_electrons // 2
     n_down = n_electrons - n_up
-    
+
     # L³ = N_e × (4/3)π r_s³
     volume = n_electrons * (4.0 / 3.0) * np.pi * rs**3
     L = volume ** (1.0 / 3.0)
-    
+
     cell = [[L, 0.0, 0.0], [0.0, L, 0.0], [0.0, 0.0, L]]
-    
+
     # Ceperley-Alder correlation energy (parameterization by Perdew-Zunger)
     # For unpolarized HEG: e_c(r_s) from Monte Carlo
     if rs <= 1.0:
@@ -652,15 +656,15 @@ def build_heg_system(rs: float, n_electrons: int, n_up: int = None) -> PeriodicS
         beta1 = 1.0529
         beta2 = 0.3334
         e_c = gamma / (1 + beta1 * np.sqrt(rs) + beta2 * rs)
-    
+
     # Exchange energy: e_x = -3/(4π) × (9π/4)^{1/3} / r_s
     e_x = -3.0 / (4.0 * np.pi) * (9.0 * np.pi / 4.0) ** (1.0 / 3.0) / rs
-    
+
     # Kinetic energy: e_k = (3/10)(9π/4)^{2/3} / r_s²
     e_k = 3.0 / 10.0 * (9.0 * np.pi / 4.0) ** (2.0 / 3.0) / rs**2
-    
+
     exact_e = e_k + e_x + e_c
-    
+
     return PeriodicSystem(
         cell_vectors=cell, n_up=n_up, n_down=n_down,
         name=f"HEG (r_s={rs})", rs=rs,
@@ -681,14 +685,14 @@ def compute_ewald_potential(r_electrons: torch.Tensor, system: PeriodicSystem,
                             device='cpu', n_recip: int = 5, alpha: float = None):
     """
     Level 16: Ewald summation for periodic Coulomb interaction.
-    
+
     Splits 1/r into short-range (real space) + long-range (reciprocal space):
       V = V_real + V_recip + V_self + V_madelung
-    
+
     V_real  = Σ_{i<j} Σ_n erfc(α|r_ij + nL|) / |r_ij + nL|
     V_recip = (1/V) Σ_{G≠0} (4π/G²) exp(-G²/4α²) Σ_{i<j} cos(G·r_ij)
     V_self  = -α/√π × N_e
-    
+
     Args:
         r_electrons: [N_w, N_e, 3]
         system: PeriodicSystem
@@ -698,18 +702,18 @@ def compute_ewald_potential(r_electrons: torch.Tensor, system: PeriodicSystem,
     N_w, N_e, _ = r_electrons.shape
     L = system.cell_tensor(device)
     V_cell = system.cell_volume()
-    
+
     # Auto-tune alpha for optimal convergence
     if alpha is None:
         L_min = min(np.linalg.norm(np.array(system.cell_vectors[i])) for i in range(3))
         alpha = 5.0 / L_min
-    
+
     # Wrap electrons into simulation cell (minimum image convention)
     L_inv = torch.linalg.inv(L)
     s = torch.matmul(r_electrons, L_inv.T)  # fractional coords
     s = s - torch.floor(s)  # wrap to [0, 1)
     r_wrapped = torch.matmul(s, L)
-    
+
     # --- Real-space sum ---
     V_real = torch.zeros(N_w, device=device)
     if N_e > 1:
@@ -719,18 +723,18 @@ def compute_ewald_potential(r_electrons: torch.Tensor, system: PeriodicSystem,
         s_ij = s_ij - torch.round(s_ij)
         r_ij_vec = torch.matmul(s_ij, L)
         r_ij = torch.norm(r_ij_vec, dim=-1)  # [N_w, N_e, N_e]
-        
+
         triu_mask = torch.triu(torch.ones(N_e, N_e, device=device), diagonal=1).bool()
         r_ij_upper = r_ij[:, triu_mask]  # [N_w, n_pairs]
-        
+
         # erfc(α·r) / r
         erfc_term = torch.erfc(alpha * r_ij_upper) / (r_ij_upper + 1e-10)
         V_real = erfc_term.sum(dim=1)
-    
+
     # --- Reciprocal-space sum ---
     V_recip = torch.zeros(N_w, device=device)
     b = torch.tensor(system.reciprocal_vectors(), dtype=torch.float32, device=device)
-    
+
     for n1 in range(-n_recip, n_recip + 1):
         for n2 in range(-n_recip, n_recip + 1):
             for n3 in range(-n_recip, n_recip + 1):
@@ -740,24 +744,24 @@ def compute_ewald_potential(r_electrons: torch.Tensor, system: PeriodicSystem,
                 G_sq = torch.dot(G, G)
                 if G_sq > (2 * np.pi * n_recip / V_cell**(1/3))**2:
                     continue
-                
+
                 # Structure factor: S(G) = Σ_i exp(iG·r_i)
                 G_dot_r = torch.matmul(r_wrapped, G)  # [N_w, N_e]
                 cos_sum = torch.cos(G_dot_r).sum(dim=1)  # [N_w]
                 sin_sum = torch.sin(G_dot_r).sum(dim=1)
                 S_sq = cos_sum**2 + sin_sum**2  # |S(G)|²
-                
+
                 # Reciprocal term
                 prefactor = 4.0 * np.pi / (V_cell * G_sq)
                 gauss = torch.exp(-G_sq / (4.0 * alpha**2))
                 V_recip += prefactor * gauss * (S_sq - N_e) / 2.0
-    
+
     # --- Self-energy correction ---
     V_self = -alpha / np.sqrt(np.pi) * N_e * torch.ones(N_w, device=device)
-    
+
     # --- Madelung constant (charged background) ---
     V_madelung = -np.pi * N_e**2 / (2.0 * V_cell * alpha**2) * torch.ones(N_w, device=device)
-    
+
     return V_real + V_recip + V_self + V_madelung
 
 
@@ -771,14 +775,14 @@ def compute_periodic_local_energy(log_psi_func, r_electrons: torch.Tensor,
     N_w, N_e, _ = r_electrons.shape
     r = r_electrons.detach().requires_grad_(True)
     log_psi, sign_psi = log_psi_func(r)
-    
+
     grad_log_psi = torch.autograd.grad(
         log_psi, r, grad_outputs=torch.ones_like(log_psi),
         create_graph=True, retain_graph=True
     )[0]
-    
+
     grad_sq = torch.sum(grad_log_psi ** 2, dim=(1, 2))
-    
+
     laplacian = torch.zeros(N_w, device=device)
     for _ in range(n_hutchinson):
         v = torch.randn_like(r)
@@ -789,10 +793,10 @@ def compute_periodic_local_energy(log_psi_func, r_electrons: torch.Tensor,
         )[0]
         laplacian += torch.sum(v * hvp, dim=(1, 2))
     laplacian = laplacian / n_hutchinson
-    
+
     kinetic = -0.5 * (laplacian + grad_sq)
     potential = compute_ewald_potential(r_electrons.detach(), system, device)
-    
+
     E_L = kinetic.detach() + potential
     return E_L, log_psi.detach(), sign_psi.detach()
 
@@ -804,10 +808,10 @@ def compute_periodic_local_energy(log_psi_func, r_electrons: torch.Tensor,
 class SpinOrbitSystem:
     """
     Level 17: System with spin-orbit coupling.
-    
+
     Extends MolecularSystem with relativistic Breit-Pauli correction:
       H_SO = (α²/2) Σ_{i,I} Z_I / r_{iI}³ · L_{iI} · S_i
-    
+
     Where:
       α ≈ 1/137 (fine-structure constant)
       L_{iI} = (r_i - R_I) × p_i (angular momentum about nucleus I)
@@ -815,15 +819,15 @@ class SpinOrbitSystem:
     """
     base_system: 'MolecularSystem'  # The underlying molecular system
     alpha_fs: float = 1.0 / 137.036  # Fine-structure constant
-    
+
     @property
     def n_electrons(self):
         return self.base_system.n_electrons
-    
+
     @property
     def n_up(self):
         return self.base_system.n_up
-    
+
     @property
     def n_down(self):
         return self.base_system.n_down
@@ -833,66 +837,66 @@ def compute_spin_orbit_coupling(log_psi_func, r_electrons: torch.Tensor,
                                  so_system: SpinOrbitSystem, device='cpu'):
     """
     Level 17: Breit-Pauli spin-orbit Hamiltonian.
-    
+
     H_SO = (α²/2) Σ_{i,I} Z_I / r_{iI}³ · (L_{iI} · S_i)
-    
+
     For each electron i and nucleus I:
       L_{iI} = (r_i - R_I) × p_i
       p_i = -i∇_i = (in log-domain) ∇_r log|ψ| (real part, multiplied by ψ)
-    
+
     The spin expectation depends on spin channel:
       ⟨σ_z⟩ = +1/2 for spin-up, -1/2 for spin-down
       ⟨σ_x⟩ = ⟨σ_y⟩ = 0 for z-polarized states
-    
+
     Returns:
       E_SO: [N_w] spin-orbit energy per walker (first-order perturbation theory)
     """
     system = so_system.base_system
     alpha = so_system.alpha_fs
     N_w, N_e, _ = r_electrons.shape
-    
+
     r = r_electrons.detach().requires_grad_(True)
     log_psi, _ = log_psi_func(r)
-    
+
     # Momentum: p_i = ∇_r log|ψ| (the gradient gives the "velocity" field)
     grad_log_psi = torch.autograd.grad(
         log_psi, r, grad_outputs=torch.ones_like(log_psi),
         create_graph=False, retain_graph=False
     )[0]  # [N_w, N_e, 3]
-    
+
     r_nuclei = system.positions(device)
     charges = system.charges(device)
-    
+
     E_SO = torch.zeros(N_w, device=device)
-    
+
     for I in range(system.n_nuclei):
         Z_I = charges[I]
         R_I = r_nuclei[I]  # [3]
-        
+
         # Displacement r_i - R_I
         r_iI_vec = r.detach() - R_I.unsqueeze(0).unsqueeze(0)  # [N_w, N_e, 3]
         r_iI = torch.norm(r_iI_vec, dim=-1, keepdim=True)  # [N_w, N_e, 1]
-        
+
         # Angular momentum L = r × p (cross product)
         # L_x = y·p_z - z·p_y, L_y = z·p_x - x·p_z, L_z = x·p_y - y·p_x
         L = torch.cross(r_iI_vec, grad_log_psi.detach(), dim=-1)  # [N_w, N_e, 3]
-        
+
         # Spin expectation: S_z = +1/2 for up, -1/2 for down
         # For z-quantized states, L·S = L_z · S_z (dominant term)
         n_up = system.n_up
         spin_z = torch.zeros(N_e, device=device)
         spin_z[:n_up] = 0.5      # spin-up electrons
         spin_z[n_up:] = -0.5     # spin-down electrons
-        
+
         # L · S ≈ L_z · S_z (diagonal approximation for z-quantized states)
         L_dot_S = L[:, :, 2] * spin_z.unsqueeze(0)  # [N_w, N_e]
-        
+
         # 1/r³ factor (regularized)
         r_iI_cubed = (r_iI.squeeze(-1) ** 3).clamp(min=1e-6)
-        
+
         # H_SO contribution from this nucleus
         E_SO += (alpha**2 / 2.0) * Z_I * (L_dot_S / r_iI_cubed).sum(dim=1)
-    
+
     return E_SO
 
 
@@ -900,23 +904,23 @@ def compute_fine_structure_splitting(log_psi_func, r_electrons: torch.Tensor,
                                       so_system: SpinOrbitSystem, device='cpu'):
     """
     Level 17: Compute fine-structure energy levels.
-    
+
     For Helium 1s2p configuration:
       ³P₀, ³P₁, ³P₂ split by spin-orbit coupling.
       Splitting ~ α²Z⁴/n³ in atomic units.
-    
+
     Returns dict with total energy, kinetic, potential, and spin-orbit contributions.
     """
     system = so_system.base_system
-    
+
     # Standard energy
     E_L, log_psi, sign_psi = compute_local_energy(
         log_psi_func, r_electrons, system, device
     )
-    
+
     # Spin-orbit correction
     E_SO = compute_spin_orbit_coupling(log_psi_func, r_electrons, so_system, device)
-    
+
     return {
         'E_total': (E_L + E_SO).mean().item(),
         'E_nonrel': E_L.mean().item(),
@@ -932,21 +936,21 @@ def compute_fine_structure_splitting(log_psi_func, r_electrons: torch.Tensor,
 class EntanglementEntropyComputer:
     """
     Level 18: Rényi-2 Entanglement Entropy from Neural Wavefunction.
-    
+
     Unprecedented: No published work computes molecular entanglement
     entropy from a neural VMC wavefunction.
-    
+
     Method — SWAP trick:
       S₂(A) = -log Tr(ρ_A²)
       Tr(ρ_A²) = ⟨ψ⊗ψ|SWAP_A|ψ⊗ψ⟩
-    
+
     Implementation:
       1. Sample two independent copies (r, r') from |ψ|²
       2. Construct SWAP configuration: swap electrons in subsystem A
          r_swap = (r'_A, r_B) and r'_swap = (r_A, r'_B)
       3. Estimator: Tr(ρ_A²) = E[ ψ(r_swap)·ψ(r'_swap) / (ψ(r)·ψ(r')) ]
       4. S₂ = -log(Tr(ρ_A²))
-    
+
     Subsystem partition:
       - By atom: electrons assigned to nearest nucleus
       - By spatial region: x < 0 vs x > 0
@@ -959,7 +963,7 @@ class EntanglementEntropyComputer:
             wavefunction: neural wavefunction (log_psi, sign) = wf(r)
             sampler: MetropolisSampler (already equilibrated)
             system: MolecularSystem
-            partition: 'spatial' (x<0 vs x>0), 'spin' (up vs down), 
+            partition: 'spatial' (x<0 vs x>0), 'spin' (up vs down),
                        'atom' (nearest nucleus)
             device: 'cpu' or 'cuda'
         """
@@ -968,17 +972,17 @@ class EntanglementEntropyComputer:
         self.system = system
         self.partition = partition
         self.device = device
-        
+
         # Build subsystem A mask
         self.subsystem_A = self._build_partition()
-    
+
     def _build_partition(self):
         """
         Returns boolean mask [N_e] where True = electron in subsystem A.
         """
         N_e = self.system.n_electrons
         mask = torch.zeros(N_e, dtype=torch.bool)
-        
+
         if self.partition == 'spin':
             # Subsystem A = spin-up electrons
             mask[:self.system.n_up] = True
@@ -991,13 +995,13 @@ class EntanglementEntropyComputer:
         else:
             # Default: first half
             mask[:max(1, N_e // 2)] = True
-        
+
         return mask
-    
+
     def compute_renyi2(self, n_samples: int = 2000, n_mcmc_burn: int = 50):
         """
         Compute Rényi-2 entanglement entropy via SWAP trick.
-        
+
         Returns:
             S2: Rényi-2 entropy S₂(A)
             purity: Tr(ρ_A²)
@@ -1006,7 +1010,7 @@ class EntanglementEntropyComputer:
         log_psi_func = lambda r: self.wavefunction(r)
         mask_A = self.subsystem_A.to(self.device)
         mask_B = ~mask_A
-        
+
         # Need two independent copies — use two separate samplers
         sampler_1 = MetropolisSampler(
             n_walkers=n_samples,
@@ -1014,25 +1018,25 @@ class EntanglementEntropyComputer:
             device=self.device
         )
         sampler_1.initialize_around_nuclei(self.system)
-        
+
         sampler_2 = MetropolisSampler(
             n_walkers=n_samples,
             n_electrons=self.system.n_electrons,
             device=self.device
         )
         sampler_2.initialize_around_nuclei(self.system)
-        
+
         # Burn-in both
         with torch.no_grad():
             for _ in range(n_mcmc_burn):
                 sampler_1.step(log_psi_func)
                 sampler_2.step(log_psi_func)
-        
+
         # Get independent configurations
         with torch.no_grad():
             r1 = sampler_1.walkers.detach()  # [N_w, N_e, 3]
             r2 = sampler_2.walkers.detach()  # [N_w, N_e, 3]
-            
+
             # Use spatial partition at runtime if needed
             if self.partition == 'spatial':
                 # Classify based on x-coordinate centroid
@@ -1040,44 +1044,44 @@ class EntanglementEntropyComputer:
                 spatial_mask = x_mean < x_mean.median()
                 mask_A = spatial_mask.to(self.device)
                 mask_B = ~mask_A
-            
+
             # Evaluate ψ at original configurations
             log_psi_r1, sign_r1 = self.wavefunction(r1)
             log_psi_r2, sign_r2 = self.wavefunction(r2)
-            
+
             # Construct SWAP configurations
             # r_swap1 = (r2_A, r1_B): take A-electrons from copy 2, B-electrons from copy 1
             # r_swap2 = (r1_A, r2_B): take A-electrons from copy 1, B-electrons from copy 2
             r_swap1 = r1.clone()
             r_swap2 = r2.clone()
-            
+
             r_swap1[:, mask_A, :] = r2[:, mask_A, :]  # r2's A-electrons into r1's slot
             r_swap2[:, mask_A, :] = r1[:, mask_A, :]  # r1's A-electrons into r2's slot
-            
-            # Evaluate ψ at swapped configurations  
+
+            # Evaluate ψ at swapped configurations
             log_psi_swap1, sign_swap1 = self.wavefunction(r_swap1)
             log_psi_swap2, sign_swap2 = self.wavefunction(r_swap2)
-            
+
             # SWAP estimator:
             # Tr(ρ_A²) = E[ ψ(r_swap1)·ψ(r_swap2) / (ψ(r1)·ψ(r2)) ]
             # In log domain:
             log_ratio = (log_psi_swap1 + log_psi_swap2) - (log_psi_r1 + log_psi_r2)
             sign_ratio = sign_swap1 * sign_swap2 * sign_r1 * sign_r2
-            
+
             # Clamp for numerical stability
             log_ratio = torch.clamp(log_ratio, min=-50.0, max=50.0)
-            
+
             swap_estimator = sign_ratio * torch.exp(log_ratio)
-            
+
             purity = swap_estimator.mean().item()
             purity_std = swap_estimator.std().item() / np.sqrt(n_samples)
-            
+
             # Clamp purity to valid range
             purity = max(purity, 1e-10)
             purity = min(purity, 1.0)
-            
+
             S2 = -np.log(purity)
-        
+
         return {
             'S2': S2,
             'purity': purity,
@@ -1086,30 +1090,30 @@ class EntanglementEntropyComputer:
             'n_B': mask_B.sum().item(),
             'partition': self.partition
         }
-    
+
     def compute_entanglement_profile(self, n_partitions: int = None,
                                       n_samples: int = 1000, n_mcmc_burn: int = 50):
         """
         Compute S₂ for all possible bipartitions of N_A = 1, 2, ..., N_e/2.
-        
+
         The Area Law: for ground states, S₂ ~ boundary area, not volume.
         Violation → topological order or critical point.
-        
+
         Returns list of (n_A, S2) tuples.
         """
         N_e = self.system.n_electrons
         if n_partitions is None:
             n_partitions = max(1, N_e // 2)
-        
+
         profile = []
         original_mask = self.subsystem_A.clone()
-        
+
         for n_A in range(1, n_partitions + 1):
             # Set subsystem A to first n_A electrons
             mask = torch.zeros(N_e, dtype=torch.bool)
             mask[:n_A] = True
             self.subsystem_A = mask
-            
+
             result = self.compute_renyi2(n_samples=n_samples, n_mcmc_burn=n_mcmc_burn)
             profile.append({
                 'n_A': n_A,
@@ -1117,7 +1121,7 @@ class EntanglementEntropyComputer:
                 'purity': result['purity'],
                 'error': result['error']
             })
-        
+
         self.subsystem_A = original_mask
         return profile
 
@@ -1224,4 +1228,3 @@ if __name__ == "__main__":
     print(f"  Potential energy: {V_h2.mean().item():.4f} ± {V_h2.std().item():.4f}")
 
     print("\n✅ All physics engine tests passed!")
-
