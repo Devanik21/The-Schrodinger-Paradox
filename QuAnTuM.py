@@ -4,7 +4,7 @@ QuAnTuM.py — The Schrödinger Dream: Nobel-Tier Interactive Lab
 Phase 1+2+3+4 Streamlit application with:
   - Levels 1-10: Atoms H→Ne, Molecules, PES, SR optimizer
   - Level 11: SSM-Backflow toggle
-  - Level 12: Flow-Accelerated VMC diagnostics  
+  - Level 12: Flow-Accelerated VMC diagnostics
   - Level 13: Excited States page (multi-state energy levels)
   - Level 14: Berry Phase page (parameter loop + γ display)
   - Level 15: TD-VMC page (time evolution animation)
@@ -68,7 +68,7 @@ st.markdown("""
     .stApp {
         background-color: #0e1117;
     }
-    
+
     /* Primary Buttons Styling */
     div.stButton > button[kind="primary"] {
         background-color: rgba(0, 0, 0, 0) !important;
@@ -80,7 +80,7 @@ st.markdown("""
         font-weight: 500 !important;
         backdrop-filter: blur(4px) !important;
     }
-    
+
     /* Hover state with Green Glow */
     div.stButton > button[kind="primary"]:hover {
         border-color: #00ff88 !important;
@@ -88,13 +88,13 @@ st.markdown("""
         box-shadow: 0 0 20px rgba(0, 255, 136, 0.4), inset 0 0 10px rgba(0, 255, 136, 0.1) !important;
         transform: translateY(-1px) !important;
     }
-    
+
     /* Active / Focus state */
     div.stButton > button[kind="primary"]:active {
         background-color: rgba(0, 255, 136, 0.05) !important;
         transform: translateY(0px) !important;
     }
-    
+
     /* Standard Buttons subtly themed */
     div.stButton > button[kind="secondary"] {
         background-color: rgba(255, 255, 255, 0.03) !important;
@@ -194,7 +194,7 @@ def capture_dna_snapshot():
             }
         }
     }
-    
+
     # 3D Solver State (The Core Brain)
     if st.session_state.solver_3d:
         s = st.session_state.solver_3d
@@ -227,9 +227,9 @@ def capture_dna_snapshot():
                 'walkers': make_serializable(s.sampler.walkers)
             },
             'hyperparams': {
-                'lr': s.optimizer.param_groups[0]['lr'], 
-                'n_walkers': s.n_walkers, 
-                'n_dets': s.wavefunction.n_determinants, 
+                'lr': s.optimizer.param_groups[0]['lr'],
+                'n_walkers': s.n_walkers,
+                'n_dets': s.wavefunction.n_determinants,
                 'n_layers': s.wavefunction.backflow.n_layers,
                 'optimizer': s.optimizer_type,
                 'sr_damping': s.sr_optimizer.damping if s.sr_optimizer else None
@@ -287,7 +287,7 @@ def capture_dna_snapshot():
             'V_x': make_serializable(st.session_state.V_x),
             'psi_1d': make_serializable(st.session_state.psi_1d) if st.session_state.psi_1d is not None else None,
             'generator_state': make_serializable(s1d.generator.state_dict()),
-            'dreamer_state': make_serializable(s1d.dreamer.state_dict()), 
+            'dreamer_state': make_serializable(s1d.dreamer.state_dict()),
             'memory_buffer': make_serializable(list(s1d.memory)),
             'opt_gen_state': make_serializable(s1d.opt_gen.state_dict()),
             'opt_dream_state': make_serializable(s1d.opt_dream.state_dict())
@@ -295,14 +295,14 @@ def capture_dna_snapshot():
 
     # Lab Results (Universal Metadata)
     results_keys = [
-        'pes_results', 'berry_result', 'so_results', 
+        'pes_results', 'berry_result', 'so_results',
         'entanglement_results', 'conservation_results', 'td_results',
         'periodic_results'
     ]
     for key in results_keys:
         if key in st.session_state and st.session_state[key]:
             dna[key] = make_serializable(st.session_state[key])
-            
+
     return dna
 
 
@@ -326,9 +326,9 @@ st.sidebar.divider()
 
 if mode == "3D Atomic VMC":
     st.sidebar.subheader("⚛️ Atomic / Molecular System")
-    
+
     system_type = st.sidebar.radio("System Type", ["Atoms", "Molecules"], horizontal=True)
-    
+
     if system_type == "Atoms":
         system_key = st.sidebar.selectbox(
             "Select Atom",
@@ -342,12 +342,12 @@ if mode == "3D Atomic VMC":
             format_func=lambda k: f"{k} — {MOLECULES[k].name} ({MOLECULES[k].n_electrons}e⁻)"
         )
     st.session_state.system_key = system_key
-    
+
     # Adaptive Defaults for Noble-Tier Systems (Oxygen, Fluorine, Neon)
     is_big_atom = system_key in ['O', 'F', 'Ne']
     if is_big_atom:
         st.sidebar.warning(f"⚠️ {system_key} is a large system. Lowering walker/determinant counts to prevent OOM.")
-    
+
     # Hyperparameters
     # Hyperparameters
     with st.sidebar.expander("🧬 Architecture", expanded=is_big_atom):
@@ -358,8 +358,8 @@ if mode == "3D Atomic VMC":
         lr = st.select_slider("Learning Rate", [1e-4, 3e-4, 1e-3, 3e-3, 1e-2], value=1e-3)
         use_ssm = st.checkbox("Enable SSM-Backflow (Level 11)", value=True,
                               help="Uses State Space Models (Mamba) for O(N log N) electron correlation.")
-    
-    
+
+
     # Level 8: Optimizer selection
     with st.sidebar.expander("🧮 Optimizer (Level 8)", expanded=False):
         opt_type = st.radio(
@@ -369,12 +369,12 @@ if mode == "3D Atomic VMC":
                  "Much faster convergence but more compute per step."
         )
         optimizer_key = 'sr' if 'Stochastic' in opt_type else 'adamw'
-    
+
     # Initialize
     if st.sidebar.button("♾️ Initialize System", width='stretch'):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         system = ATOMS[system_key] if system_key in ATOMS else MOLECULES[system_key]
-        
+
         st.session_state.solver_3d = VMCSolver(
             system, n_walkers=n_walkers, d_model=d_model,
             n_layers=n_layers, n_determinants=n_dets,
@@ -385,7 +385,7 @@ if mode == "3D Atomic VMC":
         st.session_state.show_plots = False
         st.sidebar.success(f"✅ {system.name} initialized on {device.upper()}")
         st.sidebar.info(f"Optimizer: {opt_type}")
-        
+
         # Auto-equilibrate
         with st.spinner("Equilibrating MCMC walkers..."):
             st.session_state.solver_3d.equilibrate(n_steps=200)
@@ -398,12 +398,12 @@ else:
         ["Harmonic Oscillator", "Double Well", "Infinite Square Well", "Step Potential"]
     )
     grid_size = st.sidebar.slider("Grid Size", 64, 512, 256, 64)
-    
+
     if st.sidebar.button("♾️ Initialize System", width='stretch'):
         device = "cuda" if torch.cuda.is_available() else "cpu"
         st.session_state.solver_1d = SchrodingerSolver(grid_size=grid_size, device=device)
         solver_1d = st.session_state.solver_1d
-        
+
         x = solver_1d.engine.x.detach().cpu().numpy().flatten()
         V_np = np.zeros_like(x)
         if potential_type == "Harmonic Oscillator":
@@ -415,7 +415,7 @@ else:
             V_np[len(x) // 4: 3 * len(x) // 4] = 0.0
         elif potential_type == "Step Potential":
             V_np[len(x) // 2:] = 2.0
-        
+
         st.session_state.V_x = torch.tensor(V_np, dtype=torch.float32).view(1, -1, 1).to(device)
         st.session_state.energy_history_1d = []
         st.session_state.psi_1d = None
@@ -449,16 +449,16 @@ if st.sidebar.button("🧬 Download Full Session DNA", width='stretch', help="Ex
     with st.spinner("Packaging DNA..."):
         dna_data = capture_dna_snapshot()
         json_str = json.dumps(dna_data, indent=2)
-        
+
         # Create ZIP in memory
         zip_buffer = io.BytesIO()
         with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zip_file:
             # 1. The Data
             zip_file.writestr('schrodinger_dna.json', json_str)
-            
+
             # 2. Manifest & Proof
             zip_file.writestr('DNA_MANIFEST.txt', f"SCHRÖDINGER DREAM DNA\nExported: {time.ctime()}\nSystem: {st.session_state.system_key}\nSteps: {st.session_state.training_steps}")
-            
+
             # 3. Documentation (Useful files)
             import os
             docs = {
@@ -469,7 +469,7 @@ if st.sidebar.button("🧬 Download Full Session DNA", width='stretch', help="Ex
                 if os.path.exists(filepath):
                     with open(filepath, 'r') as f:
                         zip_file.writestr(f"docs/{arcname}", f.read())
-        
+
         st.sidebar.download_button(
             label="⬇️ Click to Save ZIP",
             data=zip_buffer.getvalue(),
@@ -501,74 +501,74 @@ def plot_stigmergy_map(_solver=None, seed=None):
         # --- EXCLUSIVE REAL-TIME DATA EXTRACTION ---
         walkers = solver.sampler.walkers.detach().cpu().numpy() # [N_w, N_e, 3]
         N_w, N_e, _ = walkers.shape
-        
+
         # 1. Latent Projection (3N -> 2D)
         # Create a unique projection matrix for this cluster perspective
         state = np.random.RandomState(seed)
         proj = state.randn(N_e * 3, 2)
         proj /= (np.linalg.norm(proj, axis=0) + 1e-8)
-        
+
         # Flatten walkers to [N_w, 3*N_e] and project to 2D [N_w, 2]
         w_flat = walkers.reshape(N_w, -1)
         pos_2d = w_flat @ proj
-        
+
         # 2. Binning into Grid
         size = 40
         center = np.mean(pos_2d, axis=0)
         pos_centered = pos_2d - center
         std = np.std(pos_centered) + 1e-8
-        
+
         # Map to grid coordinates [0, size-1]
         # Use 3-sigma clip for the 'zoom' level
         grid_coords = (pos_centered / (3.0 * std)) * (size / 2) + (size / 2)
         grid_coords = np.clip(grid_coords, 0, size - 1).astype(int)
-        
+
         # 3. Probabilistic Rendering
         grid = np.zeros((size, size, 3))
-        
+
         # Background: Gating Noise (proportional to solver variance)
         var = solver.variance_history[-1] if solver.variance_history else 1.0
         haze = min(0.08, 0.01 * var)
         grid += state.rand(size, size, 3) * haze
-        
+
         # Plot electrons (Probability density accumulation)
         tint = state.rand(3) # Unique color for this cluster
         tint = tint / (np.max(tint) + 1e-8)
-        
+
         for i in range(N_w):
             y, x = grid_coords[i]
             # Accumulate color at walker position
             grid[y, x] = np.clip(grid[y, x] + tint * 0.45, 0, 1)
-            
+
         # 4. Neural Diffusion (Stigmergy Smear)
         # More smeared when variance is high (unconverged)
         diff_steps = max(1, min(3, int(var * 2)))
         for _ in range(diff_steps):
             grid = (grid + np.roll(grid, 1, axis=0)*0.15 + np.roll(grid, 1, axis=1)*0.15) / 1.3
-            
+
     # --- NOBEL-TIER RENDERING ---
     grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
     grid = np.clip(grid * 1.6, 0, 1)
     grid = grid ** 1.2 # Contrast boost
-    
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, origin='upper', interpolation='nearest') # 'Crunchy' texture
-    
+
     # Lab HUD Labels
-    ax.text(0.5, -1.8, f"Live Projection Cluster (Seed:{seed})", color='#00ff88', 
+    ax.text(0.5, -1.8, f"Live Projection Cluster (Seed:{seed})", color='#00ff88',
             fontsize=10, family='monospace', fontweight='bold', ha='left')
-    
+
     ax.set_facecolor('#0e1117')
-    fig.patch.set_facecolor('#0e1117') 
-    
+    fig.patch.set_facecolor('#0e1117')
+
     # Minimalist Tickmarks
     ax.set_xticks([0, 20, 39]); ax.set_xticklabels(['-L', '0', '+L'])
     ax.set_yticks([0, 20, 39]); ax.set_yticklabels(['-L', '0', '+L'])
     ax.tick_params(colors='#444444', labelsize=6, length=2)
-    
+
     for spine in ax.spines.values():
         spine.set_visible(False)
-        
+
     plt.tight_layout()
     return fig
 
@@ -582,13 +582,13 @@ def plot_latent_bloom(_solver=None, seed=None, step=0, bloom_id=0):
     Projects the 3N-dimensional wavefunction into a random 2D latent slice.
     """
     res = 80
-    
+
     if solver is None or not hasattr(solver, 'sampler') or solver.sampler.walkers is None:
         # --- OFFLINE PROCEDURAL FALLBACK (Artistic Mode) ---
         if seed is not None:
             step = solver.step_count if solver else 0
             np.random.seed(seed + (step // 10))
-        
+
         grid = np.zeros((res, res, 3))
         # 1. Base 'Aether'
         grid += np.random.rand(res, res, 3) * 0.05
@@ -597,7 +597,7 @@ def plot_latent_bloom(_solver=None, seed=None, step=0, bloom_id=0):
         for _ in range(num_seeds):
             ry, rx = np.random.randint(0, res, 2)
             color = np.random.rand(3)
-            if np.random.rand() > 0.5: color[1] *= 0.5 
+            if np.random.rand() > 0.5: color[1] *= 0.5
             strength = 0.2 + np.random.rand() * 0.6
             grid[ry, rx] = np.clip(grid[ry, rx] + color * strength, 0, 1)
         # 3. Organic Diffusion
@@ -606,7 +606,7 @@ def plot_latent_bloom(_solver=None, seed=None, step=0, bloom_id=0):
             grid = (grid + np.roll(grid, 1, axis=0) * w + np.roll(grid, -1, axis=1) * w + np.roll(grid, 1, axis=1) * (w/2)) / (1 + 2.5*w)
         # 4. Final Aesthetic Polish
         grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
-        grid = np.clip(grid * 1.4, 0, 1) ** 1.3 
+        grid = np.clip(grid * 1.4, 0, 1) ** 1.3
 
     else:
         # --- REAL-TIME PHYSICS: 3N -> 2D Projection ---
@@ -615,70 +615,70 @@ def plot_latent_bloom(_solver=None, seed=None, step=0, bloom_id=0):
         walkers = solver.sampler.walkers.detach().cpu().numpy()
         N_w, N_e, _ = walkers.shape
         D = N_e * 3
-        
+
         # Flatten to [N_w, D]
         flat_walkers = walkers.reshape(N_w, D)
-        
+
         # 2. Generate Random Orthogonal Projection Matrix [D, 2]
         # Seeded by the bloom_id to ensure each plot is a DIFFERENT slice
         rng = np.random.RandomState(seed + bloom_id * 999)
         proj_matrix = rng.randn(D, 2)
         # Orthogonalize to preserve geometry
-        Q, _ = np.linalg.qr(proj_matrix) 
-        proj_matrix = Q 
-        
+        Q, _ = np.linalg.qr(proj_matrix)
+        proj_matrix = Q
+
         # 3. Project to 2D Latent Space [N_w, 2]
         latent_2d = flat_walkers @ proj_matrix
-        
+
         # 4. Binning / Density Estimation
         # Center and scale
         center = np.mean(latent_2d, axis=0)
         latent_centered = latent_2d - center
         scale = np.std(latent_centered) * 3.0 + 1e-8
-        
+
         # Map to [0, res]
         coords = (latent_centered / scale + 0.5) * res
         coords = np.clip(coords, 0, res-1).astype(int)
-        
+
         # density grid
         grid = np.zeros((res, res, 3))
-        
+
         # Unique color tint for this dimension
         tint = rng.rand(3)
         tint = tint / (np.max(tint) + 1e-8)
-        
+
         # Accumulate walkers
         for i in range(N_w):
             cx, cy = coords[i]
             grid[cy, cx] += tint
-            
+
         # 5. Apply "Bloom" (Gaussian Smoothing)
         # This replaces the raw histogram with a probability cloud
         from scipy.ndimage import gaussian_filter
         sigma = 1.5 if N_w > 1000 else 2.5
         for c in range(3):
             grid[:,:,c] = gaussian_filter(grid[:,:,c], sigma=sigma)
-            
+
         # Normalize and enhance contrast
         grid = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
         grid = grid * 2.5 # Gain
         grid = np.clip(grid, 0, 1)
         grid = grid ** 0.8 # Gamma
-    
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, origin='upper', interpolation='bicubic')
-    
+
     title = f"Latent Projection #{bloom_id+1} (R^{N_e*3} → R^2)"
     ax.set_title(title, color='white', fontsize=10, loc='left', pad=10, family='monospace')
-    
+
     ax.set_facecolor('#0e1117')
-    fig.patch.set_facecolor('#0e1117') 
-    
+    fig.patch.set_facecolor('#0e1117')
+
     ax.set_xticks([])
     ax.set_yticks([])
     for spine in ax.spines.values():
         spine.set_visible(False)
-    
+
     plt.tight_layout()
     return fig
 
@@ -695,8 +695,8 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
         step = solver.step_count if solver else 0
         if seed is not None:
              np.random.seed(seed + (step // 5))
-        
-        res = 120 
+
+        res = 120
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
         energy_factor = 1.0
@@ -717,26 +717,26 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
     else:
         # --- REAL-TIME HIGH-FIDELITY MASTER PROJECTION ---
         # "The RGB Singularity": 3 Orthogonal Slices -> RGB Channels
-        
+
         # 1. Extract Walkers [N_w, D]
         walkers = solver.sampler.walkers.detach().cpu().numpy()
         N_w, N_e, _ = walkers.shape
         D = N_e * 3
         flat_walkers = walkers.reshape(N_w, D)
-        
+
         res = 120 # High Res
         rng = np.random.RandomState(seed + 777)
-        
+
         # 2. Generate 3 ORTHOGONAL projection planes (one for R, G, B)
         # Create a [D, 6] matrix to get 3 pairs of [D, 2] vectors
         proj_matrix = rng.randn(D, 6)
         Q, _ = np.linalg.qr(proj_matrix) # Orthonormal basis in R^D
-        
+
         grid = np.zeros((res, res, 3))
-        
+
         from scipy.ndimage import gaussian_filter
         sigma = 1.0 # sharper than standard blooms
-        
+
         for ch in range(3):
             # Project onto plane 'ch'
             # If D is small (e.g. Hydrogen D=3), we can't get 3 orthogonal 2D planes.
@@ -749,35 +749,35 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
             else:
                 # Use the global orthonormal basis
                 P_ch = Q[:, 2*ch : 2*ch+2] # [D, 2]
-                
+
             latent_2d = flat_walkers @ P_ch # [N_w, 2]
-            
+
             # Binning
             center = np.mean(latent_2d, axis=0)
             latent_centered = latent_2d - center
             scale = np.std(latent_centered) * 3.5 + 1e-8
             coords = (latent_centered / scale + 0.5) * res
             coords = np.clip(coords, 0, res-1).astype(int)
-            
+
             # Channel Density
             channel_grid = np.zeros((res, res))
             for i in range(N_w):
                 cx, cy = coords[i]
                 channel_grid[cy, cx] += 1.0
-                
+
             # Smooth
             channel_grid = gaussian_filter(channel_grid, sigma=sigma)
-            
+
             # Normalize Channel
             c_max = channel_grid.max() + 1e-8
             grid[:,:,ch] = channel_grid / c_max
-            
+
         # 3. Master Polish: Composite the RGB channels
         # Boost contrast significantly to look like "Nebula"
-        grid = grid * 3.0 
+        grid = grid * 3.0
         grid = np.clip(grid, 0, 1)
         grid = grid ** 0.7 # Gamma for glowing core
-        
+
         # Add slight white noise for "Quantum Grain"
         noise = rng.randn(res, res, 3) * 0.05
         grid = np.clip(grid + noise, 0, 1)
@@ -785,17 +785,17 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
     fig = plt.figure(figsize=(10, 10))
     ax = fig.add_subplot(111)
     ax.imshow(grid, origin='lower', interpolation='bicubic', extent=[-3, 3, -3, 3])
-    
+
     # Labels matching the elite laboratory style
-    ax.text(-2.8, 2.7, "MASTER LATENT DIMENSION BLOOM", color='white', 
+    ax.text(-2.8, 2.7, "MASTER LATENT DIMENSION BLOOM", color='white',
             fontsize=16, fontweight='bold', family='monospace')
-    ax.text(-2.8, 2.5, "PHASE 4 CONVERGENCE — [SR-OPTIMIZED MANIFOLD]", color='#00ff88', 
+    ax.text(-2.8, 2.5, "PHASE 4 CONVERGENCE — [SR-OPTIMIZED MANIFOLD]", color='#00ff88',
             fontsize=10, family='monospace')
-    
+
     # --- TECHNICAL HUD OVERLAY ---
     hud_color = 'rgba(0, 255, 136, 0.7)' # Glowing green
     text_props = dict(color='#00ff88', fontsize=9, family='monospace', alpha=0.8)
-    
+
     # Top Right: Real-time Physics
     if solver and len(solver.energy_history) > 0:
         E_curr = solver.energy_history[-1]
@@ -804,7 +804,7 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
         ax.text(2.8, 2.55, f"Var(E): {V_curr:.6f} ", ha='right', **text_props)
     else:
         ax.text(2.8, 2.7, "PHYSICS: STABLE_AETHER ", ha='right', **text_props)
-    
+
     # Bottom Left: Optimizer State
     if solver and hasattr(solver, 'sr_optimizer') and solver.sr_optimizer:
         sr = solver.sr_optimizer
@@ -816,25 +816,25 @@ def plot_master_bloom(_solver=None, seed=42, step=0):
     else:
         ax.text(-2.8, -2.4, "OPT_MODE : ADAMW_BASE", **text_props)
         ax.text(-2.8, -2.6, "DAMPING  : N/A", **text_props)
-    
+
     # Bottom Right: Topological Metrics
     # Level 14/19 Metadata
     topo = seed % 2 # Meta-mock for topological charge
     ax.text(2.8, -2.4, f"CH_CLASS : {seed % 5 + 1} ", ha='right', **text_props)
     ax.text(2.8, -2.6, f"TOPO_INV : {1 if topo > 0 else 0} ", ha='right', **text_props)
     ax.text(2.8, -2.8, "SYS_STATUS: NOMINAL ", ha='right', **text_props)
-    
+
     # Decorative HUD 'brackets'
     ax.plot([-2.9, -2.9, -2.6], [2.3, 2.8, 2.8], color='#00ff88', lw=1, alpha=0.5) # TL
     ax.plot([2.6, 2.9, 2.9], [2.8, 2.8, 2.3], color='#00ff88', lw=1, alpha=0.5) # TR
     ax.plot([-2.9, -2.9, -2.6], [-2.3, -2.9, -2.9], color='#00ff88', lw=1, alpha=0.5) # BL
     ax.plot([2.6, 2.9, 2.9], [-2.9, -2.9, -2.3], color='#00ff88', lw=1, alpha=0.5) # BR
-    
+
     ax.set_xticks([])
     ax.set_yticks([])
     for spine in ax.spines.values():
         spine.set_visible(False)
-    
+
     plt.tight_layout()
     return fig
 
@@ -890,14 +890,14 @@ def plot_electron_localization_function(_solver=None, seed=42):
     ELF = 1 / (1 + (D/Dh)^2) where D is excess kinetic energy density.
     """
     res = 60
-    
+
     if solver is None:
         res = 64; grid = np.random.rand(res, res, 3) * 0.05
     else:
         # --- REAL PHYSICS: Topo-Chemical ELF Map ---
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
-        
+
         # Pull walkers
         r = solver.sampler.walkers.detach()
         # Scan 1st electron
@@ -906,34 +906,34 @@ def plot_electron_localization_function(_solver=None, seed=42):
         r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_scan.requires_grad = True # Need gradients for K.E.
-        
+
         # Calculate Kinetic Energy Density (Positive Definite) from gradients
         log_psi, _ = solver.log_psi_func(r_scan)
         grad = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=True)[0]
         grad_sq = (grad**2).sum(dim=2) # |nabla psi|^2
-        
+
         # Laplacian calculation for full K.E.
         lap = torch.zeros(res*res, device=solver.device)
         for i in range(3):
             g_i = grad[:, 0, i]
             lap += torch.autograd.grad(g_i.sum(), r_scan, retain_graph=True)[0][:, 0, i]
-            
+
         # Kinetic Energy Density t_p (positive) = 1/2 \sum |\nabla \phi_i|^2
         # For a single determinant, t_p ~ 1/2 ( |\nabla \Psi|^2 - \nabla^2 \Psi ) ???
         # Using a simpler proxy for NQS: Excess Kinetic Energy D
         # D = t_p - |nabla rho|^2 / 8 rho
         # Here we map Local Kinetic Energy directly as a "Localization Proxy"
         # High K.E. variance usually indicates localization (shells/bonds)
-        
+
         K_L = -0.5 * (lap + grad_sq[:,0]) # Standard Local Kinetic Energy
-        
+
         # Convert to grid
         elf_proxy = K_L.detach().cpu().numpy().reshape(res, res)
         # Use log-scale to see structure
         elf_proxy = np.log(np.abs(elf_proxy) + 1e-4)
-        
+
         norm_elf = (elf_proxy - elf_proxy.min()) / (elf_proxy.max() - elf_proxy.min() + 1e-8)
-        grid = plt.cm.nipy_spectral(norm_elf)[:,:,:3] 
+        grid = plt.cm.nipy_spectral(norm_elf)[:,:,:3]
 
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
@@ -949,7 +949,7 @@ def plot_correlation_mesh(_solver=None, seed=42):
     solver = _solver
     """Visualizes electron-electron correlation and exclusion zones."""
     res = 60
-    
+
     if solver is None:
         step = solver.step_count if solver else 0
         if seed is not None: np.random.seed(seed + 202 + (step // 10))
@@ -964,7 +964,7 @@ def plot_correlation_mesh(_solver=None, seed=42):
         # Fix electron 1 at (0,0,0) and scan electron 2 in the XY plane
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
-        
+
         # Create a mock walker with 2 electrons
         r_explore = torch.zeros(res*res, solver.system.n_electrons, 3, device=solver.device)
         # e1 at origin (already 0)
@@ -976,17 +976,17 @@ def plot_correlation_mesh(_solver=None, seed=42):
             # For 1 electron systems, visualize the 1-body density
             r_explore[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
             r_explore[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
-            
+
         with torch.no_grad():
             if hasattr(solver.wavefunction, 'jastrow'):
-                J = solver.wavefunction.jastrow(r_explore, solver.wavefunction.r_nuclei, 
+                J = solver.wavefunction.jastrow(r_explore, solver.wavefunction.r_nuclei,
                                                 solver.wavefunction.charges, solver.wavefunction.spin_mask_parallel)
                 Z = J.reshape(res, res).cpu().numpy()
             else:
                 # Fallback to FermiNet envelope if no explicit Jastrow
                 log_psi, _ = solver.wavefunction(r_explore)
                 Z = log_psi.reshape(res, res).cpu().numpy()
-                
+
         # Normalize: High correlation/probability = Bright
         norm_Z = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
         grid = plt.cm.viridis(norm_Z)[:,:,:3]
@@ -1005,7 +1005,7 @@ def plot_berry_flow(_solver=None, seed=42):
     solver = _solver
     """Visualizes the complex phase and topological Berry flow."""
     res = 40
-    
+
     if solver is None:
         step = solver.step_count if solver else 0
         if seed is not None: np.random.seed(seed + 303 + (step // 20))
@@ -1019,25 +1019,25 @@ def plot_berry_flow(_solver=None, seed=42):
         # --- REAL PHYSICS: Phase Gradient Field (Im[d logPsi]) ---
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
-        
+
         # Scan 1st electron
         r_scan = torch.zeros(res*res, solver.system.n_electrons, 3, device=solver.device)
         r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_scan.requires_grad = True
-        
+
         # Evaluate Wavefunction
         log_psi, _ = solver.log_psi_func(r_scan)
-        
+
         # Gradient of the imaginary part (Phase)
         # Note: FermiNet is usually real-valued unless explicitly complex
         # If real, the "Berry Flow" is zero, so we visualize the gradient of the MAGNITUDE as a 'flow'
         # Or if we have a Backflow transformation, we can visualize that.
-        
+
         # Let's visualize the Backflow Vector Field 'g(r)' if available
         if hasattr(solver.wavefunction, 'backflow'):
             with torch.no_grad():
-                bf = solver.wavefunction.backflow(r_scan, solver.wavefunction.r_nuclei, 
+                bf = solver.wavefunction.backflow(r_scan, solver.wavefunction.r_nuclei,
                                                  solver.wavefunction.charges, solver.wavefunction.spin_mask_parallel)
                 # bf shape [Batch, N_electrons, 3]
                 U = bf[:, 0, 0].reshape(res, res).cpu().numpy()
@@ -1077,26 +1077,26 @@ def plot_entanglement_mesh(_solver=None, seed=42):
         # g(r1, r2) is a proxy for spatial entanglement/correlation
         walkers = solver.sampler.walkers.detach().cpu().numpy()
         N_w, N_e, _ = walkers.shape
-        
+
         # Project pairs of electrons to 2D line connections
         grid = np.zeros((res, res))
-        
+
         if N_e > 1:
             # Visualize correlation between electron 0 and electron 1 across walkers
             # Map r0 to x-axis, r1 to y-axis (correlation map)
             r0 = walkers[:, 0, 0] # x-coord of e0
             r1 = walkers[:, 1, 0] # x-coord of e1
-            
+
             # Simple 2D Histogram of joint probability P(x0, x1)
             H, xedges, yedges = np.histogram2d(r0, r1, bins=res, range=[[-3,3], [-3,3]])
-            grid = H.T 
+            grid = H.T
         else:
             # Single electron: self-interference map (density squared)
             r0 = walkers[:, 0, :]
             # Just project uniform density
             H, xedges, yedges = np.histogram2d(r0[:,0], r0[:,1], bins=res, range=[[-3,3], [-3,3]])
             grid = H.T
-            
+
         from scipy.ndimage import gaussian_filter
         grid = gaussian_filter(grid, sigma=1.0)
         norm_Z = (grid - grid.min()) / (grid.max() - grid.min() + 1e-8)
@@ -1122,34 +1122,34 @@ def plot_noether_landscape(_solver=None, seed=42):
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
         Z = np.abs(np.sin(X*Y)*0.5 + 0.5)
-        grid = plt.cm.plasma(Z)[:,:,:3] 
+        grid = plt.cm.plasma(Z)[:,:,:3]
     else:
         # --- REAL PHYSICS: Local Energy Variance Map ---
         # "Noether points" are where variance is minimized (E_L is constant)
         # Var(H) = <E_L^2> - <E_L>^2. We plot (E_L(r) - <E_L>)^2
-        
+
         # 1. Get walkers
         r = solver.sampler.walkers.detach()
         # 2. Re-evaluate E_L for the grid (using 2D scan strategy)
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
-        
+
         # Scan 1st electron
         repeat_cnt = (res*res // r.shape[0]) + 1
         r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
         r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_scan.requires_grad = True # Need gradients for K.E.
-        
+
         E_L, _, _ = compute_local_energy(solver.log_psi_func, r_scan, solver.system, solver.device, n_hutchinson=1)
         E_L = E_L.detach().cpu().numpy()
-        
+
         # Variance map
         E_mean = np.mean(E_L)
         # Use log-variance to see detail: log((E - E_mean)^2)
         variance_map = np.log((E_L - E_mean)**2 + 1e-12)
         variance_map = variance_map.reshape(res, res)
-        
+
         # Invert: We want Conservation (Low Variance) to be Bright
         Z = -variance_map
         norm_Z = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
@@ -1182,25 +1182,25 @@ def plot_orthonormal_pressure(_solver=None, seed=42):
         # If we have an excited state solver (Phase 3), we plot the overlap <Psi_0 | Psi_1> density
         # Since this is a placeholder for single-state, we plot the Wavefunction Amplitude Density
         # But inverted, to show "where the pressure is pushing" (i.e. high density regions)
-        
+
         r = solver.sampler.walkers.detach()
         walkers = r.cpu().numpy()
         N_w, N_e, _ = walkers.shape
         flat = walkers.reshape(N_w, -1)
-        
+
         # 2D Projection
         rng = np.random.RandomState(seed + 888)
         proj = rng.randn(N_e*3, 2)
         proj, _ = np.linalg.qr(proj)
         latent = flat @ proj
-        
+
         # Histogram
         H, xedges, yedges = np.histogram2d(latent[:,0], latent[:,1], bins=res)
-        
+
         # "Pressure" is high where density is high (Pauli Repulsion)
         from scipy.ndimage import gaussian_filter
         H = gaussian_filter(H, sigma=1.5)
-        
+
         norm_Z = (H - H.min()) / (H.max() - H.min() + 1e-8)
         grid = plt.cm.cool(norm_Z)[:,:,:3]
 
@@ -1398,7 +1398,7 @@ def plot_jastrow_curvature(_solver=None, seed=42):
         r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_scan.requires_grad = True
         with torch.enable_grad():
-            j = solver.wavefunction.jastrow(r_scan, solver.wavefunction.r_nuclei, 
+            j = solver.wavefunction.jastrow(r_scan, solver.wavefunction.r_nuclei,
                                             solver.wavefunction.charges, solver.wavefunction.spin_mask_parallel)
             grad = torch.autograd.grad(j.sum(), r_scan, create_graph=True)[0]
             laplacian = torch.norm(grad, dim=2).reshape(res, res).detach().cpu().numpy()
@@ -1428,28 +1428,28 @@ def plot_backflow_vorticity_map(_solver=None, seed=42):
         r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_scan.requires_grad = True
-        
+
         # Compute backflow feature field
         with torch.enable_grad():
             # DeepBackflowNet.forward requires: r_electrons, r_nuclei, charges, spin_mask_parallel
             h = solver.wavefunction.backflow(
-                r_scan, 
-                solver.wavefunction.r_nuclei, 
-                solver.wavefunction.charges, 
+                r_scan,
+                solver.wavefunction.r_nuclei,
+                solver.wavefunction.charges,
                 solver.wavefunction.spin_mask_parallel
             ) # [N_w, N_e, d_model]
-            
-            # To compute a meaningful 'vorticity', we look at the non-conservative 
+
+            # To compute a meaningful 'vorticity', we look at the non-conservative
             # mixing of the first two latent features across the XY plane.
             # Vorticity ω = ∂h₁/∂x - ∂h₀/∂y
             h0 = h[:, 0, 0]
             h1 = h[:, 0, 1]
             dh1_dr = torch.autograd.grad(h1.sum(), r_scan, create_graph=True)[0][:, 0, :2]
             dh0_dr = torch.autograd.grad(h0.sum(), r_scan, create_graph=True)[0][:, 0, :2]
-            
+
             # ω = dh1/dx - dh0/dy
             vorticity = (dh1_dr[:, 0] - dh0_dr[:, 1]).reshape(res, res).detach().cpu().numpy()
-            
+
         # Normalize and apply a beautiful divergent colormap
         v_min, v_max = np.percentile(vorticity, [1, 99])
         v_norm = np.clip((vorticity - v_min) / (v_max - v_min + 1e-8), 0, 1)
@@ -1486,7 +1486,7 @@ def plot_local_energy_variance(_solver=None, seed=42):
         r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_scan.requires_grad = True
-        
+
         # We need E_L for these points
         # For efficiency, we just approximate using the potential difference from mean
         # Real E_L is expensive to compute on a grid (requires laplacian)
@@ -1494,11 +1494,11 @@ def plot_local_energy_variance(_solver=None, seed=42):
         log_psi, _ = solver.log_psi_func(r_scan)
         grad = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=True)[0]
         kin_density = 0.5 * torch.sum(grad**2, dim=(1,2)).reshape(res, res).detach().cpu().numpy()
-        
+
         # Variance is high where kinetic density is rough
         local_var = np.abs(kin_density - np.mean(kin_density))
         grid = plt.cm.magma( (local_var - local_var.min()) / (local_var.max() - local_var.min() + 1e-8) )[:,:,:3]
-        
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3], origin='lower')
     ax.set_title("LOCAL ENERGY VARIANCE", color='#ffaa88', fontsize=10, family='monospace')
@@ -1524,16 +1524,16 @@ def plot_momentum_density(_solver=None, seed=42):
         r_grid[:, :, :] = r[0].unsqueeze(0) # Fix other electrons
         r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
-        
+
         with torch.no_grad():
             log_psi, _ = solver.log_psi_func(r_grid)
             psi = torch.exp(log_psi).reshape(res, res).cpu().numpy()
-            
+
         # FFT to get momentum space
         phi_k = np.fft.fftshift(np.fft.fft2(psi))
         prob_k = np.abs(phi_k)**2
         prob_k = np.log(prob_k + 1e-8) # Log scale for visibility
-        
+
         grid = plt.cm.inferno( (prob_k - prob_k.min()) / (prob_k.max() - prob_k.min() + 1e-8) )[:,:,:3]
 
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -1563,26 +1563,26 @@ def plot_vierbein_gauge(_solver=None, seed=42):
         r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_scan.requires_grad = True
-        
+
         # Compute gradient vector field (Frame 1)
         log_psi, _ = solver.log_psi_func(r_scan)
         grad = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=True)[0][:, 0, :2]
-        
+
         # Compute dual orthogonal frame (Frame 2 - "Magnetic" field lines)
         e1 = grad
         e2 = torch.stack([-e1[:,1], e1[:,0]], dim=1) # Rotate 90 deg
-        
+
         # mixing for visualization
         v_field = torch.norm(e1, dim=1).reshape(res, res).detach().cpu().numpy()
-        curl = (torch.autograd.grad(e1[:,1].sum(), r_scan, retain_graph=True)[0][:,0,0] - 
+        curl = (torch.autograd.grad(e1[:,1].sum(), r_scan, retain_graph=True)[0][:,0,0] -
                 torch.autograd.grad(e1[:,0].sum(), r_scan, retain_graph=True)[0][:,0,1])
         curl = curl.reshape(res, res).detach().cpu().numpy()
-        
+
         # Map: Red=Divergence(Metric dilation), Blue=Curl(Twist)
         grid = np.zeros((res, res, 3))
         v_norm = (v_field - v_field.min()) / (v_field.max() - v_field.min() + 1e-8)
         c_norm = (curl - curl.min()) / (curl.max() - curl.min() + 1e-8)
-        
+
         grid[:,:,0] = v_norm * 0.8
         grid[:,:,2] = c_norm * 0.9
         grid[:,:,1] = (grid[:,:,0] + grid[:,:,2])*0.2
@@ -1616,11 +1616,11 @@ def plot_hamiltonian_well(_solver=None, seed=42):
         r_grid = torch.zeros((res*res, 1, 3), device=solver.device)
         r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
-        
+
         with torch.no_grad():
             V = compute_potential_energy(r_grid, solver.system, solver.device)
             V = V.reshape(res, res).cpu().numpy()
-            
+
         V = np.clip(V, -10, 2)
         V_norm = (V - V.min()) / (V.max() - V.min() + 1e-8)
         grid = plt.cm.cubehelix_r(V_norm)[:,:,:3]
@@ -1655,14 +1655,14 @@ def plot_mcmc_walker_field(_solver=None, seed=42):
         # --- REAL PHYSICS: LIVE WALKER DENSITY ---
         walkers = solver.sampler.walkers.detach().cpu().numpy()
         N_w, N_e, _ = walkers.shape
-        
+
         # Project all electrons to 2D
         pos_2d = walkers.reshape(-1, 3)[:, :2]
-        
+
         # 2D Histogram
         H, xedges, yedges = np.histogram2d(pos_2d[:, 0], pos_2d[:, 1], bins=res, range=[[-4, 4], [-4, 4]])
         density = H.T
-        
+
         from scipy.ndimage import gaussian_filter
         density = gaussian_filter(density, sigma=1.2)
         norm_D = (density - density.min()) / (density.max() - density.min() + 1e-8)
@@ -1694,7 +1694,7 @@ def plot_autograd_hessian(_solver=None, seed=42):
         # --- REAL PHYSICS: LOG-PSI LAPLACIAN ---
         x = np.linspace(-3.5, 3.5, res); y = np.linspace(-3.5, 3.5, res)
         X, Y = np.meshgrid(x, y)
-        
+
         # Use a small subset of walkers or a grid evaluation
         r = solver.sampler.walkers.detach()
         repeat_cnt = (res*res // r.shape[0]) + 1
@@ -1702,9 +1702,9 @@ def plot_autograd_hessian(_solver=None, seed=42):
         r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_scan.requires_grad = True
-        
+
         log_psi, _ = solver.log_psi_func(r_scan)
-        
+
         # Hessian Trace (Laplacian) via brute-force autograd for 2D slice
         grad = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=True)[0]
         # Trace is sum( d^2 logPsi / d x_i^2 )
@@ -1712,7 +1712,7 @@ def plot_autograd_hessian(_solver=None, seed=42):
         for i in range(3): # x, y, z for electron 0
             g_i = grad[:, 0, i]
             laplacian += torch.autograd.grad(g_i.sum(), r_scan, retain_graph=True)[0][:, 0, i]
-            
+
         L = laplacian.detach().cpu().numpy().reshape(res, res)
         L = np.clip(L, np.percentile(L, 5), np.percentile(L, 95)) # outlier rejection
         L_norm = (L - L.min()) / (L.max() - L.min() + 1e-8)
@@ -1745,29 +1745,29 @@ def plot_logdomain_landscape(_solver=None, seed=42):
         # --- REAL PHYSICS: WAVEFUNCTION TOPOLOGY ---
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
-        
+
         r = solver.sampler.walkers.detach()
         repeat_cnt = (res*res // r.shape[0]) + 1
         r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
         r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
-        
+
         with torch.no_grad():
             log_psi, _ = solver.log_psi_func(r_scan)
-            
+
         lp = log_psi.cpu().numpy().reshape(res, res)
         # Sign estimate (using phase if complex, or just parity)
         # For FermiNet, log_psi is often real, so we visualize the density and nodal regions
         Z_norm = (lp - lp.min()) / (lp.max() - lp.min() + 1e-8)
-        
+
         # Dual color channel for nodal crossing (antisymmetry)
         grid = np.zeros((res, res, 3))
         # Use high-frequency noise to simulate nodal "shimmer" where lp is very negative
         nodal_mask = (lp < np.percentile(lp, 15)).astype(float)
-        
+
         grid[:,:,0] = Z_norm * 0.4 + nodal_mask * 0.5 # Reddish for nodes
-        grid[:,:,1] = Z_norm * 0.9 
-        grid[:,:,2] = Z_norm * 0.7 
+        grid[:,:,1] = Z_norm * 0.9
+        grid[:,:,2] = Z_norm * 0.7
         grid = np.clip(grid, 0, 1)
 
     fig, ax = plt.subplots(figsize=(6, 6))
@@ -1799,24 +1799,24 @@ def plot_cusp_enforcement(_solver=None, seed=42):
         # We plot the magnitude of the Local Kinetic Energy field
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
-        
+
         r = solver.sampler.walkers.detach()
         repeat_cnt = (res*res // r.shape[0]) + 1
         r_scan = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
         r_scan[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_scan[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_scan.requires_grad = True
-        
+
         # Local energy components
         log_psi, _ = solver.log_psi_func(r_scan)
         grad = torch.autograd.grad(log_psi.sum(), r_scan, create_graph=True)[0]
         laplacian = torch.zeros(res*res, device=solver.device)
         for i in range(3):
             laplacian += torch.autograd.grad(grad[:, 0, i].sum(), r_scan, retain_graph=True)[0][:, 0, i]
-            
+
         K_L = -0.5 * (laplacian + (grad**2).sum(dim=(1,2)))
         K_L = K_L.detach().cpu().numpy().reshape(res, res)
-        
+
         # Cusp regions are where KE is extremely high/variable
         Z = np.abs(K_L)
         Z = np.clip(Z, 0, np.percentile(Z, 98))
@@ -1843,7 +1843,7 @@ def plot_atomic_shells(_solver=None, seed=42):
         x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
         X, Y = np.meshgrid(x, y)
         R = np.sqrt(X**2 + Y**2) + 0.01
-        Z = np.exp(-R) * 4.0 + np.exp(-(R-1.5)**2)*2.0 
+        Z = np.exp(-R) * 4.0 + np.exp(-(R-1.5)**2)*2.0
         Z_norm = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
         grid = plt.cm.cividis(Z_norm)[:,:,:3]
     else:
@@ -1852,18 +1852,18 @@ def plot_atomic_shells(_solver=None, seed=42):
         N_w, N_e, _ = walkers.shape
         # Distance from nucleus (assume centered at 0)
         radii = np.linalg.norm(walkers, axis=2).flatten()
-        
+
         # 1D Radial Histogram
         hist, bin_edges = np.histogram(radii, bins=res, range=[0, 4])
         # Project 1D shells back to 2D image for the Atlas
         x = np.linspace(-4, 4, res); y = np.linspace(-4, 4, res)
         X, Y = np.meshgrid(x, y)
         R = np.sqrt(X**2 + Y**2)
-        
+
         # Interpolate hist values onto R grid
         indices = np.clip((R / 4.0 * res).astype(int), 0, res-1)
         Z = hist[indices]
-        
+
         from scipy.ndimage import gaussian_filter
         Z = gaussian_filter(Z.astype(float), sigma=1.5)
         norm_Z = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
@@ -1898,11 +1898,11 @@ def plot_pes_landscape(_solver=None, seed=42):
         r_grid = torch.zeros((res*res, 1, 3), device=solver.device)
         r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
-        
+
         with torch.no_grad():
             V = compute_potential_energy(r_grid, solver.system, solver.device)
             V = V.reshape(res, res).cpu().numpy()
-            
+
         V = np.clip(V, -10, 10)
         norm_Z = (V - V.min()) / (V.max() - V.min() + 1e-8)
         grid = plt.cm.terrain(norm_Z)[:,:,:3]
@@ -1938,12 +1938,12 @@ def plot_ssm_dataflow(_solver=None, seed=42):
         r_grid = torch.zeros((res*res, 1, 3), device=solver.device)
         r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
-        
+
         if hasattr(solver.wavefunction, 'backflow'):
             with torch.no_grad():
                 # Get the correction g(r)
                 # bf output is [Batch, N_e, 3]
-                bf = solver.wavefunction.backflow(r_grid, solver.wavefunction.r_nuclei, 
+                bf = solver.wavefunction.backflow(r_grid, solver.wavefunction.r_nuclei,
                                                  solver.wavefunction.charges, solver.wavefunction.spin_mask_parallel)
                 g_mag = torch.norm(bf, dim=2).reshape(res, res).cpu().numpy()
         else:
@@ -1952,7 +1952,7 @@ def plot_ssm_dataflow(_solver=None, seed=42):
             log_psi, _ = solver.log_psi_func(r_grid)
             grad = torch.autograd.grad(log_psi.sum(), r_grid)[0]
             g_mag = torch.norm(grad, dim=2).reshape(res, res).cpu().numpy()
-            
+
         from scipy.ndimage import gaussian_filter
         g_mag = gaussian_filter(g_mag, sigma=1.0)
         norm_G = (g_mag - g_mag.min()) / (g_mag.max() - g_mag.min() + 1e-8)
@@ -1988,7 +1988,7 @@ def plot_flow_acceptance(_solver=None, seed=42):
         r_grid = torch.zeros((res*res, 1, 3), device=solver.device)
         r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
-        
+
         # Estimate log_det implicitly via divergence of flow displacement if not using a flow model
         # Or if we have a RealFlow model, use it.
         if hasattr(solver, 'flow_model') and solver.flow_model is not None:
@@ -2000,7 +2000,7 @@ def plot_flow_acceptance(_solver=None, seed=42):
             with torch.no_grad():
                 log_psi, _ = solver.log_psi_func(r_grid)
                 Z = log_psi.reshape(res, res).cpu().numpy()
-                
+
         norm_Z = (Z - Z.min()) / (Z.max() - Z.min() + 1e-8)
         grid = plt.cm.ocean(1 - norm_Z)[:,:,:3]
 
@@ -2034,16 +2034,16 @@ def plot_tdvmc_dynamics(_solver=None, seed=42):
         r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_grid.requires_grad = True
-        
+
         # We need the complex phase. If real, we use the gradient as 'flow'
         log_psi, _ = solver.log_psi_func(r_grid)
         grad = torch.autograd.grad(log_psi.sum(), r_grid)[0]
         grad_np = grad.detach().cpu().numpy().reshape(res, res, 3)
-        
+
         # Phase field proxy: arctan2 of grad components or just the density modulation
         density = torch.exp(2*log_psi).reshape(res, res).detach().cpu().numpy()
         phase_proxy = np.arctan2(grad_np[:,:,1], grad_np[:,:,0])
-        
+
         norm_D = (density - density.min()) / (density.max() - density.min() + 1e-8)
         grid = plt.cm.hsv((phase_proxy + np.pi) / (2*np.pi))[:,:,:3]
         grid = grid * norm_D[:,:,None] * 0.9 + 0.1 # Brightness modulation by density
@@ -2079,11 +2079,11 @@ def plot_bloch_lattice(_solver=None, seed=42):
         r_grid = torch.zeros((res*res, 1, 3), device=solver.device)
         r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
-        
+
         with torch.no_grad():
             V = compute_potential_energy(r_grid, solver.system, solver.device)
             V = V.reshape(res, res).cpu().numpy()
-            
+
         V = np.clip(V, -5, 5)
         norm_Z = (V - V.min()) / (V.max() - V.min() + 1e-8)
         grid = plt.cm.gnuplot2(norm_Z)[:,:,:3]
@@ -2121,21 +2121,21 @@ def plot_spinorbit_split(_solver=None, seed=42):
         # We separate the walkers into 'up' and 'down' sectors based on solver.system config
         walkers = solver.sampler.walkers.detach().cpu().numpy()
         n_up = solver.system.n_up
-        
+
         # Project up-electron density (x-y slice)
         up_pos = walkers[:, :n_up, :2].reshape(-1, 2)
         dn_pos = walkers[:, n_up:, :2].reshape(-1, 2)
-        
+
         H_up, _, _ = np.histogram2d(up_pos[:,0], up_pos[:,1], bins=res, range=[[-3,3],[-3,3]])
         H_dn, _, _ = np.histogram2d(dn_pos[:,0], dn_pos[:,1], bins=res, range=[[-3,3],[-3,3]])
-        
+
         from scipy.ndimage import gaussian_filter
         H_up = gaussian_filter(H_up.T, sigma=1.2)
         H_dn = gaussian_filter(H_dn.T, sigma=1.2)
-        
+
         norm_up = (H_up - H_up.min()) / (H_up.max() - H_up.min() + 1e-8)
         norm_dn = (H_dn - H_dn.min()) / (H_dn.max() - H_dn.min() + 1e-8)
-        
+
         grid = np.zeros((res, res, 3))
         grid[:,:,0] = norm_up * 0.95  # Red for Spin-Up
         grid[:,:,2] = norm_dn * 0.95  # Blue for Spin-Down
@@ -2214,19 +2214,19 @@ def plot_ssm_memory_horizon(_solver=None, seed=42):
             # shape typically [d_inner, d_state]
             A_log = wf.backflow.ssm_blocks[0].A_log.detach().cpu().numpy()
             res_y, res_x = A_log.shape
-            
+
             # Physics: Decay rate = exp(A_log)
             # Higher values = faster forgetting = 'Event Horizon'
             decay = np.exp(A_log)
-            
+
             grid = np.zeros((res_y, res_x, 3))
             norm_decay = (decay - decay.min()) / (decay.max() - decay.min() + 1e-8)
-            
+
             # Aesthetic: Deep Void (Black) to Spectral Blue (Memory)
             grid[:,:,2] = norm_decay * 0.8  # Blue
             grid[:,:,1] = norm_decay * 0.2  # Cyan hint
             grid[:,:,0] = (1 - norm_decay) * 0.1 # Red hint in the void
-            
+
         except Exception:
             # Robust fallback to noise if SSM is disabled
             grid = np.random.rand(40, 40, 3) * 0.05
@@ -2250,13 +2250,13 @@ def plot_flow_jacobian(_solver=None, seed=42):
     res = 80
     x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
     X, Y = np.meshgrid(x, y)
-    
+
     # Test points in configuration space
     # For simplicity, scan electron 0 in XY plane
     r_slice = torch.zeros(res*res, solver.system.n_electrons, 3, device=solver.device)
     r_slice[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
     r_slice[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
-    
+
     with torch.no_grad():
         if getattr(solver, 'flow_sampler', None):
             # Explicit Flow Model: Invert to find z and log_det_J
@@ -2269,26 +2269,26 @@ def plot_flow_jacobian(_solver=None, seed=42):
             # This visualizes the non-Gaussianity of the wavefunction topology
             log_psi, _ = solver.log_psi_func(r_slice)
             log_rho = 2 * log_psi
-            
+
             # Base measure (Gaussian prior)
             r2 = (r_slice**2).sum(dim=(1,2))
-            log_prior = -0.5 * r2 
-            
+            log_prior = -0.5 * r2
+
             # The Jacobian determinant of the hypothetical optimal transport map
             # J = Prior - Target
             warp = (log_prior - log_rho).reshape(res, res).cpu().numpy()
-            
+
     # Visualize absolute magnitude of the warp
     # Low values (black) = perfectly Gaussian (Identity Flow)
     # High values (bright) = Highly warped / correlated regions
-    
+
     # Center around mean to show positive/negative compression
     norm_warp = (warp - np.percentile(warp, 5)) / (np.percentile(warp, 95) - np.percentile(warp, 5) + 1e-8)
     norm_warp = np.clip(norm_warp, 0, 1)
-    
+
     # Magma for heat/energy of the deformation
     grid = plt.cm.magma(norm_warp)[:,:,:3]
-        
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3])
     ax.set_title("LIVE JACOBIAN TOPOLOGY", color='#ff00ff', fontsize=10, family='monospace')
@@ -2311,23 +2311,23 @@ def plot_swap_density(_solver=None, seed=42):
         res = 80
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
-        
+
         # Pull current walker ensemble
         walkers = solver.sampler.walkers.detach()
         avg_walker = torch.mean(walkers, dim=0, keepdim=True)
-        
+
         # Test grid for electron 0
         r_test = avg_walker.repeat(res*res, 1, 1)
         r_test[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_test[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
-        
+
         with torch.no_grad():
             log_psi, _ = solver.wavefunction(r_test)
             density = torch.exp(2 * log_psi).reshape(res, res).cpu().numpy()
-            
+
         norm_density = (density - density.min()) / (density.max() - density.min() + 1e-8)
         grid = plt.cm.GnBu(norm_density)[:,:,:3]
-        
+
     fig, ax = plt.subplots(figsize=(6, 6))
     ax.imshow(grid, interpolation='gaussian', extent=[-3, 3, -3, 3])
     ax.set_title("LIVE ENTANGLEMENT SWAP GHOSTS", color='#00ffff', fontsize=10, family='monospace')
@@ -2350,17 +2350,17 @@ def plot_spinor_phase_3d_L24(_solver=None, seed=42):
     res = 24
     x = np.linspace(-2, 2, res); y = np.linspace(-2, 2, res); z = np.linspace(-2, 2, res)
     X, Y, Z = np.meshgrid(x, y, z)
-    
+
     # Construct 3D grid [res^3, N_e, 3]
     coords = np.stack([X.flatten(), Y.flatten(), Z.flatten()], axis=-1)
     r_grid = torch.zeros(res**3, solver.system.n_electrons, 3, device=solver.device)
     r_grid[:, 0, :] = torch.from_numpy(coords).float().to(solver.device)
-    
+
     with torch.no_grad():
         # Evaluate actual sign/phase
         _, sign = solver.wavefunction(r_grid)
         phase_3d = sign.cpu().numpy().reshape(res, res, res)
-        
+
     fig = go.Figure(data=go.Isosurface(
         x=X.flatten(), y=Y.flatten(), z=Z.flatten(),
         value=phase_3d.flatten(),
@@ -2369,7 +2369,7 @@ def plot_spinor_phase_3d_L24(_solver=None, seed=42):
         colorscale='Picnic', # Phase-contrast colors
         caps=dict(x_show=False, y_show=False)
     ))
-    
+
     fig.update_layout(
         title="SPINOR NODAL VORTICES",
         title_font_color="#ff4444",
@@ -2394,7 +2394,7 @@ def plot_natural_gradient_flow(_solver=None, seed=42):
         res = 40
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
-        
+
         # We visualize the 'Warp' produced by the S-matrix.
         # Since S is huge, we map the diagonal elements as 'Curvature Pressure'
         # or use a random projection of the SR update if available.
@@ -2405,25 +2405,25 @@ def plot_natural_gradient_flow(_solver=None, seed=42):
         r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_grid.requires_grad = True
-        
+
         log_psi, _ = solver.log_psi_func(r_grid)
         grad = torch.autograd.grad(log_psi.sum(), r_grid)[0]
         grad_np = grad.detach().cpu().numpy().reshape(res, res, 3)
-        
-        # The 'Natural' flow is grad corrected by S^-1. 
+
+        # The 'Natural' flow is grad corrected by S^-1.
         # We simulate the S^-1 twist by rotating the gradient by the local curvature.
         U = grad_np[:,:,0]
         V = grad_np[:,:,1]
-        
+
         # Twist proportional to local density (where S is most significant)
         density = np.exp(2 * log_psi.detach().cpu().numpy().reshape(res, res))
         twist = density * 5.0
         U_rot = U * np.cos(twist) - V * np.sin(twist)
         V_rot = U * np.sin(twist) + V * np.cos(twist)
-        
+
         fig, ax = plt.subplots(figsize=(6, 6))
         ax.streamplot(X, Y, U_rot, V_rot, color='#d4af37', linewidth=0.8, density=1.2)
-        
+
     ax.set_title("LIVE NATURAL GRADIENT GEODESICS", color='#d4af37', fontsize=10, family='monospace')
     ax.axis('off'); ax.set_facecolor('#050505'); fig.patch.set_facecolor('#050505')
     plt.tight_layout()
@@ -2445,7 +2445,7 @@ def plot_kinetic_storm(_solver=None, seed=42):
         res = 80
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
-        
+
         # Pull walkers and nukes
         r = solver.sampler.walkers.detach()
         # Evaluate Hutchinson Laplacian at first electron
@@ -2454,14 +2454,14 @@ def plot_kinetic_storm(_solver=None, seed=42):
         r_test[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_test[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_test.requires_grad = True
-        
+
         E_L, E_kin, _ = compute_local_energy(solver.log_psi_func, r_test, solver.system, solver.device, n_hutchinson=1)
         storm = E_kin.reshape(res, res).detach().cpu().numpy()
-            
+
         norm_storm = np.clip((storm - np.percentile(storm, 5)) / (np.percentile(storm, 95) - np.percentile(storm, 5) + 1e-8), 0, 1)
         grid = plt.cm.inferno(norm_storm)[:,:,:3]
         ax.imshow(grid, interpolation='nearest', extent=[-3, 3, -3, 3])
-        
+
     ax.set_title("LIVE KINETIC ENERGY STORM", color='#ffaa00', fontsize=10, family='monospace')
     ax.axis('off'); ax.set_facecolor('black'); fig.patch.set_facecolor('black')
     plt.tight_layout()
@@ -2484,23 +2484,23 @@ def plot_neural_time_dilation(_solver=None, seed=42):
         res = 80
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
-        
+
         # Use Jastrow factor curvature as a proxy for 'neural dilation'
         r = solver.sampler.walkers.detach()
         repeat_cnt = (res*res // r.shape[0]) + 1
         r_grid = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
         r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
-        
+
         with torch.no_grad():
-            J = solver.wavefunction.jastrow(r_grid, solver.wavefunction.r_nuclei, 
+            J = solver.wavefunction.jastrow(r_grid, solver.wavefunction.r_nuclei,
                                             solver.wavefunction.charges, solver.wavefunction.spin_mask_parallel)
             dilation = J.reshape(res, res).cpu().numpy()
-            
+
         norm_dil = (dilation - dilation.min()) / (dilation.max() - dilation.min() + 1e-8)
         grid = plt.cm.copper(norm_dil)[:,:,:3]
         ax.imshow(grid, interpolation='bicubic', extent=[-3, 3, -3, 3])
-        
+
     ax.set_title("LIVE NEURAL TIME DILATION", color='#ffaa88', fontsize=10, family='monospace')
     ax.axis('off'); ax.set_facecolor('#100500'); fig.patch.set_facecolor('#100500')
     plt.tight_layout()
@@ -2522,24 +2522,24 @@ def plot_backflow_displacement(_solver=None, seed=42):
         res = 30
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
-        
+
         # Test backflow at origin
         r = solver.sampler.walkers.detach()
         repeat_cnt = (res*res // r.shape[0]) + 1
         r_grid = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
         r_grid[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_grid[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
-        
+
         with torch.no_grad():
             # Backflow features h can be interpreted as coordinate shifts
-            h = solver.wavefunction.backflow(r_grid, solver.wavefunction.r_nuclei, 
+            h = solver.wavefunction.backflow(r_grid, solver.wavefunction.r_nuclei,
                                               solver.wavefunction.charges, solver.wavefunction.spin_mask_parallel)
             # Use first 2 components of h as displacement (x, y)
             U = h[:, 0, 0].reshape(res, res).cpu().numpy()
             V = h[:, 0, 1].reshape(res, res).cpu().numpy()
-            
+
         ax.quiver(X, Y, U, V, np.sqrt(U**2 + V**2), cmap='cool', pivot='mid', width=0.005)
-        
+
     ax.set_title("LIVE BACKFLOW DISPLACEMENT", color='#44ffff', fontsize=10, family='monospace')
     ax.axis('off'); ax.set_facecolor('#001015'); fig.patch.set_facecolor('#001015')
     plt.tight_layout()
@@ -2559,18 +2559,18 @@ def plot_fermi_void_3d_L24(_solver=None, seed=42):
     res = 18 # Low res for 3D performance
     x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res); z = np.linspace(-3, 3, res)
     X, Y, Z = np.meshgrid(x, y, z)
-    
+
     coords = np.stack([X.flatten(), Y.flatten(), Z.flatten()], axis=-1)
     r_grid = torch.zeros(res**3, solver.system.n_electrons, 3, device=solver.device)
     r_grid[:, 0, :] = torch.from_numpy(coords).float().to(solver.device)
-    
+
     with torch.no_grad():
         log_psi, _ = solver.wavefunction(r_grid)
         # We visualize regions where log_psi is very negative (amplitude ~ 0)
         # Normal log_psi is around -5 to +5. Nodal surfaces are -inf.
         # We clamp to visualize the "deep valleys".
         val_3d = log_psi.cpu().numpy().reshape(res, res, res)
-        
+
     fig = go.Figure(data=go.Isosurface(
         x=X.flatten(), y=Y.flatten(), z=Z.flatten(),
         value=val_3d.flatten(),
@@ -2580,7 +2580,7 @@ def plot_fermi_void_3d_L24(_solver=None, seed=42):
         caps=dict(x_show=False, y_show=False),
         opacity=0.3
     ))
-    
+
     fig.update_layout(
         title="THE LIVE FERMI VOID (Log-Nodes)",
         title_font_color="#aaaaaa",
@@ -2604,11 +2604,11 @@ def plot_ewald_ghosts(_solver=None, seed=42):
         res = 100
         x = np.linspace(-6, 6, res); y = np.linspace(-6, 6, res)
         X, Y = np.meshgrid(x, y)
-        
+
         # Pull actual nuclear charges and positions
         chg = solver.system.charges().cpu().numpy()
         pos = solver.system.positions().cpu().numpy()
-        
+
         pot = np.zeros((res, res))
         # Add basic images to simulate "Ghosts"
         # We manually add a few lattice vectors if periodic, or just local shells
@@ -2619,12 +2619,12 @@ def plot_ewald_ghosts(_solver=None, seed=42):
                 for i in range(len(chg)):
                     r = np.sqrt((X - (pos[i, 0] + dx*L))**2 + (Y - (pos[i, 1] + dy*L))**2) + 0.1
                     pot += (chg[i] * opacity) / r
-            
+
         norm_pot = np.clip(pot / 10.0, 0, 1)
         grid = np.zeros((res, res, 3))
         grid[:,:,0] = norm_pot * 0.5 # Magenta
         grid[:,:,2] = norm_pot * 0.8 # Blue
-        
+
     ax.imshow(grid, interpolation='bicubic', extent=[-6, 6, -6, 6])
     ax.set_title("LIVE EWALD LATTICE GHOSTS", color='#8888ff', fontsize=10, family='monospace')
     ax.axis('off'); ax.set_facecolor('black'); fig.patch.set_facecolor('black')
@@ -2645,14 +2645,14 @@ def plot_optimization_trajectory(_solver=None, seed=42):
     hist = np.array(solver.energy_history)
     var = np.array(solver.variance_history)
     steps = np.arange(len(hist))
-    
+
     fig = go.Figure(data=go.Scatter3d(
         x=steps, y=hist, z=var,
         mode='lines+markers',
         line=dict(color=hist, colorscale='Viridis', width=5),
         marker=dict(size=2, opacity=0.8)
     ))
-    
+
     fig.update_layout(
         title="LIVE OPTIMIZATION TRAJECTORY",
         title_font_color="#00ff88",
@@ -2678,21 +2678,21 @@ def plot_quantum_classical_clash(_solver=None, seed=42):
         res = 80
         x = np.linspace(-3, 3, res); y = np.linspace(-3, 3, res)
         X, Y = np.meshgrid(x, y)
-        
+
         r = solver.sampler.walkers.detach()
         repeat_cnt = (res*res // r.shape[0]) + 1
         r_test = r.repeat(repeat_cnt, 1, 1)[:res*res].clone()
         r_test[:, 0, 0] = torch.from_numpy(X.flatten()).float().to(solver.device)
         r_test[:, 0, 1] = torch.from_numpy(Y.flatten()).float().to(solver.device)
         r_test.requires_grad = True
-        
+
         V = compute_potential_energy(r_test, solver.system, solver.device)
         E_L, _, _ = compute_local_energy(solver.log_psi_func, r_test, solver.system, solver.device)
         clash = (E_L - V).reshape(res, res).detach().cpu().numpy()
-            
+
         norm_clash = np.clip((clash - np.mean(clash)) / (np.std(clash) + 1e-8), -2, 2)
         grid = plt.cm.seismic((norm_clash + 2) / 4.0)[:,:,:3]
-        
+
     ax.imshow(grid, interpolation='bilinear', extent=[-3, 3, -3, 3])
     ax.set_title("LIVE QUANTUM-CLASSICAL CLASH", color='#ffaaaa', fontsize=10, family='monospace')
     ax.axis('off'); ax.set_facecolor('black'); fig.patch.set_facecolor('black')
@@ -2706,14 +2706,14 @@ def plot_grand_unified_field(_solver=None, seed=42):
     solver = _solver
     """
     THE MASTER PLOT (Plot #60+): GRAND UNIFIED NEURAL FIELD.
-    
+
     A 100% Truthful, Scientific Visualization of the "Pilot Wave" Dynamics.
-    
+
     Logic:
     1. Conditionality: We take a snapshot of the N-electron system (a Walker).
     2. Focus: We fix electrons 2..N and scan Electron 1 across a 3D Grid.
     3. Volume: The Isosurface represents the conditional probability density P(r1 | r2..N).
-    4. Cones: The Vector Field represents the Quantum Force F = ∇ log Ψ. 
+    4. Cones: The Vector Field represents the Quantum Force F = ∇ log Ψ.
        This is the exact force driving the MCMC sampler and the physical electron flux.
     5. Color: The surface is colored by the local gradient magnitude, showing where the force is strongest.
     """
@@ -2725,7 +2725,7 @@ def plot_grand_unified_field(_solver=None, seed=42):
     walkers = solver.sampler.walkers.detach()
     n_elec = walkers.shape[1]
     environment = walkers[0].clone() # [N_e, 3]
-    
+
     # Grid for Electron 0 scan
     res = 18 # 18^3 = 5832 points (safe for interactivity)
     limit = 3.0
@@ -2733,39 +2733,39 @@ def plot_grand_unified_field(_solver=None, seed=42):
     y = np.linspace(-limit, limit, res)
     z = np.linspace(-limit, limit, res)
     X, Y, Z = np.meshgrid(x, y, z)
-    
+
     # Flatten grid coords
     scan_coords = np.stack([X.flatten(), Y.flatten(), Z.flatten()], axis=-1) # [M, 3]
     M = scan_coords.shape[0]
-    
+
     # Construct batch: M copies of the environment
     r_batch = environment.unsqueeze(0).repeat(M, 1, 1) # [M, N_e, 3]
-    
+
     # Replace Electron 0 with scan coords
     r_batch[:, 0, :] = torch.from_numpy(scan_coords).float().to(solver.device)
     r_batch.requires_grad = True
-    
+
     # --- 2. COMPUTE QUANTUM FORCE & DENSITY ---
     # Gradient of log_psi is the Quantum Force (Drift Velocity)
     with torch.enable_grad():
         log_psi, _ = solver.wavefunction(r_batch)
         grad = torch.autograd.grad(log_psi.sum(), r_batch, create_graph=False)[0]
-        
+
     # Extract Electron 0's force vector
     force = grad[:, 0, :].detach().cpu().numpy() # [M, 3]
     log_p = log_psi.detach().cpu().numpy()
-    
+
     # Probability Density P = exp(2 * log_psi)
     # Normalize for numerical stability in plot
     log_p = log_p - log_p.max()
     prob = np.exp(2 * log_p)
-    
+
     # --- 3. VISUALIZATION A: GLASSY ISOSURFACE (THE PROBABILITY CLOUD) ---
     fig = go.Figure()
-    
+
     # Force Magnitude for coloring
     force_mag = np.linalg.norm(force, axis=1)
-    
+
     fig.add_trace(go.Isosurface(
         x=X.flatten(), y=Y.flatten(), z=Z.flatten(),
         value=prob,
@@ -2777,21 +2777,21 @@ def plot_grand_unified_field(_solver=None, seed=42):
         opacity=0.3,
         caps=dict(x_show=False, y_show=False, z_show=False)
     ))
-    
+
     # --- 4. VISUALIZATION B: QUANTUM FORCE CONES (THE PILOT WAVE) ---
     # Subsample for vector field clarity (don't plot every arrow)
     stride = 2
     mask = np.zeros(M, dtype=bool)
     # Only show vectors in high-probability regions to reduce clutter and focus on 'real' physics
     prob_threshold = np.percentile(prob, 70)
-    
+
     # Smart subsampling on the grid
     mask_grid = np.zeros((res,res,res), dtype=bool)
     mask_grid[::stride, ::stride, ::stride] = True
     mask_flat = mask_grid.flatten()
-    
+
     final_mask = (prob > prob_threshold) & mask_flat
-    
+
     if final_mask.sum() > 0:
         fig.add_trace(go.Cone(
             x=scan_coords[final_mask, 0],
@@ -2818,7 +2818,7 @@ def plot_grand_unified_field(_solver=None, seed=42):
         ),
         paper_bgcolor='black',
         margin=dict(l=0, r=0, b=0, t=50),
-        height=700 
+        height=700
     )
     return fig
 
@@ -2843,7 +2843,7 @@ page = st.selectbox(
 # ============================================================
 if page == "⚛️ System Setup":
     st.title("⚛️ System Configuration")
-    
+
     if mode == "3D Atomic VMC":
         system = ATOMS.get(st.session_state.system_key) or MOLECULES.get(st.session_state.system_key)
         if system:
@@ -2851,13 +2851,13 @@ if page == "⚛️ System Setup":
             col1.metric("Atom/Molecule", system.name)
             col2.metric("Electrons", f"{system.n_electrons} (↑{system.n_up} ↓{system.n_down})")
             col3.metric("Exact Energy", f"{system.exact_energy} Ha" if system.exact_energy else "Unknown")
-            
+
             # Level 9: Chemical accuracy target
             if system.exact_energy:
                 col4.metric("Chem. Accuracy Target", "ΔE < 1.6 mHa")
-            
+
             st.divider()
-            
+
             # Nuclear geometry
             st.subheader("Nuclear Geometry")
             nuc_data = []
@@ -2868,11 +2868,11 @@ if page == "⚛️ System Setup":
                     "Z": Z, "x (Bohr)": R[0], "y (Bohr)": R[1], "z (Bohr)": R[2]
                 })
             st.dataframe(nuc_data, width='stretch')
-            
+
             # Hamiltonian
             st.subheader("Hamiltonian")
             st.latex(r"\hat{H} = -\frac{1}{2}\sum_{i}\nabla_i^2 - \sum_{i,I}\frac{Z_I}{r_{iI}} + \sum_{i<j}\frac{1}{r_{ij}} + \sum_{I<J}\frac{Z_I Z_J}{R_{IJ}}")
-            
+
             # Level 6: Cusp conditions display
             st.subheader("Kato Cusp Conditions (Level 6)")
             st.markdown("""
@@ -2881,7 +2881,7 @@ if page == "⚛️ System Setup":
             - **Anti-parallel e-e cusp:** $\\lim_{r_{ij}\\to 0} \\partial\\log|\\psi|/\\partial r_{ij} = +1/2$
             - **Parallel e-e cusp:** $\\lim_{r_{ij}\\to 0} \\partial\\log|\\psi|/\\partial r_{ij} = +1/4$
             """)
-            
+
             if st.session_state.solver_3d:
                 solver = st.session_state.solver_3d
                 st.subheader("Architecture")
@@ -2891,7 +2891,7 @@ if page == "⚛️ System Setup":
                 c2.metric("Walkers", f"{solver.n_walkers}")
                 c3.metric("Acceptance Rate", f"{solver.sampler.acceptance_rate:.1%}")
                 c4.metric("Optimizer", solver.optimizer_type.upper())
-                
+
                 # Level 9: Reference energies table
                 st.subheader("NIST Reference Energies (Level 9)")
                 ref_data = []
@@ -2907,7 +2907,7 @@ if page == "⚛️ System Setup":
                 st.info("System not initialized. Click '♾️ Initialize System' in sidebar.")
         else:
             st.warning("Select a system from the sidebar.")
-    
+
     else:
         if st.session_state.solver_1d and st.session_state.V_x is not None:
             solver_1d = st.session_state.solver_1d
@@ -2922,7 +2922,7 @@ if page == "⚛️ System Setup":
 # ============================================================
 elif page == "🔬 Training Dashboard":
     st.title("🔬 Training Dashboard")
-    
+
     # --- Execute Training ---
     if train_btn:
         if mode == "3D Atomic VMC" and st.session_state.solver_3d:
@@ -2933,14 +2933,14 @@ elif page == "🔬 Training Dashboard":
                 st.session_state.training_steps += 1
                 progress.progress((i + 1) / n_steps_per_click,
                                   text=f"Step {st.session_state.training_steps}: E={metrics['energy']:.4f} Ha")
-                
+
                 # Level 20: Memory Surgery for large atoms
                 if getattr(solver.system, 'n_electrons', 0) >= 8 and i % 5 == 0:
                     if torch.cuda.is_available():
                         torch.cuda.empty_cache()
             progress.empty()
             st.session_state.show_plots = True
-        
+
         elif mode == "1D Demo (Teaching)" and st.session_state.solver_1d:
             solver_1d = st.session_state.solver_1d
             V_x = st.session_state.V_x
@@ -2956,7 +2956,7 @@ elif page == "🔬 Training Dashboard":
                     solver_1d.engine.x.view(1, -1, 1).to(solver_1d.device)
                 )
             st.session_state.show_plots = True
-    
+
     # --- Dream ---
     if dream_btn and mode == "1D Demo (Teaching)" and st.session_state.solver_1d:
         solver_1d = st.session_state.solver_1d
@@ -2966,12 +2966,12 @@ elif page == "🔬 Training Dashboard":
             st.session_state.psi_1d = solver_1d.generate_dream(st.session_state.V_x)
         st.success("Dream complete!")
         st.session_state.show_plots = True
-    
+
     # --- Display Metrics ---
     if mode == "3D Atomic VMC" and st.session_state.solver_3d:
         solver = st.session_state.solver_3d
         system = ATOMS.get(st.session_state.system_key) or MOLECULES.get(st.session_state.system_key)
-        
+
         col1, col2, col3, col4, col5 = st.columns(5)
         if solver.energy_history:
             E_curr = solver.energy_history[-1]
@@ -2986,7 +2986,7 @@ elif page == "🔬 Training Dashboard":
                 col3.metric("Error (kcal/mol)", f"{error * 627.509:.2f}")
             col4.metric("Variance", f"{solver.variance_history[-1]:.4f}" if solver.variance_history else "—")
             col5.metric("Steps", st.session_state.training_steps)
-            
+
             # SR indicator
             if solver.optimizer_type == 'sr':
                 if st.session_state.training_steps <= solver.sr_warmup_steps:
@@ -2999,10 +2999,10 @@ elif page == "🔬 Training Dashboard":
             col3.metric("Error (kcal/mol)", "—")
             col4.metric("Variance", "—")
             col5.metric("Steps", 0)
-        
+
         if st.session_state.show_plots and solver.energy_history:
             st.divider()
-            
+
             # Energy Convergence
             fig_energy = go.Figure()
             fig_energy.add_trace(go.Scatter(
@@ -3033,7 +3033,7 @@ elif page == "🔬 Training Dashboard":
                 height=400
             )
             st.plotly_chart(fig_energy, width='stretch')
-            
+
             # Variance + Acceptance side by side
             col_v, col_a = st.columns(2)
             with col_v:
@@ -3050,7 +3050,7 @@ elif page == "🔬 Training Dashboard":
                     template="plotly_dark", height=300
                 )
                 st.plotly_chart(fig_var, width='stretch')
-            
+
             with col_a:
                 fig_acc = go.Figure()
                 fig_acc.add_trace(go.Scatter(
@@ -3067,21 +3067,21 @@ elif page == "🔬 Training Dashboard":
                     yaxis=dict(range=[0, 1])
                 )
                 st.plotly_chart(fig_acc, width='stretch')
-    
+
     elif mode == "1D Demo (Teaching)" and st.session_state.solver_1d:
         solver_1d = st.session_state.solver_1d
         if solver_1d.energy_history:
             col1, col2 = st.columns(2)
             col1.metric("Energy ⟨E⟩", f"{solver_1d.energy_history[-1]:.4f} Eh")
             col2.metric("Steps", st.session_state.training_steps)
-        
+
         if st.session_state.show_plots and st.session_state.psi_1d is not None:
             psi_np = st.session_state.psi_1d[0].detach().cpu().numpy()
             x_np = solver_1d.engine.x.detach().cpu().numpy().flatten()
             density = psi_np[:, 0] ** 2 + psi_np[:, 1] ** 2
             density = density / (np.sum(density) * solver_1d.engine.dx.item() + 1e-8)
             pot_np = st.session_state.V_x[0].detach().cpu().numpy().flatten()
-            
+
             fig = go.Figure()
             fig.add_trace(go.Scatter(x=x_np, y=pot_np, mode='lines', name='V(x)',
                                       line=dict(color='gray', dash='dash', width=2)))
@@ -3090,7 +3090,7 @@ elif page == "🔬 Training Dashboard":
             fig.update_layout(title="Quantum State", template="plotly_dark", height=450,
                               xaxis_title="x", yaxis_title="Probability / Potential")
             st.plotly_chart(fig, width='stretch')
-            
+
             if solver_1d.energy_history:
                 fig_e = go.Figure()
                 fig_e.add_trace(go.Scatter(y=solver_1d.energy_history, mode='lines',
@@ -3107,10 +3107,10 @@ elif page == "🔬 Training Dashboard":
 # ============================================================
 elif page == "🌊 Wavefunction Lab":
     st.title("🌊 Wavefunction Laboratory")
-    
+
     if mode == "3D Atomic VMC" and st.session_state.solver_3d:
         solver = st.session_state.solver_3d
-        
+
         if not st.session_state.show_plots:
             st.info("Click '🔍 Render All Plots' in the sidebar to visualize.")
         else:
@@ -3135,7 +3135,7 @@ elif page == "🌊 Wavefunction Lab":
                 st.plotly_chart(fig_density, width='stretch')
             except Exception as e:
                 st.warning(f"Density plot error: {e}")
-            
+
             # --- 3D Density Surface ---
             st.subheader("🌋 3D Density Surface")
             try:
@@ -3160,13 +3160,13 @@ elif page == "🌊 Wavefunction Lab":
                 st.plotly_chart(fig_3d, width='stretch')
             except Exception as e:
                 st.warning(f"3D surface error: {e}")
-            
+
             # --- Radial Density ---
             st.subheader("📊 Radial Probability Density")
             try:
                 r_centers, radial_dens = solver.get_radial_density(n_bins=80, r_max=5.0)
                 system = ATOMS.get(st.session_state.system_key) or MOLECULES.get(st.session_state.system_key)
-                
+
                 fig_radial = go.Figure()
                 fig_radial.add_trace(go.Scatter(
                     x=r_centers, y=radial_dens,
@@ -3174,7 +3174,7 @@ elif page == "🌊 Wavefunction Lab":
                     line=dict(color='#00ff88', width=3),
                     fill='tozeroy'
                 ))
-                
+
                 # Exact 1s orbital for Hydrogen
                 if st.session_state.system_key == 'H':
                     r_exact = np.linspace(0.001, 5, 200)
@@ -3184,7 +3184,7 @@ elif page == "🌊 Wavefunction Lab":
                         mode='lines', name='Exact 1s',
                         line=dict(color='#ff4444', width=2, dash='dash')
                     ))
-                
+
                 fig_radial.update_layout(
                     title="4πr²|ψ(r)|²",
                     xaxis_title="r (Bohr)",
@@ -3195,13 +3195,13 @@ elif page == "🌊 Wavefunction Lab":
                 st.plotly_chart(fig_radial, width='stretch')
             except Exception as e:
                 st.warning(f"Radial density error: {e}")
-            
+
             # --- Walker Distribution (Scatter 3D) ---
             st.subheader("🎯 Walker Distribution (3D)")
             try:
                 walkers = solver.get_walker_positions()
                 max_show = min(500, walkers.shape[0])
-                
+
                 fig_walkers = go.Figure()
                 colors = px.colors.qualitative.Set2
                 for e_idx in range(solver.system.n_electrons):
@@ -3212,7 +3212,7 @@ elif page == "🌊 Wavefunction Lab":
                         marker=dict(size=1.5, color=colors[e_idx % len(colors)], opacity=0.5),
                         name=f'e⁻ {e_idx + 1} ({"↑" if e_idx < solver.system.n_up else "↓"})'
                     ))
-                
+
                 # Add nuclei
                 for I, (Z, R) in enumerate(solver.system.nuclei):
                     fig_walkers.add_trace(go.Scatter3d(
@@ -3221,7 +3221,7 @@ elif page == "🌊 Wavefunction Lab":
                         marker=dict(size=8, color='red', symbol='diamond'),
                         name=f'Nucleus Z={Z}'
                     ))
-                
+
                 fig_walkers.update_layout(
                     title="MCMC Walker Positions",
                     template="plotly_dark",
@@ -3233,13 +3233,13 @@ elif page == "🌊 Wavefunction Lab":
                 st.plotly_chart(fig_walkers, width='stretch')
             except Exception as e:
                 st.warning(f"Walker plot error: {e}")
-    
+
     elif mode == "1D Demo (Teaching)" and st.session_state.psi_1d is not None:
         if st.session_state.show_plots:
             solver_1d = st.session_state.solver_1d
             psi_np = st.session_state.psi_1d[0].detach().cpu().numpy()
             x_np = solver_1d.engine.x.detach().cpu().numpy().flatten()
-            
+
             # Real + Imaginary components
             st.subheader("Wavefunction Components")
             fig_comp = go.Figure()
@@ -3249,7 +3249,7 @@ elif page == "🌊 Wavefunction Lab":
                                           name='Im(ψ)', line=dict(color='#ff6600', width=2)))
             fig_comp.update_layout(template="plotly_dark", height=350)
             st.plotly_chart(fig_comp, width='stretch')
-            
+
             # Phase
             phase = np.arctan2(psi_np[:, 1], psi_np[:, 0])
             st.subheader("Phase θ(x) = atan2(Im, Re)")
@@ -3270,10 +3270,10 @@ elif page == "🌊 Wavefunction Lab":
 # ============================================================
 elif page == "📊 Quantum Grids":
     st.title("📊 Quantum Grids")
-    
+
     if mode == "3D Atomic VMC" and st.session_state.solver_3d:
         solver = st.session_state.solver_3d
-        
+
         if not st.session_state.show_plots:
             st.info("Click '🔍 Render All Plots' in the sidebar to visualize.")
         elif not solver.energy_history:
@@ -3283,10 +3283,10 @@ elif page == "📊 Quantum Grids":
             st.subheader("🗺️ Probability Density Field")
             try:
                 x_g, y_g, dens = solver.get_density_grid(grid_res=80, extent=4.0)
-                
+
                 dens_log = np.log(dens + 1e-20)
                 dens_log = (dens_log - dens_log.min()) / (dens_log.max() - dens_log.min() + 1e-30)
-                
+
                 fig_field = px.imshow(
                     dens_log.T,
                     x=x_g, y=y_g,
@@ -3304,13 +3304,13 @@ elif page == "📊 Quantum Grids":
                 st.plotly_chart(fig_field, width='stretch')
             except Exception as e:
                 st.warning(f"Density field error: {e}")
-            
+
             # --- 2. Walker Position Heatmap ---
             st.subheader("🔥 Walker Density Heatmap")
             try:
                 walkers = solver.get_walker_positions()
                 pos_xy = walkers[:, 0, :2]
-                
+
                 fig_heat = go.Figure(go.Histogram2d(
                     x=pos_xy[:, 0], y=pos_xy[:, 1],
                     nbinsx=60, nbinsy=60,
@@ -3327,7 +3327,7 @@ elif page == "📊 Quantum Grids":
                 st.plotly_chart(fig_heat, width='stretch')
             except Exception as e:
                 st.warning(f"Walker heatmap error: {e}")
-            
+
             # --- 3. Energy Landscape Grid ---
             st.subheader("⚡ Potential Energy Landscape")
             try:
@@ -3336,17 +3336,17 @@ elif page == "📊 Quantum Grids":
                 x_pts = torch.linspace(-extent, extent, grid_res, device=solver.device)
                 y_pts = torch.linspace(-extent, extent, grid_res, device=solver.device)
                 xx, yy = torch.meshgrid(x_pts, y_pts, indexing='ij')
-                
-                r_grid = torch.stack([xx.flatten(), yy.flatten(), 
+
+                r_grid = torch.stack([xx.flatten(), yy.flatten(),
                                       torch.zeros_like(xx.flatten())], dim=-1)
                 r_grid = r_grid.unsqueeze(1)
-                
+
                 if solver.system.n_electrons == 1:
                     with torch.no_grad():
                         V_grid = compute_potential_energy(r_grid, solver.system, solver.device)
                     V_np = V_grid.reshape(grid_res, grid_res).cpu().numpy()
                     V_np = np.clip(V_np, -10, 10)
-                    
+
                     fig_V = px.imshow(
                         V_np.T,
                         x=x_pts.cpu().numpy(), y=y_pts.cpu().numpy(),
@@ -3366,7 +3366,7 @@ elif page == "📊 Quantum Grids":
                     st.caption("Potential landscape for multi-electron: showing electron-1 marginal")
             except Exception as e:
                 st.warning(f"Potential grid error: {e}")
-            
+
             # --- 4. Correlation Grid (multi-electron) ---
             if solver.system.n_electrons >= 2:
                 st.subheader("🔗 Electron Correlation Map")
@@ -3374,7 +3374,7 @@ elif page == "📊 Quantum Grids":
                     walkers = solver.get_walker_positions()
                     r1 = np.linalg.norm(walkers[:, 0, :], axis=1)
                     r12 = np.linalg.norm(walkers[:, 0, :] - walkers[:, 1, :], axis=1)
-                    
+
                     fig_corr = go.Figure(go.Histogram2d(
                         x=r1, y=r12,
                         nbinsx=50, nbinsy=50,
@@ -3391,16 +3391,16 @@ elif page == "📊 Quantum Grids":
                     st.plotly_chart(fig_corr, width='stretch')
                 except Exception as e:
                     st.warning(f"Correlation grid error: {e}")
-    
+
     elif mode == "1D Demo (Teaching)" and st.session_state.psi_1d is not None and st.session_state.show_plots:
         solver_1d = st.session_state.solver_1d
         psi_np = st.session_state.psi_1d[0].detach().cpu().numpy()
         density = psi_np[:, 0] ** 2 + psi_np[:, 1] ** 2
-        
+
         st.subheader("🗺️ Probability Density Grid (1D → 2D visualization)")
         grid_2d = np.outer(density, density)
         grid_2d = grid_2d / (grid_2d.max() + 1e-30)
-        
+
         fig_1d_grid = px.imshow(
             grid_2d,
             color_continuous_scale='Inferno',
@@ -3409,7 +3409,7 @@ elif page == "📊 Quantum Grids":
         fig_1d_grid.update_layout(
             title="Outer Product |ψ(x)|² ⊗ |ψ(y)|² (2-particle analog)",
             template="plotly_dark",
-            height=500 
+            height=500
         )
         st.plotly_chart(fig_1d_grid, width='stretch')
     else:
@@ -3421,10 +3421,10 @@ elif page == "📊 Quantum Grids":
 # ============================================================
 elif page == "📈 Diagnostics":
     st.title("📈 System Diagnostics")
-    
+
     if mode == "3D Atomic VMC" and st.session_state.solver_3d:
         solver = st.session_state.solver_3d
-        
+
         # Summary metrics
         col1, col2, col3, col4, col5 = st.columns(5)
         col1.metric("Training Steps", st.session_state.training_steps)
@@ -3432,10 +3432,10 @@ elif page == "📈 Diagnostics":
         col3.metric("Acceptance Rate", f"{solver.sampler.acceptance_rate:.1%}")
         col4.metric("Equilibrated", "✅" if solver.equilibrated else "❌")
         col5.metric("Optimizer", solver.optimizer_type.upper())
-        
+
         if st.session_state.show_plots and solver.energy_history:
             st.divider()
-            
+
             # Gradient Norm
             col_g, col_s = st.columns(2)
             with col_g:
@@ -3450,7 +3450,7 @@ elif page == "📈 Diagnostics":
                     template="plotly_dark", height=300
                 )
                 st.plotly_chart(fig_grad, width='stretch')
-            
+
             with col_s:
                 fig_step = go.Figure()
                 fig_step.add_trace(go.Scatter(
@@ -3465,7 +3465,7 @@ elif page == "📈 Diagnostics":
                     yaxis=dict(range=[0, 1])
                 )
                 st.plotly_chart(fig_step, width='stretch')
-            
+
             # Energy Statistics
             st.subheader("Energy Statistics")
             if len(solver.energy_history) >= 10:
@@ -3479,7 +3479,7 @@ elif page == "📈 Diagnostics":
                 if system and system.exact_energy:
                     best_error = abs(min(solver.energy_history) - system.exact_energy) * 1000
                     c5.metric("Best Error (mHa)", f"{best_error:.2f}")
-            
+
             # Walker distance distribution
             st.subheader("🎯 Walker Distance Distribution")
             try:
@@ -3491,7 +3491,7 @@ elif page == "📈 Diagnostics":
                         d = np.linalg.norm(walkers[:, i, :] - r_nuc[I], axis=1)
                         distances.append(d)
                 distances = np.concatenate(distances)
-                
+
                 fig_dist = go.Figure()
                 fig_dist.add_trace(go.Histogram(
                     x=distances, nbinsx=80,
@@ -3512,13 +3512,13 @@ elif page == "📈 Diagnostics":
             st.info("Train the system to see diagnostics.")
         else:
             st.info("Click '🔍 Render All Plots' to see diagnostics.")
-    
+
     elif mode == "1D Demo (Teaching)" and st.session_state.solver_1d:
         solver_1d = st.session_state.solver_1d
         col1, col2 = st.columns(2)
         col1.metric("Training Steps", st.session_state.training_steps)
         col2.metric("Memory Buffer", f"{len(solver_1d.memory)} states")
-        
+
         if st.session_state.show_plots and solver_1d.energy_history:
             fig_diag = go.Figure()
             fig_diag.add_trace(go.Scatter(
@@ -3542,21 +3542,21 @@ elif page == "📈 Diagnostics":
 elif page == "📉 PES Curves (Level 10)":
     st.title("📉 Potential Energy Surface (Level 10)")
     st.markdown("""
-    **Dissociation Curves:** Compute energy vs bond distance for diatomic molecules.  
+    **Dissociation Curves:** Compute energy vs bond distance for diatomic molecules.
     Tests static correlation (H₂ at R→∞), ionic-covalent transition (LiH),
     and triple-body correlation (H₂O).
     """)
-    
+
     if mode != "3D Atomic VMC":
         st.warning("PES scanning requires 3D Atomic VMC mode.")
     else:
         col_pes1, col_pes2 = st.columns(2)
-        
+
         with col_pes1:
             pes_mol = st.selectbox("Molecule", ["H2", "LiH", "H2O"])
             n_pes_points = st.slider("Bond Distance Points", 5, 30, 12)
             n_pes_steps = st.slider("VMC Steps per Point", 50, 500, 100)
-        
+
         with col_pes2:
             if pes_mol == "H2":
                 r_min = st.number_input("R_min (Bohr)", value=0.5, step=0.1)
@@ -3570,7 +3570,7 @@ elif page == "📉 PES Curves (Level 10)":
                 r_min = st.number_input("R_OH_min (Bohr)", value=1.0, step=0.1)
                 r_max_val = st.number_input("R_OH_max (Bohr)", value=5.0, step=0.5)
                 st.info("H₂O: R_OH_e = 1.809 Bohr, bent geometry")
-        
+
         if st.button("♾️ Run PES Scan", width='stretch', type="primary"):
             device = "cuda" if torch.cuda.is_available() else "cpu"
             scanner = PESSScanner(
@@ -3579,33 +3579,33 @@ elif page == "📉 PES Curves (Level 10)":
                 n_points=n_pes_points,
                 d_model=32, n_layers=2, n_determinants=4
             )
-            
+
             progress = st.progress(0, text="Running PES scan...")
             status_text = st.empty()
-            
+
             def pes_progress(idx, total, energy):
                 progress.progress((idx + 1) / total,
                                   text=f"Point {idx+1}/{total}: R={scanner.r_values[idx]:.2f}, E={energy:.4f}")
-            
+
             results = scanner.scan(
                 n_train_steps=n_pes_steps,
                 n_walkers=256,
                 lr=1e-3, device=device,
                 progress_callback=pes_progress
             )
-            
+
             progress.empty()
             st.session_state.pes_results = results
             st.session_state.pes_scanner = scanner
             st.success(f"PES scan complete! {len(results)} points computed.")
-        
+
         # Display results
         if st.session_state.pes_results:
             results = st.session_state.pes_results
             r_vals = [r[0] for r in results]
             energies = [r[1] for r in results]
             variances = [r[2] for r in results]
-            
+
             # PES Curve
             fig_pes = go.Figure()
             fig_pes.add_trace(go.Scatter(
@@ -3615,7 +3615,7 @@ elif page == "📉 PES Curves (Level 10)":
                 line=dict(color='#00ff88', width=3),
                 marker=dict(size=8)
             ))
-            
+
             # Add reference equilibrium energy
             if pes_mol == "H2" and MOLECULES.get("H2"):
                 fig_pes.add_hline(
@@ -3641,7 +3641,7 @@ elif page == "📉 PES Curves (Level 10)":
                     line_dash="dash", line_color="#ff4444",
                     annotation_text=f"Exact E_eq = {MOLECULES['H2O'].exact_energy} Ha"
                 )
-            
+
             fig_pes.update_layout(
                 title=f"Potential Energy Surface — {pes_mol}",
                 xaxis_title="Bond Distance R (Bohr)",
@@ -3650,7 +3650,7 @@ elif page == "📉 PES Curves (Level 10)":
                 height=500
             )
             st.plotly_chart(fig_pes, width='stretch')
-            
+
             # Variance along PES
             fig_pes_var = go.Figure()
             fig_pes_var.add_trace(go.Scatter(
@@ -3668,7 +3668,7 @@ elif page == "📉 PES Curves (Level 10)":
                 height=350
             )
             st.plotly_chart(fig_pes_var, width='stretch')
-            
+
             # Data table
             st.subheader("📋 PES Data")
             pes_table = []
@@ -3688,7 +3688,7 @@ elif page == "📉 PES Curves (Level 10)":
 elif page == "🌟 Excited States (Level 13)":
     st.title("🌟 Excited States (Level 13)")
     st.markdown("""
-    **Variance Minimization + Orthogonality:** Compute E₀ < E₁ < E₂ simultaneously.  
+    **Variance Minimization + Orthogonality:** Compute E₀ < E₁ < E₂ simultaneously.
     Loss: L_k = ⟨E_L⟩ + β·Var(E_L) + λ·Σ|⟨ψ_k|ψ_j⟩|²
     """)
 
@@ -3752,8 +3752,8 @@ elif page == "🌟 Excited States (Level 13)":
 elif page == "🔮 Berry Phase (Level 14)":
     st.title("🔮 Berry Phase (Level 14)")
     st.markdown("""
-    **Topological Phase from Neural Wavefunction:**  
-    γ = -Im Σ log(⟨ψ(λ_k)|ψ(λ_{k+1})⟩ / |...|)  
+    **Topological Phase from Neural Wavefunction:**
+    γ = -Im Σ log(⟨ψ(λ_k)|ψ(λ_{k+1})⟩ / |...|)
     H₃ triangle loop: expected γ = π
     """)
 
@@ -3828,8 +3828,8 @@ elif page == "🔮 Berry Phase (Level 14)":
 elif page == "⏰ TD-VMC (Level 15)":
     st.title("⏰ Time-Dependent VMC (Level 15)")
     st.markdown("""
-    **McLachlan Variational Principle:** iSθ̇ = f  
-    Real-time quantum dynamics from neural wavefunction.  
+    **McLachlan Variational Principle:** iSθ̇ = f
+    Real-time quantum dynamics from neural wavefunction.
     Track energy E(t) and dipole moment d(t).
     """)
 
@@ -3911,7 +3911,7 @@ elif page == "🔷 Periodic Systems (Level 16)":
     Homogeneous Electron Gas (HEG) — the model of metallic bonding.
     Ewald summation for periodic Coulomb. Twist-Averaged Boundary Conditions.
     """)
-    
+
     col_p1, col_p2 = st.columns(2)
     with col_p1:
         heg_key = st.selectbox("🌍 Select HEG System", list(PERIODIC_SYSTEMS.keys()))
@@ -3919,21 +3919,21 @@ elif page == "🔷 Periodic Systems (Level 16)":
         st.metric("r_s (Wigner-Seitz)", f"{heg_sys.rs:.1f} Bohr")
         st.metric("N_electrons", heg_sys.n_electrons)
         st.metric("Cell Volume", f"{heg_sys.cell_volume():.2f} Bohr³")
-    
+
     with col_p2:
         if heg_sys.exact_energy_per_electron is not None:
             st.metric("E_exact / e⁻", f"{heg_sys.exact_energy_per_electron:.6f} Ha")
             st.metric("Total E_exact", f"{heg_sys.exact_energy_per_electron * heg_sys.n_electrons:.4f} Ha")
         L_diag = np.linalg.norm(np.array(heg_sys.cell_vectors[0]))
         st.metric("Cell Side L", f"{L_diag:.3f} Bohr")
-    
+
     st.subheader("📈 HEG Energy vs Density")
     rs_vals = [1.0, 2.0, 3.0, 5.0, 8.0, 10.0]
     e_vals = []
     for rs in rs_vals:
         sys_tmp = build_heg_system(rs=rs, n_electrons=14)
         e_vals.append(sys_tmp.exact_energy_per_electron)
-    
+
     fig_heg = go.Figure()
     fig_heg.add_trace(go.Scatter(
         x=rs_vals, y=e_vals, mode='lines+markers',
@@ -3948,7 +3948,7 @@ elif page == "🔷 Periodic Systems (Level 16)":
         template="plotly_dark", height=400
     )
     st.plotly_chart(fig_heg, width='stretch')
-    
+
     with st.expander("📝 Ewald Summation Details"):
         st.markdown("""
         **Ewald summation** splits the 1/r Coulomb interaction into:
@@ -3956,7 +3956,7 @@ elif page == "🔷 Periodic Systems (Level 16)":
         - **Reciprocal-space sum**: Structure factor |S(G)|² (long-range)
         - **Self-energy**: -α/√π × N_e
         - **Madelung**: -πN²/(2Vα²) (neutralizing background)
-        
+
         **TABC**: Average over Monkhorst-Pack k-grid to eliminate finite-size shell effects.
         """)
 
@@ -3971,7 +3971,7 @@ elif page == "⚡ Spin-Orbit (Level 17)":
     H_SO = (α²/2) Σ_{i,I} Z_I / r_{iI}³ · L·S.
     2-component spinor wavefunctions. Fine-structure splitting of Helium.
     """)
-    
+
     col_so1, col_so2, col_so3 = st.columns(3)
     with col_so1:
         so_atom = st.selectbox("⚛️ Select Atom", ["He", "Li", "Be", "B", "C", "N", "O"])
@@ -3990,12 +3990,12 @@ elif page == "⚡ Spin-Orbit (Level 17)":
         ha_to_cm = 219474.63
         st.metric("Est. splitting", f"{delta_E * ha_to_cm:.2f} cm⁻¹")
         st.metric("Est. splitting", f"{delta_E * 1000:.4f} mHa")
-    
+
     st.subheader("📊 Fine-Structure Scaling")
     Z_vals = list(range(1, 11))
     split_vals = [(1/137.036)**2 * Z**4 / 4.0 * 219474.63 for Z in Z_vals]
     atom_names = ["H", "He", "Li", "Be", "B", "C", "N", "O", "F", "Ne"]
-    
+
     fig_so = go.Figure()
     fig_so.add_trace(go.Bar(
         x=atom_names, y=split_vals,
@@ -4011,12 +4011,12 @@ elif page == "⚡ Spin-Orbit (Level 17)":
         yaxis_type="log"
     )
     st.plotly_chart(fig_so, width='stretch')
-    
+
     with st.expander("📝 Breit-Pauli Physics"):
         st.markdown("""
         **Spin-orbit coupling** arises from the interaction between an electron's
         orbital angular momentum L and its spin S in the nucleus's electric field.
-        
+
         - **Operator**: H_SO = (α²/2) Σ Z/r³ L·S
         - **Spinor representation**: Ψ = (ψ↑, ψ↓)ᵀ (2-component)
         - **He (³P term)**: J=0,1,2 splitting measured to **12 significant figures**
@@ -4032,10 +4032,10 @@ elif page == "🔗 Entanglement (Level 18)":
     st.markdown("""
     **Level 18**: Rényi-2 entanglement entropy from neural wavefunction.
     First-ever computation of molecular entanglement from VMC/NQS.
-    
+
     Method: S₂(A) = -log Tr(ρ_A²) via the SWAP trick with two independent copies.
     """)
-    
+
     col_e1, col_e2 = st.columns(2)
     with col_e1:
         ent_system = st.selectbox("⚛️ System", ["He", "Li", "Be", "B", "C", "H2", "LiH"],
@@ -4044,18 +4044,18 @@ elif page == "🔗 Entanglement (Level 18)":
     with col_e2:
         ent_samples = st.slider("🎲 MCMC Samples", 500, 5000, 1000, step=500, key="ent_samp")
         ent_burn = st.slider("🔥 Burn-in Steps", 20, 200, 50, step=10, key="ent_burn")
-    
+
     if st.button("🔗 Compute Entanglement", type="primary"):
         with st.spinner("Computing Rényi-2 entropy via SWAP trick..."):
             if ent_system in ATOMS:
                 system = ATOMS[ent_system]
             else:
                 system = MOLECULES[ent_system]
-            
+
             wf = NeuralWavefunction(system, d_model=32, n_layers=2, n_determinants=4)
             sampler = MetropolisSampler(n_walkers=ent_samples, n_electrons=system.n_electrons)
             sampler.initialize_around_nuclei(system)
-            
+
             eec = EntanglementEntropyComputer(
                 wavefunction=wf, sampler=sampler, system=system,
                 partition=ent_partition
@@ -4063,14 +4063,14 @@ elif page == "🔗 Entanglement (Level 18)":
             result = eec.compute_renyi2(n_samples=ent_samples, n_mcmc_burn=ent_burn)
             st.session_state.entanglement_results = result
         st.success("Entanglement computed!")
-    
+
     if st.session_state.entanglement_results:
         res = st.session_state.entanglement_results
         col_r1, col_r2, col_r3 = st.columns(3)
         col_r1.metric("S₂ (Rényi-2)", f"{res['S2']:.4f}")
         col_r2.metric("Purity Tr(ρ_A²)", f"{res['purity']:.6f}")
         col_r3.metric("Stat. Error", f"{res['error']:.4f}")
-        
+
         st.markdown(f"""
         | Property | Value |
         |---|---|
@@ -4079,7 +4079,7 @@ elif page == "🔗 Entanglement (Level 18)":
         | Partition | {res['partition']} |
         | S₂ = -ln(Tr(ρ²)) | **{res['S2']:.4f}** |
         """)
-        
+
         # Interpretive diagram
         fig_ent = go.Figure()
         fig_ent.add_trace(go.Indicator(
@@ -4112,13 +4112,13 @@ elif page == "🔬 Conservation Discovery (Level 19)":
     st.header("🔬 Autonomous Conservation Law Discovery")
     st.markdown("""
     **Level 19**: Noether's theorem in reverse — discover unknown conservation laws.
-    
+
     Train Q_φ(r) to minimize |<[Ĥ,Q̂]>|² (commutation with Hamiltonian)
     while maximizing orthogonality to known quantities (L_x, L_y, L_z).
-    
+
     If Q commutes with H and is novel → **mathematical theorem discovered by computation**.
     """)
-    
+
     col_c1, col_c2, col_c3 = st.columns(3)
     with col_c1:
         cons_atom = st.selectbox("⚛️ System", ["He", "Li", "Be", "B", "C"], key="cons_sys")
@@ -4126,24 +4126,24 @@ elif page == "🔬 Conservation Discovery (Level 19)":
         cons_steps = st.slider("🔄 Training Steps", 50, 1000, 200, step=50, key="cons_steps")
     with col_c3:
         cons_lambda = st.slider("λ Novelty", 0.1, 5.0, 1.0, step=0.1, key="cons_lam")
-    
+
     if st.button("🔬 Discover Conservation Laws", type="primary"):
         system = ATOMS[cons_atom]
         wf = NeuralWavefunction(system, d_model=32, n_layers=2, n_determinants=4)
-        
+
         progress = st.empty()
         status_text = st.empty()
-        
+
         discoverer = ConservationLawDiscovery(
             system=system, wavefunction=wf,
             d_hidden=64, n_hidden_layers=2,
             novelty_lambda=cons_lambda
         )
-        
+
         def cons_progress(step, total, result):
             progress.progress(step / total,
                               text=f"Step {step}/{total}: comm={result['commutator_loss']:.6f}")
-        
+
         results = discoverer.discover(
             n_steps=cons_steps, n_mcmc_steps=5,
             progress_callback=cons_progress
@@ -4151,20 +4151,20 @@ elif page == "🔬 Conservation Discovery (Level 19)":
         progress.empty()
         st.session_state.conservation_results = results
         st.success("Discovery complete!")
-    
+
     if st.session_state.conservation_results:
         res = st.session_state.conservation_results
-        
+
         # Status indicators
         col_s1, col_s2, col_s3, col_s4 = st.columns(4)
         col_s1.metric("[H,Q]", f"{res['final_commutator']:.2e}")
         col_s2.metric("Novelty", f"{res['final_novelty']:.4f}")
         col_s3.metric("Conserved?", "✅ YES" if res['is_conserved'] else "❌ NO")
         col_s4.metric("Novel?", "⭐ YES" if res['is_novel'] else "❌ NO")
-        
+
         # Interpretation
         st.info(res['interpretation'])
-        
+
         # Training curves
         hist = res['history']
         fig_cons = make_subplots(rows=1, cols=2,
@@ -4180,7 +4180,7 @@ elif page == "🔬 Conservation Discovery (Level 19)":
         fig_cons.update_layout(template="plotly_dark", height=350,
                                showlegend=True)
         st.plotly_chart(fig_cons, width='stretch')
-        
+
         # Q statistics
         fig_q = go.Figure()
         fig_q.add_trace(go.Scatter(
@@ -4204,17 +4204,17 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.error("🔒 ACCESS DENIED: System Not Initialized")
         st.info("Please initialize a system in the '3D Atomic VMC' mode to access the neural memory.")
         st.stop()
-        
+
     if st.session_state.training_steps < 50:
         st.title("🎨 Latent Dream Memory 🖼️")
         st.warning(f"🔒 ACCESS LOCKED: Insufficient Neural Data ({st.session_state.training_steps}/50 Steps)")
         st.markdown(f"""
         The Latent Dream Memory requires a diverse history of optimization steps to build a valid manifold.
-        
+
         **Current Status:**
         - System: **ONLINE** ✅
         - Training Steps: **{st.session_state.training_steps}** ❌ (Requires 50+)
-        
+
         *Please train the model for at least {50 - st.session_state.training_steps} more steps to unlock this gallery.*
         """)
         st.stop()
@@ -4222,11 +4222,11 @@ elif page == "🎨 Latent Dream Memory 🖼️":
     st.title("🎨 Latent Dream Memory 🖼️")
     st.markdown(r"""Multimodal Latent Neural Quantum State (NQS) Topology: This atlas synthesizes **68** high-dimensional latent projections from the neural wavefunction manifold ($ \Psi_{\theta} $). By mapping the internal activations of the SSM-Backflow architecture across 20 tiers of physical complexity—ranging from first-principles Coulombic potentials to relativistic Breit-Pauli fine-structure splitting—we visualize the 'Singularity' of agent-based memory convergence. These fields utilize stochastic stigmergy and geometric deep learning to discover autonomous conservation laws and topological phase invariants ($ \gamma_n $). RGB encoding represents the convergence of danger/resource/sacred latent sectors as agents navigate the multi-electron Hamiltonian landscape.
     """)
-    
+
     # --- Lazy Load Gate ---
     if 'latent_dream_loaded' not in st.session_state:
         st.session_state.latent_dream_loaded = False
-    
+
     if not st.session_state.latent_dream_loaded:
         st.markdown("---")
         st.markdown("""
@@ -4242,11 +4242,11 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         # Stable seeds across session to prevent jumping on every click
         if 'stigmergy_seed' not in st.session_state:
             st.session_state.stigmergy_seed = int(time.time())
-        
+
         # Time-based subtle drift for continuous evolution (drift every 30s)
         time_drift = int(time.time() // 30) % 1000
         master_seed = st.session_state.stigmergy_seed + time_drift
-        
+
         col_ctrl1, col_ctrl2 = st.columns([1, 1])
         with col_ctrl1:
             if st.button("🎲 Regenerate Memory Grids", width='stretch'):
@@ -4256,9 +4256,9 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             if st.button("✨ Hide Gallery & Reset", width='stretch'):
                 st.session_state.latent_dream_loaded = False
                 st.rerun()
-    
+
         st.subheader("🏺 Global Memory Grids (12 Replicate Clusters)")
-        
+
         # Unique technical descriptions for the 12 stigmergy clusters
         stig_desc = [
             "Cluster 1: Focuses on Monte Carlo sampling efficiency and the stochastic exploration of the NQS manifold.",
@@ -4274,14 +4274,14 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             "Cluster 11: Maps the nodal surface topology where the wavefunction changes sign, acting as a barrier to diffusion.",
             "Cluster 12: Represents the long-range Jastrow factor correlations capturing van der Waals forces in the latent space."
         ]
-        
+
         # 3x4 Grid layout (12 items)
         row1 = st.columns(4)
         row2 = st.columns(4)
         row3 = st.columns(4)
-        
+
         all_cols = row1 + row2 + row3
-        
+
         # Render loops with solver access for dynamic evolution
         solver_ref = st.session_state.solver_3d if st.session_state.solver_3d else None
 
@@ -4298,8 +4298,8 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.divider()
         st.subheader("🌌 The Encyclopedia of Latent Anomalies (Level 21+)")
         st.markdown("""
-        **Shocking Discoveries:** High-fidelity visualizations of the hidden variables driving the 
-        neural dream. These plots reveal the *Event Horizons*, *Topological Tears*, and *optimization 
+        **Shocking Discoveries:** High-fidelity visualizations of the hidden variables driving the
+        neural dream. These plots reveal the *Event Horizons*, *Topological Tears*, and *optimization
         geodesics* that normally remain invisible in the high-dimensional Hilbert space.
         """)
 
@@ -4369,7 +4369,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
 
         st.subheader("🌋 Converged Latent Blooms (Final States)")
         st.markdown("These 8 final plots represent the fully converged, hazy state of the neural memory field.")
-        
+
         # Unique technical descriptions for the 8 latent blooms
         bloom_desc = [
             "Bloom 1: Represents SSM hidden state convergence, where the Selective State Space reaches a stable contextual representation.",
@@ -4381,13 +4381,13 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             "Bloom 7: Visualizes the Multi-determinant overlap field, where different Slater determinants interfere to capture correlation.",
             "Bloom 8: Highlights Symmetry-breaking features in the latent space that reflect the physical underlying geometry."
         ]
-        
+
         bloom_row1 = st.columns(2)
         bloom_row2 = st.columns(2)
         bloom_row3 = st.columns(2)
         bloom_row4 = st.columns(2)
         all_bloom_cols = bloom_row1 + bloom_row2 + bloom_row3 + bloom_row4
-        
+
         for i, col in enumerate(all_bloom_cols):
             with col:
                 seed = master_seed + 100 + i
@@ -4399,11 +4399,11 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.divider()
         st.subheader("💎 The Master Latent Dimension Bloom")
         st.markdown("""
-        **The Final Synthesis:** This high-fidelity visualization represents the union of the 
-        Wavefunction Manifold and the Selective State Space (SSM) hidden dimensions. 
+        **The Final Synthesis:** This high-fidelity visualization represents the union of the
+        Wavefunction Manifold and the Selective State Space (SSM) hidden dimensions.
         It is the 'Singularity' of the neural quantum state.
         """)
-        
+
         # Render the Master Bloom (passing the solver if initialized)
         solver_ref = st.session_state.solver_3d if st.session_state.solver_3d else None
         step_cnt = solver_ref.step_count if solver_ref else 0
@@ -4414,10 +4414,10 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.divider()
         st.subheader("🔭 Multimodal Latent Projections")
         st.markdown("""
-        **Analytical Decompositions:** These specialized views isolate individual 
+        **Analytical Decompositions:** These specialized views isolate individual
         physical components from the latent state.
         """)
-        
+
         col_p1, col_p2, col_p3 = st.columns(3)
         with col_p1:
             fig_f = plot_electron_localization_function(_solver=solver_ref, seed=master_seed)
@@ -4431,7 +4431,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             fig_b = plot_electron_current_flux(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_b, help_text="Electron Current Flux streamlines. Visualizes the probability current density derived from the wavefunction phase/gradient.")
             st.caption("Topological current flux.")
-        
+
         col_p4, col_p5, col_p6 = st.columns(3)
         with col_p4:
             fig_e = plot_quantum_stress_tensor(_solver=solver_ref, seed=master_seed)
@@ -4445,7 +4445,7 @@ elif page == "🎨 Latent Dream Memory 🖼️":
             fig_o = plot_hartree_exchange_density(_solver=solver_ref, seed=master_seed)
             render_nqs_plot(fig_o, help_text="Hartree-Exchange Density. A map of the mean-field interaction between electrons, isolating the classically-derived potential components.")
             st.caption("Mean-Field Interaction Field.")
-        
+
         col_p7, col_p8, col_px3 = st.columns(3)
         with col_p7:
             fig_fh = plot_feynman_hellmann_force(_solver=solver_ref, seed=master_seed)
@@ -4478,20 +4478,20 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.subheader("🔱 THE GRAND UNIFIED FIELD (Conditional Topology)")
         st.markdown(r"""
         **The 60th Dimension (Master Plot):** A 100% Truthful, Scientific Visualization of the "Pilot Wave" Dynamics.
-        
+
         This plot represents the **exact Quantum Force Field** acting on a single electron:
-        
+
         $$
         \mathbf{F}(\mathbf{r}) = \nabla \log \Psi(\mathbf{r})
         $$
-        
+
         It visualizes the "Pilot Wave" dynamics that drive the MCMC sampler to discover the ground state, conditional on the frozen positions of all other electrons (Environment).
-        
+
         *   **Glassy Isosurface:** The conditional probability density cloud $P(\mathbf{r}_1 | \mathbf{r}_{env})$.
         *   **Glowing Cones:** The Quantum Force Vector Field $\mathbf{F}(\mathbf{r})$.
         *   **Color:** The strength of the local force gradient.
         """)
-        
+
         fig_omega = plot_grand_unified_field(_solver=solver_ref, seed=master_seed + 777)
         render_nqs_plotly(fig_omega, help_text="THE GRAND UNIFIED FIELD. The Master Visualization of the Neural Quantum State. It combines the Conditional Probability Density (Isosurface) with the exact Quantum Force Vector Field (Cones) derived from the Neural Backflow gradients. This is the 'Pilot Wave' that guides the simulation.")
         st.caption("🌌 Grand Unified Field — Pilot Wave Dynamics [100% Real Physics]")
@@ -4502,11 +4502,11 @@ elif page == "🎨 Latent Dream Memory 🖼️":
         st.divider()
         st.subheader("🌌 The Complete 20-Level Physics Atlas")
         st.markdown("""
-        **Every level of the engine, visualized.** Each plot below is a latent field fingerprint 
-        of the underlying physics at that level — from the raw Coulomb potential well (Level 1) 
+        **Every level of the engine, visualized.** Each plot below is a latent field fingerprint
+        of the underlying physics at that level — from the raw Coulomb potential well (Level 1)
         to the relativistic spin-orbit splitting (Level 17).
         """)
-        
+
         # --- Row 1: Levels 1, 2, 3 ---
         st.markdown("##### ⚡ Phase I — Foundations (Levels 1–3)")
         col_a1, col_a2, col_a3 = st.columns(3)
@@ -4615,31 +4615,3 @@ st.sidebar.caption("The Schrödinger Dream v4.0 (Phase 4 — Nobel Territory)")
 st.sidebar.caption("Beyond FermiNet — SSM-Backflow Engine")
 st.sidebar.caption(f"Device: {'CUDA' if torch.cuda.is_available() else 'CPU'}")
 st.sidebar.caption("Levels 1-20 Implemented — Complete Engine")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
