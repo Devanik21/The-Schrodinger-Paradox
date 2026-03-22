@@ -199,7 +199,10 @@ class DeepBackflowNet(nn.Module):
 
         TODO: The O(N log N) complexity is theoretically attractive, but the overhead
         of sorting operations and sequential execution can offset this advantage for
-        small to medium systems. Performance profiling and potential kernel-level
+        small to medium systems. Furthermore, the explicit Python loop `for i in range(N_e):`
+        combined with `torch.argsort` inside results in a complexity of O(N_e^2 log N_e).
+        To achieve the claimed performance, the logic needs to be vectorized to eliminate
+        the outer Python loop. Performance profiling and potential kernel-level
         fusion for the SSM scan operations should be explored.
 
         For each electron i:
