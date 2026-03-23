@@ -205,9 +205,8 @@ class DeepBackflowNet(nn.Module):
         the outer Python loop. Performance profiling and potential kernel-level
         fusion for the SSM scan operations should be explored.
 
-        Note: For potential performance improvements, consider vectorizing the outer
-        loop over `N_e` using `torch.vmap`. This offers a PyTorch-native alternative
-        to writing custom CUDA kernels.
+        TODO: Consider exploring `torch.vmap` (vectorized map) to vectorize the
+        outer loop over `N_e` without requiring custom CUDA kernels.
 
         For each electron i:
           1. Get distances to all other electrons j → sort by proximity
