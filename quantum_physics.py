@@ -232,6 +232,12 @@ class MetropolisSampler:
 
     Implements adaptive step size to maintain ~50% acceptance rate.
     All walkers evolve in parallel for GPU efficiency.
+
+    [Jules-Patrol Maintainer Note]: The vectorized implementation of MCMC
+    here is highly efficient and elegantly exploits GPU parallelism.
+    As a future enhancement, it might be interesting to explore Hamiltonian
+    Monte Carlo (HMC) or Langevin dynamics to potentially reduce autocorrelation
+    times further, especially for heavier elements.
     """
     def __init__(self, n_walkers: int, n_electrons: int, device='cpu',
                  step_size: float = 0.2, target_acceptance: float = 0.5):
