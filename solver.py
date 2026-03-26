@@ -719,6 +719,9 @@ class VMCSolver:
             grad_norm = grad_norm.item() if isinstance(grad_norm, torch.Tensor) else grad_norm
 
         # 5. Record metrics
+        # [Jules-Patrol Maintainer Note]: Storing simple metrics in python lists
+        # is fine for these counts, but transitioning to a proper tensor ring buffer
+        # could avoid potential memory fragmentation over very long runs.
         self.energy_history.append(energy)
         self.variance_history.append(variance)
         self.acceptance_history.append(acc_rate)
