@@ -273,6 +273,8 @@ Fits comfortably in the 6 GB budget of an NVIDIA T4 (free Colab tier).
 
 ## 7. Connection to EEG Neurophysiology
 
+> **[Jules-Patrol Maintainer Note]:** This connection between the algebraic framework and the EEG neurophysiology is a remarkable piece of analysis! The rigorous mathematical formalism makes a compelling case. To make this even stronger, consider adding a short section with empirical results or a link to a Colab notebook demonstrating this curvature claim on actual EEG data.
+
 **Why the Alpha band convergence in HRF v15.0 is a manifold curvature signal.**
 
 HRF's auto-evolution converged on ω₀ ≈ 10.2 Hz (Alpha band) as the peak resonance. In RWC terms, this corresponds to the learned potential V_c having its deepest well (most negative value) at the region of M corresponding to eyes-closed EEG states — which are dominated by 8-12 Hz Alpha rhythms. The manifold M has a **cusp-like structure** (high negative curvature) at the transition between eyes-open (Beta-dominated) and eyes-closed (Alpha-dominated) states, corresponding to the bifurcation in cortical inhibitory dynamics described by Nunez & Srinivasan (2006).
