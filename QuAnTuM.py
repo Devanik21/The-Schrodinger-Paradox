@@ -2981,6 +2981,7 @@ elif page == "🔬 Training Dashboard":
                 error = abs(E_curr - system.exact_energy)
                 error_mha = error * 1000  # Convert to milli-Hartree
                 chem_acc = "✅" if error_mha < 1.6 else "❌"
+                # TODO: [Jules-Patrol] Consider caching the exact error conversion factors for clarity
                 col2.metric("Error |ΔE|", f"{error_mha:.2f} mHa",
                             delta=f"{chem_acc} {'CHEMICAL ACCURACY' if error_mha < 1.6 else ''}")
                 col3.metric("Error (kcal/mol)", f"{error * 627.509:.2f}")

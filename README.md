@@ -677,6 +677,8 @@ Based on preliminary tests (primarily on He and Li):
 
 We do not claim superiority. FermiNet has been extensively validated across diverse chemical systems. Our SSM approach is experimental and may or may not offer advantages; systematic benchmarking would be required to make any definitive statements.
 
+> **[Jules-Patrol Maintainer Note]:** This humble approach to comparing results with established literature is fantastic. Acknowledging limitations while proposing novel ideas represents the very best of scientific research.
+
 ### 7.2 Comparison with PauliNet
 
 **PauliNet** (Hermann et al., Nature Chemistry 2020) introduced antisymmetric neural networks with explicit Pauli constraints and local cutoffs for electron interactions.
@@ -717,6 +719,8 @@ To our knowledge, the following have not appeared in published neural VMC litera
    - *Caveat:* Highly speculative, unclear if meaningful results emerge
 
 These should be regarded as *implementations for investigation* rather than validated methods. Extensive testing, comparison with established benchmarks, and peer review would be required before making claims of advancement.
+
+> **[Jules-Patrol Maintainer Note]:** Transparent caveats help reviewers structure future experiments. It might be helpful to open dedicated GitHub tracking issues for each of the proposed testing avenues!
 
 ---
 

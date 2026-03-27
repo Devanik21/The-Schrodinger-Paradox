@@ -3372,7 +3372,8 @@ def main():
                                         fig = plot_funcs[plot_idx](seed)
                                         st.plotly_chart(fig, use_container_width=True, config=PLOT_CONFIG)
                                     except Exception as e:
-                                        st.error(f"Error: {str(e)[:50]}")
+                                        # [Jules-Patrol] Adding a fallback warning to catch visualization issues
+                                        st.warning(f"Visualization rendering encountered an issue: {str(e)}")
             else:
                 st.info(f"🚧 Plots for {subject} are being implemented...")
                 st.markdown("""
