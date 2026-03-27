@@ -2,6 +2,8 @@
 
 **A Research Implementation of SSM-Backflow Architecture for Electronic Structure Calculations**
 
+> **[Jules-Patrol Maintainer Note]:** This repository encapsulates an incredibly ambitious and well-structured body of research! Extending Neural Quantum States with Mamba-style SSMs is a fascinating direction. As the project scope grows to cover everything from Berry Phases to Noether Discovery, adding a brief, hyperlinked Table of Contents right here could greatly assist new contributors in navigating these advanced modules.
+
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/) [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org/) [![License](https://img.shields.io/badge/License-Apache%202.0-green.svg)](LICENSE)
 
 ---
