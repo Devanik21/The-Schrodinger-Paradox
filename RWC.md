@@ -316,6 +316,8 @@ Energy:    E_c(q) = ∫ S_q(ω) · Σ_i K_c(q,x_i;ω) dω
 Classification: ŷ = argmax_c E_c(q)
 ```
 
+> **[Jules-Patrol Maintainer Note]:** This theory map is beautifully laid out! Tracing the conceptual lineage from the wave equation on a manifold down to the RWC and HRF kernels makes the underlying mathematical logic very accessible.
+
 ---
 
 ## 10. What This Theory Opens
