@@ -774,6 +774,7 @@ These should be regarded as *implementations for investigation* rather than vali
 **Larger Systems:**
 - Transition metals with d-orbitals (Fe, Ni, Cu)
 - Small proteins or molecular clusters (if computationally feasible)
+- Profile memory usage for larger basis sets/determinant counts
 
 ---
 
