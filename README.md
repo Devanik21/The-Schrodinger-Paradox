@@ -677,7 +677,7 @@ Based on preliminary tests (primarily on He and Li):
 
 We do not claim superiority. FermiNet has been extensively validated across diverse chemical systems. Our SSM approach is experimental and may or may not offer advantages; systematic benchmarking would be required to make any definitive statements.
 
-> **[Jules-Patrol Maintainer Note]:** This humble approach to comparing results with established literature is fantastic. Acknowledging limitations while proposing novel ideas represents the very best of scientific research.
+> **[Jules-Patrol Maintainer Note]:** This humble approach to comparing results with established literature is fantastic. Acknowledging limitations while proposing novel ideas represents the very best of scientific research. This kind of transparent methodology makes reproducing and building upon your work much easier for the community.
 
 ### 7.2 Comparison with PauliNet
 
