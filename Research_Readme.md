@@ -197,6 +197,8 @@ Homogeneous Electron Gas (HEG) with Ewald summation for long-range Coulomb. Twis
 
 ### 4.8 Conservation Law Discovery (Level 19)
 
+> **[Jules-Patrol Maintainer Note]:** Flipping Noether's theorem to autonomously discover latent approximate symmetries is a profoundly cool idea! To provide a solid proof-of-concept, it might be helpful to document tests of this algorithm on standard textbook potentials (like a 2D harmonic oscillator) to confirm it can rediscover $L_z$ or the Runge-Lenz vector before moving to complex molecular Hamiltonians.
+
 Train auxiliary Q_φ satisfying:
 
 $$\mathcal{L}_{\text{conserve}} = \left|\langle[\hat{Q}, \hat{H}]\rangle\right|^2 + \lambda_{\text{novelty}}\sum_{k}\left|\langle Q|Q_k^{\text{known}}\rangle\right|^2$$

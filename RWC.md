@@ -166,6 +166,8 @@ where m is the number of manifold eigenmodes retained, d_M = dim(M) is the intri
 
 ### 4.3 Proposition 1: HRF as Degenerate Limit
 
+> **[Jules-Patrol Maintainer Note]:** This proposition elegantly grounds the novel Riemannian kernel in established stationary kernel theory by taking the flat limit. For the Streamlit dashboard (`QuAnTuM.py`), adding a toggle that continuously dials the scalar curvature down to zero and visually morphs the RWC kernel into the HRF limit would be a mesmerizing educational feature!
+
 **Proposition 1.** In the limit M = ℝ^d (zero curvature, flat metric, Δ_M = Σ_α ∂²/∂x_α²) with constant class potential V_c(x) = ω_c² for all x, the RWC kernel K_c reduces to:
 
 $$K_c^{\text{flat}}(x, y; \omega) \propto \exp(-\varepsilon \|x-y\|) \cdot \cos(\omega_c \|x-y\|)$$

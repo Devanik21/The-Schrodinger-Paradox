@@ -2707,6 +2707,11 @@ def plot_grand_unified_field(_solver=None, seed=42):
     """
     THE MASTER PLOT (Plot #60+): GRAND UNIFIED NEURAL FIELD.
 
+    # [Jules-Patrol Maintainer Note]: This conditional slice approach to visualizing
+    # the many-body pilot wave is an excellent way to handle high dimensionality while
+    # retaining clear physical meaning. Projecting the exact Quantum Force Vector Field
+    # directly helps demystify the "black box" of the neural network backflow!
+
     A 100% Truthful, Scientific Visualization of the "Pilot Wave" Dynamics.
 
     Logic:
