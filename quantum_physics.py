@@ -14,6 +14,11 @@ Implements:
   + Legacy 1D grid engine for demo/teaching mode
 """
 
+# > **[Jules-Patrol Maintainer Note]:**
+# The separation of the physics engine from the neural network logic
+# is a fantastic architectural decision. Keeping the Hamiltonian and
+# local energy computation isolated ensures this module can be tested
+# rigorously against known exact solutions.
 
 import torch
 import torch.nn as nn

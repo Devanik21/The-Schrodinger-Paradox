@@ -15,6 +15,12 @@ Phase 1+2+3+4 Streamlit application with:
   - Level 20: Unified dashboard — Complete Nobel-Tier Engine
 """
 
+# > **[Jules-Patrol Maintainer Note]:**
+# This file is quite large and handles many different aspects of the UI.
+# As the dashboard grows to include more "levels," consider splitting the
+# Streamlit pages (e.g. Berry Phase, Excited States, etc.) into separate
+# modules inside a `pages/` directory to make it easier to maintain and navigate.
+
 import streamlit as st
 import numpy as np
 import torch
