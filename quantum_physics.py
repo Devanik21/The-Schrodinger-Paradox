@@ -210,7 +210,7 @@ def compute_potential_energy(r_electrons: torch.Tensor, system: MolecularSystem,
     # Use upper triangle to avoid double counting
     mask_ee = torch.triu(torch.ones(N_e, N_e, device=device), diagonal=1).bool()
     r_ee_upper = r_ee[:, mask_ee]  # [N_w, N_e*(N_e-1)/2]
-    # [Jules-Patrol] Note: The epsilon addition here avoids divisions by zero,
+    # > **[Jules-Patrol Maintainer Note]:** The epsilon addition here avoids divisions by zero,
     # ensuring numerical stability without impacting physical calculations substantially.
     v_ee = torch.sum(1.0 / (r_ee_upper + 1e-8), dim=1) if r_ee_upper.shape[1] > 0 else torch.zeros(N_w, device=device)
 
@@ -235,7 +235,7 @@ class MetropolisSampler:
     Implements adaptive step size to maintain ~50% acceptance rate.
     All walkers evolve in parallel for GPU efficiency.
 
-    [Jules-Patrol Maintainer Note]: The vectorized implementation of MCMC
+    > **[Jules-Patrol Maintainer Note]:** The vectorized implementation of MCMC
     here is highly efficient and elegantly exploits GPU parallelism.
     As a future enhancement, it might be interesting to explore Hamiltonian
     Monte Carlo (HMC) or Langevin dynamics to potentially reduce autocorrelation
