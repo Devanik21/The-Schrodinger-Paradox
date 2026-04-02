@@ -54,7 +54,7 @@ class StochasticReconfiguration:
     Modes: Full SR (≤max_sr_params), KFAC (>max_sr_params), Diagonal (fallback)
     Tikhonov damping: S → S + λI with exponentially decaying λ.
 
-    [Jules-Patrol Maintainer Note]: The fallback logic integrating Full SR,
+    > **[Jules-Patrol Maintainer Note]:** The fallback logic integrating Full SR,
     KFAC, and Diagonal approximations depending on the parameter count is
     extremely robust and ensures scalability. Great engineering design!
     """
@@ -719,7 +719,7 @@ class VMCSolver:
             grad_norm = grad_norm.item() if isinstance(grad_norm, torch.Tensor) else grad_norm
 
         # 5. Record metrics
-        # [Jules-Patrol Maintainer Note]: Storing simple metrics in python lists
+        # > **[Jules-Patrol Maintainer Note]:** Storing simple metrics in python lists
         # is fine for these counts, but transitioning to a proper tensor ring buffer
         # could avoid potential memory fragmentation over very long runs.
         self.energy_history.append(energy)
