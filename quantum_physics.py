@@ -379,7 +379,7 @@ def compute_local_energy(log_psi_func, r_electrons: torch.Tensor,
     # Potential energy
     E_pot = compute_potential_energy(r_electrons.detach(), system, device)
 
-    # TODO: In cases of poor initialization or near nodes of the trial wavefunction,
+    # > **[Jules-Patrol Maintainer Note]:** TODO: In cases of poor initialization or near nodes of the trial wavefunction,
     # the local energy E_L can exhibit extreme variance explosions. We might want
     # to consider adding a more robust statistical clipping mechanism here (e.g. median
     # absolute deviation filtering) rather than just clamping NaNs, to prevent instability.
