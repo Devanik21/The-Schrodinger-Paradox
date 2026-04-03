@@ -797,7 +797,7 @@ class ExcitedStateSolver:
     Key insight: Var(E_L) = 0 for exact eigenstates. The variance term
     drives toward true eigenfunctions (Umrigar 2007), not just low-energy.
 
-    **[Jules-Patrol Maintainer Note]:** TODO: The variance penalty term β·Var(E_L)_k is highly non-linear and
+    > **[Jules-Patrol Maintainer Note]:** TODO: The variance penalty term β·Var(E_L)_k is highly non-linear and
     susceptible to instability from outliers. Further investigation into robust
     estimators (e.g., median absolute deviation) or clipping strategies
     for the variance component is recommended for more complex molecules.
