@@ -203,7 +203,7 @@ class DeepBackflowNet(nn.Module):
         """
         Level 11: O(N log N) SSM-Backflow aggregation (NOVEL).
 
-        TODO: The O(N log N) complexity is theoretically attractive, but the overhead
+        > **[Jules-Patrol Maintainer Note]:** TODO: The O(N log N) complexity is theoretically attractive, but the overhead
         of sorting operations and sequential execution can offset this advantage for
         small to medium systems. Furthermore, the explicit Python loop `for i in range(N_e):`
         combined with `torch.argsort` inside results in a complexity of O(N_e^2 log N_e).
