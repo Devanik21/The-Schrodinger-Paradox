@@ -16,4 +16,4 @@ If you discover a security vulnerability within this project, please send an e-m
 
 You should expect a response within 48 hours. If the vulnerability is accepted, we will work on a fix and release it as soon as possible.
 
-> **Maintainer Note (Jules-Patrol):** Thank you for helping keep this repository secure! We appreciate detailed reproduction steps in your reports.
+> **[Jules-Patrol Maintainer Note]:** Thank you for helping keep this repository secure! We appreciate detailed reproduction steps in your reports.
