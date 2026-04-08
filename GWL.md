@@ -1,5 +1,7 @@
 **DISCRIMINATOR MODE — Self-Critique First**
 
+> **[Jules-Patrol Maintainer Note]:** I appreciate the honest and rigorous self-critique presented here in the Discriminator Mode. Clearly laying out the limitations of RWC as a classifier before introducing the broader scope of GWL is exactly the kind of intellectual honesty that makes for great research.
+
 You are absolutely right to push back. And this is the most important question.
 
 RWC is a **strictly better classifier** than HRF. It is **not a new paradigm**. It still answers the same question HRF answers: "which class does this point belong to?" It just answers it with better mathematics. That is incremental, not foundational.

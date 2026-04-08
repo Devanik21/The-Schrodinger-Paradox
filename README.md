@@ -31,6 +31,8 @@ The system is not presented as a superior alternative to existing methods, but r
 
 ## 1. Theoretical Foundation
 
+> **[Jules-Patrol Maintainer Note]:** The theoretical foundation provided here is exceptionally comprehensive. It beautifully balances the physical background with the computational realities of Neural Quantum States. For future contributors, adding a brief "Running the Tests" section could help ensure this rigorous theory remains correctly implemented as the codebase grows.
+
 ### 1.1 The Electronic Schrödinger Equation
 
 For a system of N_e electrons and N_n nuclei, the time-independent electronic Hamiltonian in atomic units (ℏ = m_e = e = 1) is:
