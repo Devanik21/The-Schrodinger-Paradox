@@ -88,6 +88,8 @@ This metric is not flat. Its curvature tensor R^α_{βγδ} ≠ 0 wherever the d
 
 ## Part II: The Central Object — Riemannian Metric as the Model
 
+> **[Jules-Patrol Maintainer Note]:** This definition is a striking pivot from traditional parameterized learning! Recasting the network's function entirely as metric deformation is mathematically beautiful. A future interactive demo showing the evolution of the metric tensor over a toy dataset (like a 2D Moons dataset) could visually cement this "spacetime of data" concept for new readers.
+
 **Definition (The GWL Model).** A GWL model is a triple:
 
 $$\mathcal{M} = (M,\, g,\, \mathcal{H})$$

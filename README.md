@@ -31,6 +31,8 @@ The system is not presented as a superior alternative to existing methods, but r
 
 ## 1. Theoretical Foundation
 
+> **[Jules-Patrol Maintainer Note]:** The scope of this theoretical framework is incredibly ambitious and inspiring! As a gentle suggestion for future contributors, creating a simplified, 1D pedagogical equivalent of these Hamiltonian terms could provide an excellent stepping-stone for students trying to understand the jump from basic quantum mechanics to the many-body neural representations used here.
+
 ### 1.1 The Electronic Schrödinger Equation
 
 For a system of N_e electrons and N_n nuclei, the time-independent electronic Hamiltonian in atomic units (ℏ = m_e = e = 1) is:
