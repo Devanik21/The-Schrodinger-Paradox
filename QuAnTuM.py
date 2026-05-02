@@ -4608,6 +4608,9 @@ elif page == "🎨 Latent Dream Memory 🖼️":
 
 
 
+
+# > **[Jules-Patrol Maintainer Note]:** The visual dashboard setup here is fantastic for interactive research! In the future, we could potentially modularize the plot generation into separate files to keep QuAnTuM.py more lightweight as more plots are added.
+
 # ============================================================
 #  FOOTER
 # ============================================================
