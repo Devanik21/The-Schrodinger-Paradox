@@ -34,7 +34,7 @@ class MambaBlock(nn.Module):
     exponential decay of correlation: eigenvalues of Ā control memory,
     matching the physical e^{-αr} decay of electron correlation.
 
-    [Jules-Patrol Maintainer Note]: Applying SSMs like Mamba to model
+    > **[Jules-Patrol Maintainer Note]:** Applying SSMs like Mamba to model
     the spatial decay of electron correlation is an exceptionally
     innovative architectural choice. It elegantly bridges sequence
     modeling advancements with many-body physics constraints.

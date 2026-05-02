@@ -746,6 +746,10 @@ These should be regarded as *implementations for investigation* rather than vali
 
 ### 8.2 Future Directions
 
+
+> **[Jules-Patrol Maintainer Note]:** TODO: Consider setting up automated testing pipelines (like GitHub Actions) to run these systematic benchmarks on every major pull request to prevent regressions in accuracy or wall-clock time!
+
+
 **Systematic Benchmarking:**
 - Run FermiNet vs SSM-backflow on identical hyperparameters/systems
 - Measure wall-clock time, energy accuracy, variance reduction
