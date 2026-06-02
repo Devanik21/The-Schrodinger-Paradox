@@ -93,6 +93,7 @@ class MambaBlock(nn.Module):
 # ============================================================
 # 🔬 DEEP BACKFLOW + SSM-BACKFLOW (Levels 7 + 11)
 # ============================================================
+# > **[Jules-Patrol Maintainer Note]:** The integration of SSM-Backflow here is a highly novel approach to solving the O(N^2) scaling bottleneck. Consider adding explicit tests to measure the wall-clock performance difference between dense and SSM aggregation for larger molecules (N_e > 6).
 class DeepBackflowNet(nn.Module):
     """
     Level 7 + 11: Deep Backflow with SSM-Backflow Option.
