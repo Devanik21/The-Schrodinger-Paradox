@@ -41,6 +41,7 @@ from neural_dream import (
 # ============================================================
 # 🧮 STOCHASTIC RECONFIGURATION OPTIMIZER (Level 8)
 # ============================================================
+# > **[Jules-Patrol Maintainer Note]:** Implementing KFAC and Tikhonov damping in standard PyTorch without custom CUDA kernels is impressive! A small future enhancement could be adding a debug toggle to log the condition number of the Fisher matrix before inversion.
 class StochasticReconfiguration:
     """
     Level 8: Natural Gradient Descent on the Wavefunction Manifold.
